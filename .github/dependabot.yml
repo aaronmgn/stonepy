@@ -8,6 +8,15 @@ updates:
       python-dependencies:
         patterns:
           - "*"
+    ignore:
+      # Runtime constraints are published to downstream users; a major bump would bust the
+      # <major caps and is adopted deliberately by a maintainer, not opened automatically.
+      - dependency-name: "httpx"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "pydantic"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "simplejson"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

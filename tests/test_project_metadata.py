@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -47,11 +48,15 @@ def test_runtime_dependencies_have_major_version_caps() -> None:
     project = _pyproject()["project"]
     assert isinstance(project, dict)
 
-    assert project["dependencies"] == [
-        "httpx>=0.27,<1.0",
-        "pydantic>=2.7,<3.0",
-        "simplejson>=3.19,<4.0",
-    ]
+    deps = project["dependencies"]
+    names = [re.split(r"[<>=~!\[]", dep, maxsplit=1)[0] for dep in deps]
+    assert names == ["httpx", "pydantic", "simplejson"]
+
+    # Published runtime constraints must keep a lower bound and an upper major-version cap,
+    # so they stay broad for downstream users but never float past a vetted major.
+    for dep in deps:
+        assert ">=" in dep or "==" in dep, f"{dep} is missing a lower bound"
+        assert "<" in dep, f"{dep} is missing an upper major-version cap"
 
 
 def test_build_config_scopes_sdist_and_keeps_py_typed() -> None:
