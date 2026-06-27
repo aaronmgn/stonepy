@@ -19,7 +19,17 @@ class StoneXAPIError(StoneXError):
     """HTTP or API business-error response with endpoint context.
 
     `raw_body` is retained for diagnostics and may contain sensitive response data.
-    It is intentionally omitted from `str()` and redacted from `repr()`.
+    It is intentionally omitted from both `str()` and `repr()`.
+
+    Attributes:
+        http_status: The HTTP status code of the failing response.
+        error_code: The StoneX ``ErrorCode`` from the response body, if present.
+        error_message: The human-readable error message from the response, if present.
+        method: The HTTP method of the request that failed.
+        path: The request path that failed.
+        raw_body: The raw response body, retained for diagnostics (may be sensitive).
+        headers: The response headers. When this error is raised by the client the
+            secret-named headers are already redacted, and `repr()` redacts them again.
     """
 
     def __init__(
@@ -45,6 +55,7 @@ class StoneXAPIError(StoneXError):
         )
 
     def __repr__(self) -> str:
+        """Return a repr with secret headers redacted and the raw body omitted."""
         return (
             f"{type(self).__name__}(http_status={self.http_status}, "
             f"error_code={self.error_code}, method={self.method!r}, "
@@ -53,7 +64,10 @@ class StoneXAPIError(StoneXError):
 
 
 class AuthenticationError(StoneXAPIError):
-    """Invalid credentials (ErrorCode 4010) or unrecoverable 401."""
+    """Invalid credentials (ErrorCode 4010 or 4011) or an unrecoverable HTTP 401.
+
+    Carries the same attributes as [`StoneXAPIError`][stonepy.StoneXAPIError].
+    """
 
 
 class ResponseParseError(StoneXError):
@@ -61,6 +75,14 @@ class ResponseParseError(StoneXError):
 
     `raw_body` is retained for diagnostics and may contain sensitive response data.
     It is intentionally omitted from `str()` and redacted from `repr()`.
+
+    Attributes:
+        phase: Where parsing failed - ``"decode"`` (invalid JSON) or ``"validate"``
+            (JSON that did not match the response model).
+        http_status: The HTTP status code of the response that failed to parse.
+        method: The HTTP method of the originating request.
+        path: The request path of the originating request.
+        raw_body: The raw response body, retained for diagnostics (may be sensitive).
     """
 
     def __init__(
@@ -83,6 +105,7 @@ class ResponseParseError(StoneXError):
         )
 
     def __repr__(self) -> str:
+        """Return a repr that reports the raw body's size instead of its contents."""
         return (
             f"{type(self).__name__}(phase={self.phase!r}, "
             f"http_status={self.http_status}, method={self.method!r}, path={self.path!r}, "
@@ -91,7 +114,14 @@ class ResponseParseError(StoneXError):
 
 
 class RateLimitError(StoneXAPIError):
-    """Rate-limit API error with an optional parsed retry_after delay."""
+    """Rate-limit API error (HTTP 429) with an optional parsed retry-after delay.
+
+    Extends [`StoneXAPIError`][stonepy.StoneXAPIError].
+
+    Attributes:
+        retry_after: Seconds to wait before retrying, parsed from the ``Retry-After``
+            header when the server supplies it; otherwise ``None``.
+    """
 
     def __init__(
         self,
@@ -120,8 +150,18 @@ class RateLimitError(StoneXAPIError):
 class OrderRejectedError(StoneXError):
     """Order business-status rejection with optional endpoint context.
 
-    `response` is retained for diagnostics and may contain sensitive response data.
-    It is intentionally omitted from `repr()`.
+    Raised when an order endpoint returns HTTP success but a business status that means the
+    order was rejected or blocked. `response` is retained for diagnostics and may contain
+    sensitive response data; it is intentionally omitted from `repr()`.
+
+    Attributes:
+        status: The order ``Status`` code that triggered the rejection.
+        status_reason: The ``StatusReason`` code, if the response supplied one.
+        reason: A human-readable reason, decoded from the status/reason codes.
+        response: The parsed response model or mapping (may be sensitive).
+        method: The HTTP method of the originating request, if known.
+        path: The request path of the originating request, if known.
+        http_status: The HTTP status code of the response, if known.
     """
 
     def __init__(
@@ -146,6 +186,7 @@ class OrderRejectedError(StoneXError):
         super().__init__(f"{endpoint}Order rejected: status={status} reason={reason!r}")
 
     def __repr__(self) -> str:
+        """Return a repr that omits the retained response payload."""
         return (
             f"{type(self).__name__}(status={self.status}, "
             f"status_reason={self.status_reason}, reason={self.reason!r}, "
@@ -154,7 +195,13 @@ class OrderRejectedError(StoneXError):
 
 
 class TransportError(StoneXError):
-    """Network-level failure (connect/read/timeout)."""
+    """Network-level failure (connect, read, or timeout) after retries are exhausted.
+
+    Attributes:
+        method: The HTTP method of the request that failed.
+        path: The request path that failed.
+        attempt: The zero-based retry attempt on which the failure was raised.
+    """
 
     def __init__(self, message: str, *, method: str, path: str, attempt: int) -> None:
         self.method = method
@@ -163,6 +210,7 @@ class TransportError(StoneXError):
         super().__init__(f"{method} {path} transport failed on attempt {attempt}: {message}")
 
     def __repr__(self) -> str:
+        """Return a concise repr of the failed request and attempt count."""
         return (
             f"{type(self).__name__}(method={self.method!r}, path={self.path!r}, "
             f"attempt={self.attempt})"

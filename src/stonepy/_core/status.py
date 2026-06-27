@@ -10,12 +10,29 @@ from typing import TypeAlias
 
 @dataclass(frozen=True)
 class BusinessStatus:
+    """A decoded business-status decision for an order response.
+
+    Attributes:
+        is_rejection: Whether the status means the order was rejected or blocked.
+        reason: A human-readable rejection reason, when one is known.
+    """
+
     is_rejection: bool
     reason: str | None = None
 
 
 StatusDecision: TypeAlias = BusinessStatus | bool | str | None
+"""A decoder's verdict for a status/reason pair.
+
+Either a [`BusinessStatus`][stonepy._core.status.BusinessStatus], a bare ``bool`` (rejected or
+not), a ``str`` (rejected, with that reason), or ``None`` (not a rejection).
+"""
+
 StatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
+"""A callable mapping ``(status, status_reason)`` to a
+[`StatusDecision`][stonepy._core.status.StatusDecision]. Override
+``ClientConfig.status_decoder`` to customize order-rejection semantics.
+"""
 
 
 _OK_STATUS_REASONS = {None, 1}
@@ -30,6 +47,14 @@ _REJECTION_STATUSES = {5, 10}
 
 
 def default_status_decoder(status: int, status_reason: int | None) -> StatusDecision:
+    """Decode an order ``Status``/``StatusReason`` pair into a rejection decision.
+
+    Treats only ``Rejected`` (5) and ``RedCard`` (10) as rejections; every other lifecycle
+    state is a normal outcome. The reason is resolved from the ``StatusReason`` enums when a
+    meaningful reason is present (not ``None`` and not the generic OK code ``1``); otherwise it
+    falls back to the status name. Kept deliberately narrow so a working order is never mistaken
+    for a rejection (which could prompt a caller to resubmit and double up).
+    """
     if status not in _REJECTION_STATUSES:
         return BusinessStatus(False)
     reason = (

@@ -25,6 +25,14 @@ def _ensure_timezone_aware(value: datetime) -> datetime:
 
 
 def parse_wcf_date(value: Any) -> datetime | None:
+    """Parse a WCF ``/Date(ms)/`` string (or epoch-ms int, or datetime) to an aware datetime.
+
+    Returns ``None`` for ``None`` and for the WCF sentinel minimum value (``DateTime.MinValue``).
+
+    Raises:
+        ValueError: If the value is not a recognizable WCF date, is out of range, or is a
+            naive datetime.
+    """
     if value is None:
         return None
     if isinstance(value, datetime):
@@ -49,6 +57,11 @@ def parse_wcf_date(value: Any) -> datetime | None:
 
 
 def format_wcf_date(value: datetime | None) -> str | None:
+    """Format a timezone-aware datetime as a WCF ``/Date(ms)/`` string (``None`` passes through).
+
+    Raises:
+        ValueError: If *value* is a naive datetime.
+    """
     if value is None:
         return None
     aware_value = _ensure_timezone_aware(value)
@@ -66,6 +79,7 @@ StoneXDateTime: TypeAlias = Annotated[
     BeforeValidator(parse_wcf_date),
     PlainSerializer(format_wcf_date, when_used="always"),
 ]
+"""Pydantic datetime field type that parses and serializes the WCF ``/Date(ms)/`` format."""
 
 
 def _reject_nonfinite_decimals(value: Any) -> None:
@@ -86,11 +100,25 @@ def _reject_json_constant(value: str) -> NoReturn:
 
 
 def dumps(obj: Any) -> str:
+    """Serialize *obj* to compact JSON, preserving ``Decimal`` precision.
+
+    Raises:
+        ValueError: If the object contains non-finite ``Decimal`` or float values, which are
+            not valid JSON.
+    """
     _reject_nonfinite_decimals(obj)
     return simplejson.dumps(obj, use_decimal=True, allow_nan=False, separators=(",", ":"))
 
 
 def loads(text: str | bytes) -> Any:
+    """Parse JSON, decoding floating-point numbers as ``Decimal`` and rejecting non-finite values.
+
+    Integer literals remain ``int``; only numbers with a decimal point or exponent become
+    ``Decimal``.
+
+    Raises:
+        ValueError: If the input is not valid JSON or contains ``NaN``/``Infinity``.
+    """
     if isinstance(text, bytes):
         text = text.decode("utf-8")
     return json.loads(text, parse_float=Decimal, parse_constant=_reject_json_constant)

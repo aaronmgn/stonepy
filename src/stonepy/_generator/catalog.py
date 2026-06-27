@@ -180,6 +180,11 @@ def assert_allowed_unresolved(
     *,
     allowed: set[str] | frozenset[str] = DEFAULT_ALLOWED_UNRESOLVED,
 ) -> None:
+    """Raise if the catalog has unresolved references outside the *allowed* allowlist.
+
+    Raises:
+        ValueError: Listing every unexpected unresolved reference.
+    """
     unexpected = sorted(catalog.unresolved - set(allowed))
     if unexpected:
         raise ValueError("unexpected unresolved catalog references: " + ", ".join(unexpected))
@@ -192,6 +197,13 @@ def assert_catalog_frozen(
     version_file: Path = CATALOG_VERSION_FILE,
     git_sha: str | None = None,
 ) -> None:
+    """Raise unless the catalog matches the pinned git SHA and record counts.
+
+    Guards against regenerating from a drifted or dirty catalog checkout.
+
+    Raises:
+        ValueError: On a SHA mismatch, a dirty catalog tree, or a record-count mismatch.
+    """
     expected_sha, expected_counts = _read_catalog_version(version_file)
     actual_sha = git_sha if git_sha is not None else _catalog_git_sha(root)
     if actual_sha != expected_sha:

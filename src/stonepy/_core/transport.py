@@ -1,4 +1,4 @@
-"""HTTP transport: shared request building + sync send (async via unasync)."""
+"""HTTP transport: shared request building plus hand-written sync and async send classes."""
 
 from __future__ import annotations
 
@@ -149,6 +149,16 @@ def _resolve_query_template(
 
 @dataclass(repr=False)
 class Request:
+    """A fully resolved HTTP request, ready for the transport to send.
+
+    Attributes:
+        method: The HTTP method.
+        url: The absolute request URL, with path placeholders already substituted.
+        headers: The request headers, including auth and user-agent.
+        params: The resolved query-string parameters.
+        content: The encoded request body, or ``None`` for bodyless requests.
+    """
+
     method: str
     url: str
     headers: dict[str, str]
@@ -156,6 +166,7 @@ class Request:
     content: bytes | None
 
     def __repr__(self) -> str:
+        """Return a repr with the URL query, headers, and body redacted."""
         content = "None" if self.content is None else f"<redacted {len(self.content)} bytes>"
         return (
             f"{type(self).__qualname__}(method={self.method!r}, "
@@ -175,6 +186,15 @@ def build_request(
     auth_headers: dict[str, str],
     user_agent: str,
 ) -> Request:
+    """Build a [`Request`][stonepy._core.transport.Request] from an endpoint spec and inputs.
+
+    Substitutes path and query templates, serializes query values (dropping ``None``),
+    encodes a JSON body when one is supplied, and merges auth and user-agent headers.
+
+    Raises:
+        ValueError: If a required path/template value is missing or ``None``, or if
+            unexpected path parameters are supplied.
+    """
     _assert_supported_param_locations(spec)
     path_template, separator, query_template = spec.path.partition("?")
     consumed_path_keys: set[str] = set()
@@ -233,6 +253,13 @@ def _assert_supported_param_locations(spec: EndpointSpec[Any]) -> None:
 
 
 class SyncTransport:
+    """Synchronous HTTP transport wrapping an ``httpx.Client``.
+
+    Construct it either from a [`ClientConfig`][stonepy.ClientConfig] (which supplies the base
+    URL, TLS, proxy, timeouts, and connection limits) or from explicit ``base_url``, ``verify``,
+    and ``timeout`` primitives. Mixing the two forms raises ``TypeError``.
+    """
+
     @overload
     def __init__(self, config: ClientConfig, /) -> None: ...
 
@@ -280,6 +307,7 @@ class SyncTransport:
         )
 
     def send(self, req: Request) -> httpx.Response:
+        """Send *req* and return the raw ``httpx.Response``."""
         return self._client.request(
             req.method,
             req.url,
@@ -289,10 +317,17 @@ class SyncTransport:
         )
 
     def close(self) -> None:
+        """Close the underlying HTTP client and its connection pool."""
         self._client.close()
 
 
 class AsyncTransport:
+    """Asynchronous HTTP transport wrapping an ``httpx.AsyncClient``.
+
+    The awaitable twin of [`SyncTransport`][stonepy._core.transport.SyncTransport], with the
+    same two construction forms.
+    """
+
     @overload
     def __init__(self, config: ClientConfig, /) -> None: ...
 
@@ -340,6 +375,7 @@ class AsyncTransport:
         )
 
     async def asend(self, req: Request) -> httpx.Response:
+        """Send *req* and return the raw ``httpx.Response``."""
         return await self._client.request(
             req.method,
             req.url,
@@ -349,4 +385,5 @@ class AsyncTransport:
         )
 
     async def aclose(self) -> None:
+        """Close the underlying async HTTP client and its connection pool."""
         await self._client.aclose()

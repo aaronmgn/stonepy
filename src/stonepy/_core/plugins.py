@@ -18,9 +18,13 @@ _FALLBACK_STONEPY_VERSION = "0.1.0"
 
 
 class _EntryPoint(Protocol):
+    """Structural type for an importlib entry point that loads a resource class."""
+
     name: str
 
-    def load(self) -> object: ...
+    def load(self) -> object:
+        """Import and return the object the entry point refers to."""
+        ...
 
 
 def load_plugin_resources(
@@ -31,6 +35,28 @@ def load_plugin_resources(
     entry_points: Iterable[_EntryPoint],
     stonepy_version: str | None = None,
 ) -> dict[str, type[BaseResource]]:
+    """Load resource plugins from *entry_points* into a name-to-class mapping.
+
+    A plugin whose name collides with a built-in resource is rejected unless listed in
+    *allow_overrides*. Plugins that fail to import or do not load a ``BaseResource`` subclass
+    are skipped with a warning, so one bad plugin cannot break the client.
+
+    Args:
+        enable: When ``False``, returns an empty mapping without scanning anything.
+        allow_overrides: Names permitted to shadow built-in resources.
+        known: The set of built-in resource names to guard against collisions.
+        entry_points: The discovered entry points to load.
+        stonepy_version: Version used to check each plugin's ``requires_stonepy``; defaults to
+            the installed version.
+
+    Returns:
+        A mapping of plugin name to resource class.
+
+    Raises:
+        ValueError: On a disallowed name collision, a duplicate plugin name, or an invalid or
+            unsatisfied ``requires_stonepy`` constraint (a non-string value, a malformed
+            requirement string, or a current version that fails the constraint).
+    """
     if not enable:
         return {}
 
@@ -68,6 +94,12 @@ def discover_plugin_resources(
     entry_points: Iterable[_EntryPoint] | None = None,
     stonepy_version: str | None = None,
 ) -> dict[str, type[BaseResource]]:
+    """Discover ``stonepy.resources`` entry points and load them.
+
+    A thin wrapper over [`load_plugin_resources`][stonepy._core.plugins.load_plugin_resources]
+    that supplies the installed entry points when *entry_points* is not given. Returns an empty
+    mapping when *enable* is ``False``.
+    """
     if not enable:
         return {}
     discovered = (

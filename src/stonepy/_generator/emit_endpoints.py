@@ -10,13 +10,18 @@ from pathlib import Path
 from typing import Any
 
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
-from stonepy._generator.render import BANNER, field_name, format_python
+from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
 __all__ = ["emit_all", "endpoint_spec_name", "render_binding", "target_module"]
 
 _VERSION_SUFFIX_RE = re.compile(r"\s+v\d+\s*$", re.IGNORECASE)
 _DEFAULT_VALUE_RE = re.compile(r"\bdefault\s+([^\s,;]+)", re.IGNORECASE)
 _PLACEHOLDER_RE = re.compile(r"\{([^{}]+)\}")
+# Some catalog descriptions trail off with this dangling cross-reference to a removed HTTP
+# service page; drop it so the generated docstring reads cleanly.
+_HTTP_SERVICE_FRAGMENT_RE = re.compile(
+    r"\s*For a more comprehensive order response,\s+see the HTTP service\s+\."
+)
 _TARGET_ALIASES = {
     "pricealert": "price_alert",
     "useraccount": "user_account",
@@ -44,6 +49,16 @@ _OPTIONAL_PARAM_OVERRIDES: dict[tuple[str, str], frozenset[str]] = {
     ("spread", "ListSpreadMarkets"): frozenset({"searchByMarketName", "searchByMarketCode"}),
     ("cfd", "ListCfdMarkets"): frozenset({"marketName", "marketCode"}),
 }
+
+
+def endpoint_summary(rec: EndpointRecord) -> str:
+    """Return a one-paragraph summary of an endpoint for use as a wrapper docstring."""
+
+    if rec.description:
+        text = _HTTP_SERVICE_FRAGMENT_RE.sub("", rec.description.strip()).strip()
+        if text:
+            return text
+    return f"Call the StoneX {rec.name} endpoint."
 
 
 def target_module(name: str | None) -> str:
@@ -241,6 +256,13 @@ def _binding(
 def _render_module(bindings: list[_Binding]) -> str:
     sorted_bindings = sorted(bindings, key=lambda binding: binding.spec_name)
     lines = _module_header(sorted_bindings)
+    target = sorted_bindings[0].rate_limit_bucket if sorted_bindings else "misc"
+    lines.insert(
+        1,
+        render_docstring(
+            f"Generated endpoint bindings for the StoneX CIAPI v2 {target} target.", indent=0
+        ),
+    )
     for index, binding in enumerate(sorted_bindings):
         if index:
             lines.append("\n\n")
@@ -346,6 +368,7 @@ def _wrapper_lines(binding: _Binding, *, is_async: bool) -> list[str]:
         f"{prefix} {function_name}(",
         ", ".join(signature_params),
         f") -> {binding.response_annotation}:\n",
+        render_docstring(endpoint_summary(binding.rec), indent=4),
     ]
 
     call = "ctx.ainvoke" if is_async else "ctx.invoke"
@@ -419,7 +442,13 @@ def _render_init(grouped: Mapping[str, list[_Binding]]) -> str:
     # function whose name matches a submodule (e.g. ``order``) would shadow that submodule in
     # the package namespace and break ``from stonepy._endpoints import order as _ep``.
     module_names = sorted(grouped)
-    lines = [BANNER, "from __future__ import annotations\n\n"]
+    lines = [
+        BANNER,
+        render_docstring(
+            "Generated StoneX CIAPI v2 endpoint binding modules, one per API target.", indent=0
+        ),
+        "from __future__ import annotations\n\n",
+    ]
     if module_names:
         lines.append(f"from . import {', '.join(module_names)}\n")
     lines.append("\n__all__ = [\n")

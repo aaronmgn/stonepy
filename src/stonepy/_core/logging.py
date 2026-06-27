@@ -14,12 +14,19 @@ class _DataclassInstance(Protocol):
 
 
 def redact(value: str) -> str:
+    """Return ``"***"`` for any non-empty string, leaving empty strings unchanged."""
     if not value:
         return value
     return "***"
 
 
 def safe_repr(obj: object, secret_keys: set[str] | None = None) -> str:
+    """Return a ``repr`` of *obj* with secret-named keys or fields replaced by ``"***"``.
+
+    Handles mappings and dataclass instances by redacting values whose key/field name matches
+    a default secret name (app key, password, session, ...) or one of the extra *secret_keys*;
+    other objects fall back to plain ``repr``.
+    """
     keys = _secret_keys(secret_keys)
 
     if isinstance(obj, Mapping):

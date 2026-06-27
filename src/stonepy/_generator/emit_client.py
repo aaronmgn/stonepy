@@ -9,7 +9,7 @@ from pathlib import Path
 
 from unasync import Rule, unasync_files  # type: ignore[import-untyped]
 
-from stonepy._generator.render import BANNER, field_name, format_python
+from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
 __all__ = ["emit_client"]
 
@@ -62,14 +62,17 @@ class _ResourceTarget:
 
     @property
     def class_name(self) -> str:
+        """The synchronous resource class name, for example ``MarketResource``."""
         return f"{_class_name(self.name)}Resource"
 
     @property
     def async_class_name(self) -> str:
+        """The asynchronous resource class name, for example ``AsyncMarketResource``."""
         return f"Async{_class_name(self.name)}Resource"
 
     @property
     def property_name(self) -> str:
+        """The snake_case client attribute name, for example ``user_account``."""
         normalized = field_name(self.name)
         if normalized is None:
             raise ValueError(f"invalid resource target name: {self.name!r}")
@@ -161,7 +164,13 @@ def _emit_resource_init(target: _ResourceTarget) -> None:
 
 
 def _render_resource_init(target: _ResourceTarget) -> str:
-    lines = [BANNER, "from __future__ import annotations\n\n"]
+    lines = [
+        BANNER,
+        render_docstring(
+            f"Synchronous and asynchronous {target.name} resource group classes.", indent=0
+        ),
+        "from __future__ import annotations\n\n",
+    ]
     lines.append("from stonepy._core.resource import BaseResource\n")
     for mixin in target.mixins:
         lines.append(
@@ -178,9 +187,20 @@ def _render_resource_init(target: _ResourceTarget) -> str:
 
     sync_bases = [f"_Sync{mixin.class_name[1:]}" for mixin in target.mixins]
     async_bases = [f"_Async{mixin.class_name[1:]}" for mixin in target.mixins]
-    lines.extend(_resource_class_lines(target.class_name, sync_bases))
+    prop = target.property_name
+    sync_doc = render_docstring(
+        f"Synchronous `{prop}` resource group; access it via `StoneXClient.{prop}`. "
+        "Each method maps to one StoneX CIAPI v2 endpoint.",
+        indent=4,
+    )
+    async_doc = render_docstring(
+        f"Asynchronous `{prop}` resource group; access it via `AsyncStoneXClient.{prop}`. "
+        "Each method is the awaitable twin of the synchronous resource's method.",
+        indent=4,
+    )
+    lines.extend(_resource_class_lines(target.class_name, sync_bases, sync_doc))
     lines.append("\n\n")
-    lines.extend(_resource_class_lines(target.async_class_name, async_bases))
+    lines.extend(_resource_class_lines(target.async_class_name, async_bases, async_doc))
     lines.append("\n\n__all__ = [\n")
     lines.append(f'    "{target.async_class_name}",\n')
     lines.append(f'    "{target.class_name}",\n')
@@ -204,16 +224,23 @@ def _alias_import(module_path: str, class_name: str, alias: str) -> str:
     return f"from {module_path} import (\n{inner}{noqa}\n)\n"
 
 
-def _resource_class_lines(class_name: str, mixin_bases: list[str]) -> list[str]:
+def _resource_class_lines(class_name: str, mixin_bases: list[str], docstring: str) -> list[str]:
+    # The class docstring keeps the body non-empty, so the aggregated resource needs no ``pass``.
     bases = [*mixin_bases, "BaseResource"]
     return [
         f"class {class_name}({', '.join(bases)}):\n",
-        "    pass\n",
+        docstring,
     ]
 
 
 def _render_resources_init(targets: list[_ResourceTarget]) -> str:
-    lines = [BANNER, "from __future__ import annotations\n\n"]
+    lines = [
+        BANNER,
+        render_docstring(
+            "Typed resource groups exposed as properties on the StoneX clients.", indent=0
+        ),
+        "from __future__ import annotations\n\n",
+    ]
     for target in targets:
         lines.append(f"from .{target.name} import {target.async_class_name}, {target.class_name}\n")
     exported = sorted(
@@ -229,6 +256,7 @@ def _render_resources_init(targets: list[_ResourceTarget]) -> str:
 def _render_client(targets: list[_ResourceTarget]) -> str:
     lines = [
         BANNER,
+        render_docstring("Synchronous and asynchronous StoneX CIAPI v2 client classes.", indent=0),
         "from __future__ import annotations\n\n",
         "from collections.abc import Awaitable, Callable\n",
         "from types import TracebackType\n\n",
@@ -261,12 +289,15 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
 def _client_helpers() -> list[str]:
     return [
         "def _missing_logon() -> tuple[str, str]:\n",
+        '    """Raise because no credentials were configured for session refresh."""\n',
         '    raise RuntimeError("session refresh is not configured")\n',
         "\n\n",
         "def _has_config_credentials(config: ClientConfig) -> bool:\n",
+        '    """Return whether the config carries the credentials needed to log on."""\n',
         "    return bool(config.username and config.password and config.app_key)\n",
         "\n\n",
         "def _logon_request(config: ClientConfig) -> ApiLogOnRequestDTO:\n",
+        '    """Build the logon request body from the configured credentials."""\n',
         "    return ApiLogOnRequestDTO(\n",
         "        UserName=config.username,\n",
         "        Password=config.password,\n",
@@ -278,6 +309,7 @@ def _client_helpers() -> list[str]:
         "def _config_logon(\n",
         "    ctx: CallContext, config: ClientConfig\n",
         ") -> Callable[[], tuple[str, str]]:\n",
+        '    """Return a synchronous logon callable, or a refusing stub if no credentials."""\n',
         "    if not _has_config_credentials(config):\n",
         "        return _missing_logon\n",
         "\n",
@@ -292,6 +324,7 @@ def _client_helpers() -> list[str]:
         "def _async_config_logon(\n",
         "    ctx: CallContext, config: ClientConfig\n",
         ") -> Callable[[], Awaitable[tuple[str, str]]] | None:\n",
+        '    """Return an asynchronous logon callable, or None if no credentials."""\n',
         "    if not _has_config_credentials(config):\n",
         "        return None\n",
         "\n",
@@ -306,6 +339,7 @@ def _client_helpers() -> list[str]:
         "def _load_plugin_resources(\n",
         "    config: ClientConfig, known: set[str]\n",
         ") -> dict[str, type[BaseResource]]:\n",
+        '    """Discover out-of-tree resource plugins registered via entry points."""\n',
         "    return discover_plugin_resources(\n",
         "        enable=config.enable_plugins,\n",
         "        allow_overrides=config.allow_overrides,\n",
@@ -315,6 +349,7 @@ def _client_helpers() -> list[str]:
         "def _build_context(\n",
         "    config: ClientConfig, clock: Clock | None = None\n",
         ") -> tuple[CallContext, SyncTransport]:\n",
+        '    """Assemble the synchronous call context and transport from a config."""\n',
         "    real_clock = clock or SystemClock()\n",
         "    transport = SyncTransport(config)\n",
         "    session = SessionManager(real_clock, config.proactive_refresh_seconds)\n",
@@ -337,6 +372,7 @@ def _client_helpers() -> list[str]:
         "def _build_async_context(\n",
         "    config: ClientConfig, clock: Clock | None = None\n",
         ") -> tuple[CallContext, AsyncTransport]:\n",
+        '    """Assemble the asynchronous call context and transport from a config."""\n',
         "    real_clock = clock or SystemClock()\n",
         "    transport = AsyncTransport(config)\n",
         "    session = AsyncSessionManager(real_clock, config.proactive_refresh_seconds)\n",

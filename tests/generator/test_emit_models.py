@@ -65,6 +65,29 @@ def test_render_model_has_banner_decimal_import_and_field_alias() -> None:
     assert 'fill_rate: Decimal | None = Field(default=None, alias="FillRate")' in rendered
 
 
+def test_render_model_emits_class_and_field_docstrings() -> None:
+    cat = load_catalog(FIX)
+    alert = next(rec for rec in cat.datatypes if rec.name == "AlertDTO")
+
+    rendered = render_model(alert, {rec.name for rec in cat.datatypes})
+
+    # Module docstring, class docstring (from the catalog description) ...
+    assert rendered.count('"""Represents the price alert entity."""') == 2
+    # ... and a per-field attribute docstring from each property description.
+    assert 'fill_rate: Decimal | None = Field(default=None, alias="FillRate")' in rendered
+    assert '"""The market price at which the price alert will be triggered."""' in rendered
+
+
+def test_render_enum_emits_class_docstring() -> None:
+    cat = load_catalog(FIX)
+    alert_direction = next(rec for rec in cat.datatypes if rec.name == "AlertDirection")
+
+    rendered = render_enum(alert_direction)
+
+    assert '"""' in rendered
+    assert "class AlertDirection(IntEnum):" in rendered
+
+
 def test_format_python_applies_ruff_import_sorting() -> None:
     rendered = format_python(
         "\n".join(
