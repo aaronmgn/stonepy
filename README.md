@@ -10,13 +10,34 @@ Python client for the StoneX (CIAPI) v2 trading API.
 
 📖 **Documentation:** <https://aaronmgn.github.io/stonepy/>
 
+## Features
+
+- **Fully typed.** Every request and response is a [Pydantic](https://docs.pydantic.dev/) v2
+  model, and the package ships a `py.typed` marker, so editors autocomplete fields and `mypy`
+  checks your calls.
+- **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
+- **Complete coverage.** All 72 documented CIAPI endpoints across 14 resource groups, using the
+  v2 variant of every endpoint that has one.
+- **Batteries included.** Automatic session refresh, configurable retries, client-side rate
+  limiting, secret redaction in logs, and a clear exception hierarchy.
+
+> **Project status:** `stonepy` is pre-1.0 (alpha). The public API may change between minor
+> releases until 1.0; pin a version for production use.
+
 ## Installation
 
 ```bash
 pip install stonepy
 ```
 
-Requires Python >= 3.11.
+Or with [uv](https://docs.astral.sh/uv/):
+
+```bash
+uv add stonepy
+```
+
+Requires Python >= 3.11. `stonepy` ships type information (PEP 561 `py.typed`), so it works out
+of the box with `mypy` and `pyright`.
 
 ## Quickstart
 
@@ -103,11 +124,28 @@ Use `aclose()` for async clients when not using `async with`; use `close()` for 
 All library exceptions inherit from `StoneXError`.
 
 ```python
-from stonepy import RateLimitError, StoneXAPIError, StoneXError, StoneXClient
+from stonepy import (
+    ClientConfig,
+    RateLimitError,
+    StoneXAPIError,
+    StoneXClient,
+    StoneXError,
+)
+from stonepy.models import ApiLogOnRequestDTO
+
+config = ClientConfig(base_url="https://ciapi.cityindex.com/TradingAPI")
 
 try:
     with StoneXClient(config) as client:
-        client.order.list_active_orders(request_dto)
+        client.session.log_on(
+            ApiLogOnRequestDTO(
+                UserName="username",
+                Password="password",
+                AppKey="app-key",
+                AppVersion="stonepy",
+                AppComments="",
+            )
+        )
 except RateLimitError as exc:
     print(exc.retry_after)
 except StoneXAPIError as exc:
@@ -144,8 +182,8 @@ print(page.total_number_of_results)
 
 ## API Reference
 
-See `docs/API_REFERENCE.md` for the public package surface and links to the upstream StoneX
-CIAPI v2 documentation.
+Full documentation - the guides and a complete API reference - is published at
+<https://aaronmgn.github.io/stonepy/>.
 
 ## Development
 
@@ -158,7 +196,13 @@ uv run ruff format --check .
 uv run mypy
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [CHANGELOG.md](CHANGELOG.md) for release notes.
+
+## Support
+
+- Questions and bug reports: [GitHub issues](https://github.com/aaronmgn/stonepy/issues).
+- Security: please report vulnerabilities privately - see [SECURITY.md](SECURITY.md).
 
 ## AI Use Disclaimer
 

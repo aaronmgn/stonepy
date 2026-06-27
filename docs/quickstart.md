@@ -29,7 +29,19 @@ attached to every subsequent request automatically.
                 AppComments="",
             )
         )
-        markets = client.market.list_market_search_paginated("gold", page=0, page_size=20)
+        markets = client.market.list_market_search_paginated(
+            "gold",
+            search_by_market_code=False,
+            search_by_market_name=True,
+            spread_product_type=True,
+            cfd_product_type=True,
+            binary_product_type=False,
+            ascending_order=True,
+            include_options=False,
+            client_account_id=12345,
+            page=0,
+            page_size=20,
+        )
         print(markets.total_number_of_results)
     ```
 
@@ -51,6 +63,20 @@ attached to every subsequent request automatically.
                 AppComments="",
             )
         )
+        markets = await client.market.list_market_search_paginated(
+            "gold",
+            search_by_market_code=False,
+            search_by_market_name=True,
+            spread_product_type=True,
+            cfd_product_type=True,
+            binary_product_type=False,
+            ascending_order=True,
+            include_options=False,
+            client_account_id=12345,
+            page=0,
+            page_size=20,
+        )
+        print(markets.total_number_of_results)
     ```
 
 Use `close()` for sync clients (or `aclose()` for async) when you are not using a `with` block.

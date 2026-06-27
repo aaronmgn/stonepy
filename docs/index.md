@@ -27,24 +27,47 @@ Requires Python >= 3.11.
 
 ## At a glance
 
-```python
-from stonepy import ClientConfig, StoneXClient
-from stonepy.models import ApiLogOnRequestDTO
+=== "Sync"
 
-config = ClientConfig(base_url="https://ciapi.cityindex.com/TradingAPI")
+    ```python
+    from stonepy import ClientConfig, StoneXClient
+    from stonepy.models import ApiLogOnRequestDTO
 
-with StoneXClient(config) as client:
-    session = client.session.log_on(
-        ApiLogOnRequestDTO(
-            UserName="username",
-            Password="password",
-            AppKey="app-key",
-            AppVersion="stonepy",
-            AppComments="",
+    config = ClientConfig(base_url="https://ciapi.cityindex.com/TradingAPI")
+
+    with StoneXClient(config) as client:
+        session = client.session.log_on(
+            ApiLogOnRequestDTO(
+                UserName="username",
+                Password="password",
+                AppKey="app-key",
+                AppVersion="stonepy",
+                AppComments="",
+            )
         )
-    )
-    print(session.status_code)
-```
+        print(session.status_code)
+    ```
+
+=== "Async"
+
+    ```python
+    from stonepy import AsyncStoneXClient, ClientConfig
+    from stonepy.models import ApiLogOnRequestDTO
+
+    config = ClientConfig(base_url="https://ciapi.cityindex.com/TradingAPI")
+
+    async with AsyncStoneXClient(config) as client:
+        session = await client.session.log_on(
+            ApiLogOnRequestDTO(
+                UserName="username",
+                Password="password",
+                AppKey="app-key",
+                AppVersion="stonepy",
+                AppComments="",
+            )
+        )
+        print(session.status_code)
+    ```
 
 Continue with the [Quickstart](quickstart.md), or jump to the [API reference](api/client.md).
 

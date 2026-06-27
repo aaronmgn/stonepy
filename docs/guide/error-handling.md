@@ -5,11 +5,28 @@ everything stonepy can raise. Catch the more specific subclasses when you need t
 particular failure.
 
 ```python
-from stonepy import RateLimitError, StoneXAPIError, StoneXError, StoneXClient
+from stonepy import (
+    ClientConfig,
+    RateLimitError,
+    StoneXAPIError,
+    StoneXClient,
+    StoneXError,
+)
+from stonepy.models import ApiLogOnRequestDTO
+
+config = ClientConfig(base_url="https://ciapi.cityindex.com/TradingAPI")
 
 try:
     with StoneXClient(config) as client:
-        client.order.list_active_orders(request_dto)
+        client.session.log_on(
+            ApiLogOnRequestDTO(
+                UserName="username",
+                Password="password",
+                AppKey="app-key",
+                AppVersion="stonepy",
+                AppComments="",
+            )
+        )
 except RateLimitError as exc:
     print(exc.retry_after)
 except StoneXAPIError as exc:
