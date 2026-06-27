@@ -1,0 +1,14 @@
+{
+  "InstructionStatus": {
+    "columns": [
+      "InstructionStatus Code",
+      "Description"
+    ],
+    "rows": [
+      {
+        "InstructionStatus Code": "1",
+        "Description": "Accepted"
+      }
+    ]
+  }
+}

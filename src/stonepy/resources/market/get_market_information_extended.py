@@ -1,0 +1,18 @@
+"""Resource method: GetMarketInformationExtended v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import ApiGetMarketInformationExtendedResponseDTOv2
+
+
+class _GetMarketInformationExtendedMixin(BaseResource):
+    async def get_market_information_extended(
+        self, market_id: int, client_account_id: int
+    ) -> ApiGetMarketInformationExtendedResponseDTOv2:
+        """
+        Get extended Market Information for the single specified market supplied in the
+        parameter.
+        """
+        return await _ep.aget_market_information_extended(self._ctx, market_id, client_account_id)

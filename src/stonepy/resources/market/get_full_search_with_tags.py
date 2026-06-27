@@ -1,0 +1,50 @@
+"""Resource method: GetFullSearchWithTags v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import FullMarketInformationSearchWithTagsResponseDTOv2
+
+
+class _GetFullSearchWithTagsMixin(BaseResource):
+    async def get_full_search_with_tags(
+        self,
+        query: str,
+        search_by_market_code: bool,
+        search_by_market_name: bool,
+        spread_product_type: bool,
+        cfd_product_type: bool,
+        binary_product_type: bool,
+        include_options: bool,
+        max_results: int,
+        client_account_id: int,
+        *,
+        tag_id: int | None = None,
+        trading_account_id: int | None = None,
+        use_mobile_short_name: bool | None = False,
+    ) -> FullMarketInformationSearchWithTagsResponseDTOv2:
+        """
+        Returns a list of markets that meet the search criteria. This search extends
+        ListMarketInformationSearch by optionally searching within a specified market tag
+        and only returning matching markets from the specified tag. Leave the query string
+        empty to return all markets available to the user. The results contain the full
+        ApiMarketInformationDTO v2 . The market tag is optional and if not used, then this
+        service call will behave the same as ListMarketInformationSearch . The list of
+        market tag IDs are provided in the table at Market Tag IDs .
+        """
+        return await _ep.aget_full_search_with_tags(
+            self._ctx,
+            query,
+            search_by_market_code,
+            search_by_market_name,
+            spread_product_type,
+            cfd_product_type,
+            binary_product_type,
+            include_options,
+            max_results,
+            client_account_id,
+            tag_id=tag_id,
+            trading_account_id=trading_account_id,
+            use_mobile_short_name=use_mobile_short_name,
+        )

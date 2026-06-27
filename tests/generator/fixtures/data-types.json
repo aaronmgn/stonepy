@@ -1,0 +1,102 @@
+[
+  {
+    "name": "AlertDTO",
+    "version": "v1",
+    "description": "Represents the price alert entity.",
+    "properties": [
+      {
+        "name": "AlertId",
+        "type": "Integer",
+        "format": null,
+        "ref": null,
+        "description": "Price alert identifier."
+      },
+      {
+        "name": "Direction",
+        "type": "AlertDirection",
+        "format": null,
+        "ref": "AlertDirection",
+        "description": "The market price type to use for the price alert."
+      },
+      {
+        "name": "FillRate",
+        "type": "number",
+        "format": "decimal",
+        "ref": null,
+        "description": "The market price at which the price alert will be triggered."
+      },
+      {
+        "name": "ExpiryDate",
+        "type": "String",
+        "format": "wcf-date",
+        "ref": null,
+        "description": "The price alert expiry date /time."
+      },
+      {
+        "name": "Comment",
+        "type": "",
+        "format": null,
+        "ref": null,
+        "description": "Optional user comment for this price alert."
+      },
+      {
+        "name": "LegalParties",
+        "type": "LegalPartyDTO []",
+        "format": null,
+        "ref": "LegalPartyDTO",
+        "description": "Legal parties."
+      },
+      {
+        "name": "",
+        "type": "",
+        "format": null,
+        "ref": null,
+        "description": ""
+      }
+    ],
+    "source_url": "https://docs.labs.gaincapital.com/Content/Data%20Types/AlertDTO.htm",
+    "source_file": "reference/data-types/AlertDTO.md",
+    "last_updated": "07 November 2025"
+  },
+  {
+    "name": "AlertDirection",
+    "version": "v1",
+    "description": "Enumeration for the type of market price to use in a price alert.",
+    "properties": [
+      {
+        "name": "Buy",
+        "type": "1",
+        "format": null,
+        "ref": null,
+        "description": "Use the buy price for the price alert"
+      },
+      {
+        "name": "Sell",
+        "type": "2",
+        "format": null,
+        "ref": null,
+        "description": "Use the sell price for the price alert"
+      }
+    ],
+    "source_url": "https://docs.labs.gaincapital.com/Content/Data%20Types/AlertDirection.htm",
+    "source_file": "reference/data-types/AlertDirection.md",
+    "last_updated": "07 November 2025"
+  },
+  {
+    "name": "DanglingRefDTO",
+    "version": "v1",
+    "description": "Fixture record containing an unresolved reference.",
+    "properties": [
+      {
+        "name": "Ghost",
+        "type": "Ghost",
+        "format": null,
+        "ref": "Ghost",
+        "description": "Unknown referenced type."
+      }
+    ],
+    "source_url": "https://example.invalid/DanglingRefDTO.htm",
+    "source_file": "reference/data-types/DanglingRefDTO.md",
+    "last_updated": "07 November 2025"
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "name": "GetActiveStopLimitOrder",
+    "logical_name": "GetActiveStopLimitOrder",
+    "version": "v1",
+    "description": "Queries for an active stop limit order with a specified order ID.",
+    "method": "GET",
+    "target": "order",
+    "uri_template": "/{OrderId}/activestoplimitorder",
+    "path": "/order/{OrderId}/activestoplimitorder",
+    "content_type": "application/json",
+    "envelope": "URL",
+    "parameters": [
+      {
+        "name": "OrderId",
+        "type": "Integer",
+        "ref": null,
+        "in": "path",
+        "description": "The requested order ID."
+      }
+    ],
+    "request_type": null,
+    "response_type": "GetActiveStopLimitOrderResponseDTO v2",
+    "source_url": "https://docs.labs.gaincapital.com/Content/HTTP%20Services/GetActiveStopLimitOrder.htm",
+    "source_file": "reference/endpoints/GetActiveStopLimitOrder.md",
+    "last_updated": "07 November 2025"
+  },
+  {
+    "name": "CancelOrder",
+    "logical_name": "CancelOrder",
+    "version": "v1",
+    "description": "Cancel the specified order.",
+    "method": "POST",
+    "target": "order",
+    "uri_template": "/cancel",
+    "path": "/order/cancel",
+    "content_type": "application/json",
+    "envelope": "JSON",
+    "parameters": [
+      {
+        "name": "cancelOrder",
+        "type": "CancelOrderRequestDTO",
+        "ref": "CancelOrderRequestDTO",
+        "in": "body",
+        "description": "The cancel order request."
+      }
+    ],
+    "request_type": "CancelOrderRequestDTO",
+    "response_type": "ApiTradeOrderResponseDTO",
+    "source_url": "https://docs.labs.gaincapital.com/Content/HTTP%20Services/CancelOrder.htm",
+    "source_file": "reference/endpoints/CancelOrder.md",
+    "last_updated": "07 November 2025"
+  }
+]

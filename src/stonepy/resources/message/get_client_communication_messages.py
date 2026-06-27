@@ -1,0 +1,17 @@
+"""Resource method: GetClientCommunicationMessages v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import message as _ep
+from stonepy.models import ApiClientCommunicationResponseDTO
+
+
+class _GetClientCommunicationMessagesMixin(BaseResource):
+    async def get_client_communication_messages(
+        self, client_account_id: int, *, culture_id: int | None = None
+    ) -> ApiClientCommunicationResponseDTO:
+        """Returns the client's communication messages."""
+        return await _ep.aget_client_communication_messages(
+            self._ctx, client_account_id, culture_id=culture_id
+        )

@@ -1,0 +1,43 @@
+"""Resource method: GetPriceBarsBetweenDates."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import GetPriceBarResponseDTO
+
+
+class _GetPriceBarsBetweenDatesMixin(BaseResource):
+    async def get_price_bars_between_dates(
+        self,
+        market_id: str,
+        interval: str,
+        span: int,
+        from_timestamp_utc: int,
+        to_timestamp_utc: int,
+        price_type: str,
+        *,
+        max_results: int | None = None,
+    ) -> GetPriceBarResponseDTO:
+        """
+        Get historic price bars for the specified market in OHLC (open, high, low, close)
+        format, suitable for plotting in candlestick charts. Returns price bars in
+        ascending order between fromTimestampUTC and toTimestampUTC . When there are no
+        prices for a particular time period, no price bar is returned. Thus, it can appear
+        that the array of price bars has "gaps", i.e. the gap between the date & time of
+        each price bar might not be equal to interval x span. Sample Urls: /market/1234/ba
+        rhistorybetween?interval=MINUTE&span=15&fromTimestampUTC=1390402198&toTimestampUTC
+        =1400770798 /market/735/barhistorybetween?interval=HOUR&span=1&fromTimestampUTC=13
+        90402198&toTimestampUTC=1400770798&maxResults=10 /market/1577/barhistorybetween?in
+        terval=DAY&span=1&fromTimestampUTC=1390402198&toTimestampUTC=1400770798
+        """
+        return await _ep.aget_price_bars_between_dates(
+            self._ctx,
+            market_id,
+            interval,
+            span,
+            from_timestamp_utc,
+            to_timestamp_utc,
+            price_type,
+            max_results=max_results,
+        )

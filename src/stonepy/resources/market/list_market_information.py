@@ -1,0 +1,15 @@
+"""Resource method: ListMarketInformation v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import ListMarketInformationResponseDTO, MultipleMarketInformationRequestDTO
+
+
+class _ListMarketInformationMixin(BaseResource):
+    async def list_market_information(
+        self, request: MultipleMarketInformationRequestDTO
+    ) -> ListMarketInformationResponseDTO:
+        """POST version of GetMarketInformation v2 for the specified list of markets."""
+        return await _ep.alist_market_information(self._ctx, request)

@@ -1,0 +1,17 @@
+"""Resource method: GetOrder."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import order as _ep
+from stonepy.models import GetOrderResponseDTOv2
+
+
+class _GetOrderMixin(BaseResource):
+    async def get_order(self, order_id: int) -> GetOrderResponseDTOv2:
+        """
+        Queries for an order by a specific order Id. The current implementation only
+        returns active orders (i.e. those with a status of 1 - Pending, 2 - Accepted, 3 -
+        Open, 6 - Suspended, 8 - Yellow Card, 11 - Triggered ) .
+        """
+        return await _ep.aget_order(self._ctx, order_id)

@@ -1,0 +1,33 @@
+name: drift
+# Generator drift gate against the private StoneX catalog (aaronmgn/stonex_api_docs).
+# Run on demand only: fork PRs cannot access the catalog token, so this cannot live in
+# the always-on `ci` workflow. Requires a repository secret DOCS_TOKEN — a PAT with read
+# access to aaronmgn/stonex_api_docs.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    if: github.repository == 'aaronmgn/stonepy'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - run: uv python install 3.12
+      - run: uv sync --frozen --extra dev --python 3.12
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: aaronmgn/stonex_api_docs
+          path: stonex_api_docs
+          token: ${{ secrets.DOCS_TOKEN }}
+      - name: generator drift gate
+        env:
+          STONEPY_CATALOG: ${{ github.workspace }}/stonex_api_docs/Docs/catalog
+        run: |
+          uv run python -m stonepy._generator all
+          uv run pytest tests/contract
+          git diff --exit-code -- src/stonepy/models src/stonepy/_endpoints src/stonepy/client.py src/stonepy/resources tests/contract
+          test -z "$(git status --porcelain --untracked-files=all -- src/stonepy/models src/stonepy/_endpoints src/stonepy/client.py src/stonepy/resources tests/contract)"

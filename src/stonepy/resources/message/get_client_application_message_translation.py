@@ -1,0 +1,20 @@
+"""Resource method: GetClientApplicationMessageTranslation."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import message as _ep
+from stonepy.models import ApiClientApplicationMessageTranslationResponseDTO
+
+
+class _GetClientApplicationMessageTranslationMixin(BaseResource):
+    async def get_client_application_message_translation(
+        self, client_application_id: int, culture_id: int, account_operator_id: int
+    ) -> ApiClientApplicationMessageTranslationResponseDTO:
+        """
+        Use the message translation service to get client specific translated text
+        strings.
+        """
+        return await _ep.aget_client_application_message_translation(
+            self._ctx, client_application_id, culture_id, account_operator_id
+        )

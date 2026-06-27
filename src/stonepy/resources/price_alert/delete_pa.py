@@ -1,0 +1,13 @@
+"""Resource method: DeletePA."""
+
+from __future__ import annotations
+
+from stonepy._core.models import ResponseModel
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import price_alert as _ep
+
+
+class _DeletePaMixin(BaseResource):
+    async def delete_pa(self, alert_id: int, client_account_id: int) -> ResponseModel:
+        """Remove the specified price alert from the client account."""
+        return await _ep.adelete_pa(self._ctx, alert_id, client_account_id)

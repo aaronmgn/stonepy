@@ -1,0 +1,21 @@
+"""Resource method: GetSystemLookup."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import message as _ep
+from stonepy.models import ApiLookupResponseDTO
+
+
+class _GetSystemLookupMixin(BaseResource):
+    async def get_system_lookup(
+        self, lookup_entity_name: str, culture_id: int
+    ) -> ApiLookupResponseDTO:
+        """
+        Use the message lookup service to get localised text names for the various status
+        codes & IDs returned by the API. For example, a query for OrderStatusReason will
+        contain text names for all the possible values of OrderStatusReason in the
+        ApiOrderResponseDTO . You should only request the list once per session (for each
+        entity you're interested in) .
+        """
+        return await _ep.aget_system_lookup(self._ctx, lookup_entity_name, culture_id)
