@@ -23,7 +23,7 @@ def test_project_declares_license_and_pypi_metadata() -> None:
     assert project["urls"] == {
         "Homepage": "https://github.com/aaronmgn/stonepy",
         "Repository": "https://github.com/aaronmgn/stonepy",
-        "Documentation": "https://github.com/aaronmgn/stonepy/blob/main/docs/API_REFERENCE.md",
+        "Documentation": "https://aaronmgn.github.io/stonepy/",
         "Issues": "https://github.com/aaronmgn/stonepy/issues",
         "Changelog": "https://github.com/aaronmgn/stonepy/blob/main/CHANGELOG.md",
     }

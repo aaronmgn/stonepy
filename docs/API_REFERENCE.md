@@ -66,12 +66,12 @@ the JSON shapes the API expects.
 
 ## Authentication and Sessions
 
-See the [README](../README.md#authentication-and-sessions) for the full authentication flow and
-automatic session-refresh behaviour.
+See the [Authentication & sessions guide](guide/authentication.md) for the full authentication
+flow and automatic session-refresh behaviour.
 
 ## Authoritative Contract
 
 For endpoint semantics, request bodies, and response bodies, the upstream
 [StoneX CIAPI v2 documentation](https://docs.labs.gaincapital.com/) remains authoritative.
 `stonepy` tracks that contract through its generated catalog; the pinned catalog revision is
-recorded in [`CATALOG_VERSION`](../CATALOG_VERSION).
+recorded in [`CATALOG_VERSION`](https://github.com/aaronmgn/stonepy/blob/main/CATALOG_VERSION).
