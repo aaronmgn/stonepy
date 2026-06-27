@@ -3,9 +3,12 @@
 [![PyPI version](https://img.shields.io/pypi/v/stonepy.svg)](https://pypi.org/project/stonepy/)
 [![Python versions](https://img.shields.io/pypi/pyversions/stonepy.svg)](https://pypi.org/project/stonepy/)
 [![CI](https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml/badge.svg)](https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://aaronmgn.github.io/stonepy/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://github.com/aaronmgn/stonepy/blob/main/LICENSE)
 
 Python client for the StoneX (CIAPI) v2 trading API.
+
+📖 **Documentation:** <https://aaronmgn.github.io/stonepy/>
 
 ## Installation
 
