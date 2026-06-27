@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Deploy the documentation site with GitHub Actions (`upload-pages-artifact` + `deploy-pages`,
+  both on Node 24) instead of the legacy branch builder, eliminating the Node.js 20 deprecation
+  warning from Pages builds.
+
 ## [0.1.3] - 2026-06-27
 
 ### Added
