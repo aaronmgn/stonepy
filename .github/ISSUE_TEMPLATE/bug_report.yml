@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a problem with stonepy
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug report. Please do not include
+        credentials, session tokens, or other secrets in this report.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected to happen instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: A minimal code sample that reproduces the issue.
+      render: python
+    validations:
+      required: true
+  - type: input
+    id: stonepy-version
+    attributes:
+      label: stonepy version
+      description: 'Output of: python -c "import stonepy; print(stonepy.__version__)"'
+    validations:
+      required: true
+  - type: input
+    id: python-version
+    attributes:
+      label: Python version
+      description: "Output of: python --version"
+    validations:
+      required: true
+  - type: textarea
+    id: traceback
+    attributes:
+      label: Traceback or logs
+      description: Paste any traceback or relevant log output, with secrets redacted.
+      render: shell
+    validations:
+      required: false

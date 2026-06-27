@@ -3,6 +3,10 @@
 Thanks for your interest in improving `stonepy`! This guide covers local setup, the checks CI
 enforces, and the conventions for the generated client code.
 
+By participating you agree to abide by our [Code of Conduct](CODE_OF_CONDUCT.md). To report a bug
+or request a feature, open a [GitHub issue](https://github.com/aaronmgn/stonepy/issues); for
+security vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+
 ## Development Setup
 
 `stonepy` uses [uv](https://docs.astral.sh/uv/) for environment and dependency management.
@@ -26,6 +30,25 @@ uv run pytest --cov=src/stonepy/_core --cov=src/stonepy/_generator --cov=src/sto
 
 [pre-commit](https://pre-commit.com/) hooks are also configured - run `uv run pre-commit install`
 to enable them.
+
+## Documentation
+
+The documentation site is built with [MkDocs](https://www.mkdocs.org/) and Material for MkDocs.
+Preview it locally with live reload:
+
+```bash
+uv sync --extra docs
+uv run mkdocs serve
+```
+
+Build it exactly as CI does, with warnings treated as errors:
+
+```bash
+uv run mkdocs build --strict
+```
+
+The model reference pages under "API reference > Models" are generated from `stonepy.models` by
+`docs/gen_ref_pages.py` at build time - do not add them by hand.
 
 ## Commit and Pull Request Conventions
 

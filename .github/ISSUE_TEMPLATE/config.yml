@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://aaronmgn.github.io/stonepy/
+    about: Read the guides and API reference before opening an issue.
+  - name: Report a security vulnerability
+    url: https://github.com/aaronmgn/stonepy/security/advisories/new
+    about: Please report security issues privately, not as a public issue.
