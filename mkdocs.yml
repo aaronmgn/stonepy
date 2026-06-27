@@ -39,6 +39,11 @@ watch:
 
 plugins:
   - search
+  - gen-files:
+      scripts:
+        - docs/gen_ref_pages.py
+  - literate-nav:
+      nav_file: SUMMARY.md
   - mkdocstrings:
       handlers:
         python:
@@ -53,6 +58,7 @@ plugins:
             signature_crossrefs: true
             merge_init_into_class: true
             members_order: source
+            inherited_members: true
             filters: ["!^_"]
 
 markdown_extensions:
@@ -64,7 +70,9 @@ markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
   - pymdownx.inlinehilite
-  - pymdownx.snippets
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
   - pymdownx.superfences
   - pymdownx.tabbed:
       alternate_style: true
@@ -75,15 +83,25 @@ extra:
 
 nav:
   - Home: index.md
+  - Installation: installation.md
   - Quickstart: quickstart.md
   - Guides:
       - Authentication & sessions: guide/authentication.md
+      - Configuration: guide/configuration.md
+      - Resilience: guide/resilience.md
       - Error handling: guide/error-handling.md
       - Pagination: guide/pagination.md
+      - Logging & redaction: guide/logging.md
+      - Extensibility: guide/extensibility.md
+      - Testing: guide/testing.md
+      - Recipes: guide/recipes.md
   - API reference:
       - Overview: API_REFERENCE.md
       - Clients: api/client.md
       - Configuration: api/configuration.md
       - Errors: api/errors.md
       - Resource groups: api/resources.md
-      - Models (DTOs): api/models.md
+      - Models (DTOs):
+          - Overview: api/models.md
+          - All models: reference/models/
+  - Changelog: changelog.md
