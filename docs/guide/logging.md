@@ -137,7 +137,7 @@ are masked while non-secret fields such as `username` and `base_url` are shown
 verbatim:
 
 ```text
-ClientConfig(base_url='https://ciapi.cityindex.com/TradingAPI', app_key='***', username='alice', password='***', ..., proxy='***', user_agent='stonepy/0.1.2', ...)
+ClientConfig(base_url='https://ciapi.cityindex.com/TradingAPI', app_key='***', username='alice', password='***', ..., proxy='***', user_agent='stonepy/0.1.3', ...)
 ```
 
 !!! note
