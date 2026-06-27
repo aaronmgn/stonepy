@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 - 2026-06-27
+
+- Harden the Dependabot configuration so published runtime version caps are preserved, and
+  fix a setup-uv cache race in CI.
+- Bump dev tooling (pytest, ruff).
+
 ## 0.1.1 - 2026-06-27
 
 - Drop the redundant `License :: OSI Approved :: MIT License` classifier in favour of the
