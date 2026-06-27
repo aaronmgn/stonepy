@@ -8267,6 +8267,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -8293,7 +8310,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8332,7 +8349,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8371,7 +8388,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8468,6 +8485,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -8494,7 +8528,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8533,7 +8567,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8572,7 +8606,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -8651,6 +8685,12 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.1.3...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Deploy the documentation site with GitHub Actions (<code>upload-pages-artifact</code> + <code>deploy-pages</code>,
+  both on Node 24) instead of the legacy branch builder, eliminating the Node.js 20 deprecation
+  warning from Pages builds.</li>
+</ul>
 <h2 id="013-2026-06-27"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.1.3">0.1.3</a> - 2026-06-27<a class="headerlink" href="#013-2026-06-27" title="Permanent link">&para;</a></h2>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
@@ -8663,7 +8703,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Community health files: <code>CODE_OF_CONDUCT.md</code>, issue templates, a pull request template, and
   <code>CODEOWNERS</code>.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Expanded the README with a feature overview, a project status notice, install options, and a
   support section.</li>
@@ -8676,7 +8716,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   error-handling examples self-contained and runnable.</li>
 </ul>
 <h2 id="012-2026-06-27"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.1.2">0.1.2</a> - 2026-06-27<a class="headerlink" href="#012-2026-06-27" title="Permanent link">&para;</a></h2>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Harden the Dependabot configuration so published runtime version caps are preserved, and fix a
   setup-uv cache race in CI.</li>
@@ -8690,7 +8730,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>Operating System :: OS Independent</code> and <code>Programming Language :: Python :: 3 :: Only</code>
   classifiers.</li>
 </ul>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Pin all GitHub Actions to commit SHAs and bump them to Node 24 releases.</li>
 </ul>
