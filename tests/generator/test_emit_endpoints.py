@@ -57,6 +57,23 @@ def _datatype(name: str) -> TypeRecord:
     )
 
 
+def test_render_binding_emits_wrapper_docstring_from_description() -> None:
+    import dataclasses
+
+    rec = dataclasses.replace(_endpoint(), description="Fetch a single order by id.")
+
+    rendered = render_binding(rec, known_model_names={"OrderResponseDTO"})
+
+    # The summary appears as a docstring in both the sync and async wrappers.
+    assert rendered.count('"""Fetch a single order by id."""') == 2
+
+
+def test_endpoint_summary_falls_back_when_description_missing() -> None:
+    from stonepy._generator.emit_endpoints import endpoint_summary
+
+    assert endpoint_summary(_endpoint(name="GetOrder")) == "Call the StoneX GetOrder endpoint."
+
+
 def test_target_module_normalizes_real_target_casing() -> None:
     assert target_module("userAccount") == "user_account"
     assert target_module("useraccount") == "user_account"

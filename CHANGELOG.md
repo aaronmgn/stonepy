@@ -7,8 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Docstrings throughout the public API, sourced from the upstream StoneX catalog: every generated
+  model now has a class summary and a per-field description, and every endpoint binding has a
+  summary. Field descriptions flow into each model's JSON schema via Pydantic's
+  `use_attribute_docstrings`, so the same prose powers the docs site, editor tooltips, and
+  `model_json_schema()`.
+- Full docstring coverage across the hand-written core (configuration, errors, transport, request
+  pipeline, session management, retry and rate-limit policies, codecs, and plugins), including
+  `Attributes`/`Raises` sections on the public exception types.
+- A `tests/test_self_documentation.py` suite that guards the documentation contract: every model,
+  enum, resource group, and exported symbol stays documented, and field descriptions keep reaching
+  the JSON schema.
+
 ### Changed
 
+- Model reference pages now render each model class directly instead of wrapping it in a module
+  heading, and the API overview links to the full per-model reference rather than duplicating a
+  handful of examples inline.
 - Deploy the documentation site with GitHub Actions (`upload-pages-artifact` + `deploy-pages`,
   both on Node 24) instead of the legacy branch builder, eliminating the Node.js 20 deprecation
   warning from Pages builds.

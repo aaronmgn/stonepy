@@ -8,6 +8,12 @@ from stonepy._core.clock import AsyncClock, Clock
 
 
 class SlidingWindowLimiter:
+    """Allow at most ``max_requests`` acquisitions within any ``window_seconds`` window.
+
+    Records the timestamp of each grant and, when the window is full, sleeps until the oldest
+    grant ages out. ``max_requests`` and ``window_seconds`` must both be positive.
+    """
+
     def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
         if max_requests <= 0:
             raise ValueError("max_requests must be positive")
@@ -19,6 +25,7 @@ class SlidingWindowLimiter:
         self._events: deque[float] = deque()
 
     def acquire(self) -> None:
+        """Acquire one slot, sleeping until the window has room if it is currently full."""
         while True:
             now = self._clock.now()
             self._evict(now)
@@ -30,6 +37,7 @@ class SlidingWindowLimiter:
             self._clock.sleep(max(0.0, wait))
 
     async def aacquire(self) -> None:
+        """Acquire one slot, awaiting until the window has room if it is currently full."""
         while True:
             now = self._clock.now()
             self._evict(now)
@@ -66,9 +74,11 @@ class BucketedSlidingWindowLimiter:
         self._limiters: dict[str, SlidingWindowLimiter] = {}
 
     def acquire(self, bucket: str) -> None:
+        """Acquire one slot from *bucket*'s limiter, creating it on first use."""
         self._limiter(bucket).acquire()
 
     async def aacquire(self, bucket: str) -> None:
+        """Await one slot from *bucket*'s limiter, creating it on first use."""
         await self._limiter(bucket).aacquire()
 
     def _limiter(self, bucket: str) -> SlidingWindowLimiter:
@@ -92,6 +102,12 @@ def backoff_delay(
     cap: float = 30.0,
     jitter: float,
 ) -> float:
+    """Return the delay before the next retry, in seconds.
+
+    Honors a server ``retry_after`` when supplied (clamped to ``cap``); otherwise applies
+    capped exponential backoff (``base * 2**attempt``) scaled by *jitter* in ``[0, 1]`` to
+    spread retries across ``[50%, 100%]`` of the computed delay.
+    """
     if retry_after is not None:
         return min(cap, max(0.0, retry_after))
     raw = min(cap, base * float(2**attempt))

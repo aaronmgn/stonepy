@@ -7,7 +7,14 @@ import shutil
 from pathlib import Path
 
 from stonepy._generator.catalog import Catalog, JsonObject, TypeRecord, is_enum_record, python_name
-from stonepy._generator.render import BANNER, format_python, render_enum, render_enums, render_model
+from stonepy._generator.render import (
+    BANNER,
+    format_python,
+    render_docstring,
+    render_enum,
+    render_enums,
+    render_model,
+)
 
 __all__ = ["emit_all", "render_enum", "render_model"]
 
@@ -96,7 +103,15 @@ def _non_enum_records(records: list[TypeRecord]) -> list[TypeRecord]:
 
 
 def _render_init(model_records: list[TypeRecord], enum_records: list[TypeRecord]) -> str:
-    lines = [BANNER, "from __future__ import annotations\n\n"]
+    lines = [
+        BANNER,
+        render_docstring(
+            "Generated Pydantic models and IntEnum types for the StoneX CIAPI v2 API. "
+            "Every request and response DTO is importable from this package.",
+            indent=0,
+        ),
+        "from __future__ import annotations\n\n",
+    ]
 
     for rec in sorted(model_records, key=lambda item: item.name):
         lines.append(f"from .{rec.name} import {rec.name}\n")

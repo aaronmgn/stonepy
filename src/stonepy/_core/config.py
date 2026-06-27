@@ -59,6 +59,25 @@ class ClientConfig:
 
     @classmethod
     def from_env(cls, **overrides: Any) -> ClientConfig:
+        """Build a config from ``STONEX_*`` environment variables, with keyword overrides.
+
+        Reads ``STONEX_BASE_URL``, ``STONEX_APP_KEY``, ``STONEX_USERNAME``, and
+        ``STONEX_PASSWORD``. Any field may be overridden by keyword. For most fields an
+        override of ``None`` is ignored in favor of the environment value or default; the
+        exception is ``status_decoder``, where passing ``None`` is honored to disable status
+        decoding. ``base_url`` is required.
+
+        Args:
+            **overrides: Field values that take precedence over the environment.
+
+        Returns:
+            A populated ``ClientConfig``.
+
+        Raises:
+            TypeError: If an override names a field that does not exist.
+            ValueError: If no ``base_url`` is provided via override or environment.
+        """
+
         known_fields = {field.name for field in fields(cls)}
         unknown_fields = set(overrides) - known_fields
         if unknown_fields:
@@ -102,6 +121,7 @@ class ClientConfig:
         )
 
     def __repr__(self) -> str:
+        """Return a repr with secret fields (app key, password, proxy) redacted."""
         return safe_repr(self)
 
 

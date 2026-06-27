@@ -1,4 +1,4 @@
-"""Synchronous request pipeline: auth, rate-limit, retry, errors, and parsing."""
+"""Synchronous and asynchronous request pipeline: auth, rate-limit, retry, errors, parsing."""
 
 from __future__ import annotations
 
@@ -76,18 +76,31 @@ __all__ = [
 
 @runtime_checkable
 class _Transport(Protocol):
-    def send(self, req: Request) -> httpx.Response: ...
+    """Structural type for a synchronous transport the pipeline can drive."""
+
+    def send(self, req: Request) -> httpx.Response:
+        """Send *req* and return the HTTP response."""
+        ...
 
 
 @runtime_checkable
 class _AsyncTransport(Protocol):
-    async def asend(self, req: Request) -> httpx.Response: ...
+    """Structural type for an asynchronous transport the pipeline can drive."""
+
+    async def asend(self, req: Request) -> httpx.Response:
+        """Send *req* and return the HTTP response."""
+        ...
 
 
 class ApiErrorResponseDTO(ResponseModel):
+    """The StoneX error envelope parsed from a non-2xx response body."""
+
     error_code: int | None = Field(default=None, alias="ErrorCode")
+    """The StoneX ``ErrorCode``, if the body carried one."""
     error_message: str | None = Field(default=None, alias="ErrorMessage")
+    """The human-readable error message, if present."""
     http_status: int | None = Field(default=None, alias="HttpStatus")
+    """The HTTP status echoed in the body, if present."""
 
 
 @dataclass(frozen=True)
@@ -100,6 +113,16 @@ class _ErrorInfo:
 
 @dataclass
 class CallContext:
+    """Shared, per-client state that drives every request through the pipeline.
+
+    Bundles the configuration, transport, session manager, rate limiter, retry policy, and
+    clock that [`invoke`][stonepy._core.pipeline.CallContext.invoke] and
+    [`ainvoke`][stonepy._core.pipeline.CallContext.ainvoke] use to execute an
+    [`EndpointSpec`][stonepy._core.endpoint.EndpointSpec]: acquiring rate-limit slots,
+    attaching auth headers, sending the request, refreshing the session on auth errors,
+    retrying idempotent failures within the budget, and parsing or mapping the response.
+    """
+
     config: ClientConfig
     transport: _Transport | _AsyncTransport
     session: SessionManager | AsyncSessionManager
@@ -118,6 +141,29 @@ class CallContext:
         query: Mapping[str, object] | None = None,
         body: Mapping[str, object] | BaseModel | None = None,
     ) -> ResponseT:
+        """Execute *spec* synchronously and return the parsed response model.
+
+        Acquires a rate-limit slot, attaches session auth headers (refreshing proactively or
+        after a 401/expired-token error), sends the request, and retries idempotent transport
+        and rate-limit failures within the configured retry budget.
+
+        Args:
+            spec: The endpoint to call.
+            path_params: Values substituted into ``{placeholder}`` path segments.
+            query: Query-string parameters.
+            body: The request body, as a model or a mapping.
+
+        Returns:
+            The validated response model declared by ``spec.response_model``.
+
+        Raises:
+            AuthenticationError: On unrecoverable authentication failures.
+            RateLimitError: When rate-limit retries are exhausted.
+            OrderRejectedError: When an order response carries a rejection status.
+            TransportError: When a network failure persists past the retry budget.
+            ResponseParseError: When the response body cannot be decoded or validated.
+            StoneXAPIError: For other non-2xx responses.
+        """
         path_params_dict = dict(path_params or {})
         query_dict = dict(query or {})
         body_dict = _body_to_dict(body)
@@ -207,6 +253,12 @@ class CallContext:
         query: Mapping[str, object] | None = None,
         body: Mapping[str, object] | BaseModel | None = None,
     ) -> ResponseT:
+        """Execute *spec* asynchronously and return the parsed response model.
+
+        The awaitable twin of [`invoke`][stonepy._core.pipeline.CallContext.invoke], with the
+        same arguments, return value, retry semantics, and exceptions. Falls back to the
+        synchronous path when the transport exposes no ``asend`` coroutine.
+        """
         if not callable(getattr(self.transport, "asend", None)):
             return self.invoke(spec, path_params=path_params, query=query, body=body)
 
@@ -385,6 +437,12 @@ class CallContext:
 
 
 def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> ResponseT:
+    """Decode and validate a success response into ``spec.response_model``.
+
+    Raises:
+        ResponseParseError: If the body is not valid JSON (``phase="decode"``) or does not
+            satisfy the response model (``phase="validate"``).
+    """
     raw_body = resp.content or b"{}"
     try:
         payload = codec.loads(raw_body)
@@ -419,6 +477,12 @@ def check_business_status(
     path: str | None = None,
     http_status: int | None = None,
 ) -> None:
+    """Raise [`OrderRejectedError`][stonepy.OrderRejectedError] if a model carries a rejection.
+
+    Reads the ``Status`` (and optional ``StatusReason``) fields and runs them through
+    *status_decoder*. Returns without error when the model has no status field or the status
+    is not a rejection.
+    """
     status_value = _field_value(model, ("Status", "status"))
     if status_value is None:
         return
@@ -445,6 +509,12 @@ def check_business_status(
 
 
 def map_error(spec: EndpointSpec[Any], resp: httpx.Response) -> StoneXAPIError:
+    """Map a non-2xx response to the most specific ``StoneXAPIError`` subclass.
+
+    Returns an [`AuthenticationError`][stonepy.AuthenticationError] for auth failures, a
+    [`RateLimitError`][stonepy.RateLimitError] for HTTP 429, or a plain
+    [`StoneXAPIError`][stonepy.StoneXAPIError] otherwise. Secret headers are redacted.
+    """
     return _map_error(spec, resp, _redact_headers(resp.headers), _parse_error_info(resp))
 
 
@@ -587,8 +657,8 @@ def _mapping_field_value(mapping: Mapping[Any, Any], names: tuple[str, ...]) -> 
 def _coerce_status_value(value: object) -> int | str | None:
     """Return a status/reason value only when it is an int or str code, else None.
 
-    Status codes always arrive as a JSON number or string; any other type cannot be a
-    business-status code, so it is treated as absent rather than coerced.
+    Status codes arrive as a JSON number or string; any value that is neither an ``int`` nor a
+    ``str`` is treated as absent rather than coerced.
     """
     if isinstance(value, (int, str)):
         return value
