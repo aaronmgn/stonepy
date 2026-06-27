@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-06-27
+
 ### Added
 
 - Documentation guides: a configuration reference, resilience (timeouts, retries, and rate
@@ -64,5 +66,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.3
 [0.1.2]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.2
