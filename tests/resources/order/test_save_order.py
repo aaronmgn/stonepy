@@ -1,22 +1,50 @@
 from __future__ import annotations
 
+import asyncio
+
 import httpx
-import pytest
 import respx
 
 from stonepy._core.config import ClientConfig
-from stonepy.client import StoneXClient
-from stonepy.models import ExecutionVenueRequestDTO
+from stonepy.client import AsyncStoneXClient, StoneXClient
+from stonepy.models import ExecutionResponseDTO, ExecutionVenueRequestDTO
+
+_RESPONSE_BODY = '{"RequestId":"x","Reason":"x"}'
 
 
-@pytest.mark.skip("Fill request values and response payload before enabling.")
 @respx.mock
 def test_save_order_returns_response() -> None:
-    respx.post("https://api.example/order/v2/save").mock(return_value=httpx.Response(200, json={}))
+    route = respx.post("https://api.example/order/v2/save").mock(
+        return_value=httpx.Response(200, content=_RESPONSE_BODY)
+    )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
+        client._ctx.session.set_token("TOKEN", "user")
         request = ExecutionVenueRequestDTO.model_construct()
         resp = client.order.save_order(request)
-        assert resp is not None
+        assert isinstance(resp, ExecutionResponseDTO)
+        assert route.called
+        assert route.calls[0].request.method == "POST"
+        assert route.calls[0].request.url.path == "/order/v2/save"
     finally:
         client.close()
+
+
+@respx.mock
+def test_save_order_async() -> None:
+    async def run() -> None:
+        route = respx.post("https://api.example/order/v2/save").mock(
+            return_value=httpx.Response(200, content=_RESPONSE_BODY)
+        )
+        client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
+        try:
+            await client._ctx.session.aset_token("TOKEN", "user")
+            request = ExecutionVenueRequestDTO.model_construct()
+            resp = await client.order.save_order(request)
+            assert isinstance(resp, ExecutionResponseDTO)
+            assert route.called
+            assert route.calls[0].request.method == "POST"
+        finally:
+            await client.aclose()
+
+    asyncio.run(run())

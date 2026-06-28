@@ -1,28 +1,58 @@
 from __future__ import annotations
 
+import asyncio
+
 import httpx
-import pytest
 import respx
 
 from stonepy._core.config import ClientConfig
-from stonepy.client import StoneXClient
-from stonepy.models import ApiClientPreferencesOverriddenSettingsSaveRequestDTO
+from stonepy.client import AsyncStoneXClient, StoneXClient
+from stonepy.models import (
+    ApiClientPreferencesOverriddenSettingsSaveRequestDTO,
+    ApiClientPreferencesOverriddenSettingsSaveResponseDTO,
+)
+
+_RESPONSE_BODY = '{"Successful":false}'
 
 
-@pytest.mark.skip("Fill request values and response payload before enabling.")
 @respx.mock
 def test_save_client_preference_overridden_settings_returns_response() -> None:
-    respx.post(
+    route = respx.post(
         "https://api.example/clientPreference/v2/clientPreference/overriddenSettings/save"
-    ).mock(return_value=httpx.Response(200, json={}))
+    ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
-        api_client_preferences_overridden_settings_save_request_dto = (
-            ApiClientPreferencesOverriddenSettingsSaveRequestDTO.model_construct()
+        client._ctx.session.set_token("TOKEN", "user")
+        request = ApiClientPreferencesOverriddenSettingsSaveRequestDTO.model_construct()
+        resp = client.client_preference.save_client_preference_overridden_settings(request)
+        assert isinstance(resp, ApiClientPreferencesOverriddenSettingsSaveResponseDTO)
+        assert route.called
+        assert route.calls[0].request.method == "POST"
+        assert (
+            route.calls[0].request.url.path
+            == "/clientPreference/v2/clientPreference/overriddenSettings/save"
         )
-        resp = client.client_preference.save_client_preference_overridden_settings(
-            api_client_preferences_overridden_settings_save_request_dto
-        )
-        assert resp is not None
     finally:
         client.close()
+
+
+@respx.mock
+def test_save_client_preference_overridden_settings_async() -> None:
+    async def run() -> None:
+        route = respx.post(
+            "https://api.example/clientPreference/v2/clientPreference/overriddenSettings/save"
+        ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+        client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
+        try:
+            await client._ctx.session.aset_token("TOKEN", "user")
+            request = ApiClientPreferencesOverriddenSettingsSaveRequestDTO.model_construct()
+            resp = await client.client_preference.save_client_preference_overridden_settings(
+                request
+            )
+            assert isinstance(resp, ApiClientPreferencesOverriddenSettingsSaveResponseDTO)
+            assert route.called
+            assert route.calls[0].request.method == "POST"
+        finally:
+            await client.aclose()
+
+    asyncio.run(run())

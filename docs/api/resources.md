@@ -8,6 +8,8 @@ matching `Async*Resource` class (for example `AsyncSessionResource.log_on`).
 
 ::: stonepy.resources.order.OrderResource
 
+::: stonepy.resources.order_including_closed.OrderIncludingClosedResource
+
 ::: stonepy.resources.market.MarketResource
 
 ::: stonepy.resources.spread.SpreadResource
@@ -15,6 +17,8 @@ matching `Async*Resource` class (for example `AsyncSessionResource.log_on`).
 ::: stonepy.resources.cfd.CfdResource
 
 ::: stonepy.resources.margin.MarginResource
+
+::: stonepy.resources.fixedmargin.FixedmarginResource
 
 ::: stonepy.resources.price_alert.PriceAlertResource
 
@@ -28,6 +32,12 @@ matching `Async*Resource` class (for example `AsyncSessionResource.log_on`).
 
 ::: stonepy.resources.clientpreference.ClientpreferenceResource
 
+::: stonepy.resources.client_preference.ClientPreferenceResource
+
 ::: stonepy.resources.clientapplication.ClientapplicationResource
 
 ::: stonepy.resources.user_account.UserAccountResource
+
+::: stonepy.resources.pm.PmResource
+
+::: stonepy.resources.tradingadvisor.TradingadvisorResource
