@@ -66,7 +66,7 @@ async def acancel_order(
 GET_ACTIVE_STOP_LIMIT_ORDER_SPEC: EndpointSpec[GetActiveStopLimitOrderResponseDTOv2] = EndpointSpec(
     name="GetActiveStopLimitOrder v2",
     method="GET",
-    path="/order/v2{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+    path="/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",

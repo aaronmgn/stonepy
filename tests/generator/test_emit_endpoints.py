@@ -6,7 +6,12 @@ import pytest
 
 from stonepy._generator.__main__ import main
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord
-from stonepy._generator.emit_endpoints import emit_all, render_binding, target_module
+from stonepy._generator.emit_endpoints import (
+    emit_all,
+    render_binding,
+    resolved_path,
+    target_module,
+)
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -55,6 +60,23 @@ def _datatype(name: str) -> TypeRecord:
         last_updated=None,
         raw={"name": name, "properties": []},
     )
+
+
+def test_resolved_path_corrects_documented_catalog_typo() -> None:
+    # The upstream "GetActiveStopLimitOrder v2" page drops the slash after "v2"; resolved_path
+    # restores it so the emitted spec and the generated contract test agree on the real path.
+    typo = _endpoint(
+        name="GetActiveStopLimitOrder v2",
+        logical_name="GetActiveStopLimitOrder",
+        target="order",
+        path="/order/v2{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+    )
+    assert (
+        resolved_path(typo)
+        == "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}"
+    )
+    # An endpoint without a declared override keeps its catalog path verbatim.
+    assert resolved_path(_endpoint(path="/order/{OrderId}")) == "/order/{OrderId}"
 
 
 def test_render_binding_emits_wrapper_docstring_from_description() -> None:

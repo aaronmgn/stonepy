@@ -12,7 +12,7 @@ from typing import Any
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
-__all__ = ["emit_all", "endpoint_spec_name", "render_binding", "target_module"]
+__all__ = ["emit_all", "endpoint_spec_name", "render_binding", "resolved_path", "target_module"]
 
 _VERSION_SUFFIX_RE = re.compile(r"\s+v\d+\s*$", re.IGNORECASE)
 _DEFAULT_VALUE_RE = re.compile(r"\bdefault\s+([^\s,;]+)", re.IGNORECASE)
@@ -50,6 +50,20 @@ _OPTIONAL_PARAM_OVERRIDES: dict[tuple[str, str], frozenset[str]] = {
     ("cfd", "ListCfdMarkets"): frozenset({"marketName", "marketCode"}),
 }
 
+# Catalog gap: the upstream "GetActiveStopLimitOrder v2" doc page templates its URI as
+# "/v2{orderId}/activeStopLimitOrder" — missing the slash after "v2" that every sibling v2 order
+# endpoint carries (GetOpenPosition v2 = "/v2/{orderId}/openPosition", GetOrder v2 =
+# "/v2/order/{orderId}"). Verified against docs.labs.gaincapital.com as an upstream documentation
+# typo (the page's own example request is ".../order/123456/activeStopLimitOrder"), so without this
+# correction the generated client would request the non-existent "/order/v2{orderId}/..." path.
+# Keyed by (target_module, endpoint name); mirrors the other curated catalog-gap overrides.
+_PATH_OVERRIDES: dict[tuple[str, str], str] = {
+    (
+        "order",
+        "GetActiveStopLimitOrder v2",
+    ): "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+}
+
 
 def endpoint_summary(rec: EndpointRecord) -> str:
     """Return a one-paragraph summary of an endpoint for use as a wrapper docstring."""
@@ -59,6 +73,19 @@ def endpoint_summary(rec: EndpointRecord) -> str:
         if text:
             return text
     return f"Call the StoneX {rec.name} endpoint."
+
+
+def resolved_path(rec: EndpointRecord) -> str:
+    """Return the endpoint path, applying curated catalog path-typo corrections.
+
+    The catalog's ``path``/``uri_template`` is authoritative except for the declared upstream
+    doc typos in ``_PATH_OVERRIDES``; this single resolver keeps the generated endpoint spec and
+    the generated contract test in agreement on the corrected value.
+    """
+
+    return _PATH_OVERRIDES.get(
+        (target_module(rec.target), rec.name), rec.path or rec.uri_template or ""
+    )
 
 
 def target_module(name: str | None) -> str:
@@ -200,10 +227,11 @@ def _binding(
     optional_overrides = _OPTIONAL_PARAM_OVERRIDES.get(
         (target_module(rec.target), rec.name), frozenset()
     )
+    path = resolved_path(rec)
     params = _params(
         rec.parameters,
         known_models,
-        path=rec.path or rec.uri_template or "",
+        path=path,
         optional_overrides=optional_overrides,
     )
     if request_model is None:
@@ -234,7 +262,7 @@ def _binding(
         async_function_name=f"a{function_name}",
         spec_name=endpoint_spec_name(rec),
         method=method,
-        path=rec.path or rec.uri_template or "",
+        path=path,
         rate_limit_bucket=target_module(rec.target),
         auth_policy=_auth_policy(rec),
         idempotent=_is_idempotent(rec, method),
