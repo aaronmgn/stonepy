@@ -1014,7 +1014,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
         "GET",
-        "/order/v2{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+        "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",

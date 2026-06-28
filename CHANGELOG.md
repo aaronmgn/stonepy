@@ -50,6 +50,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   catalog's `boolean`, omit the unused `Param` import from parameter-free endpoint modules,
   annotate unwrappable long generated lines with `# noqa: E501`, and restore the dropped array
   marker on the News headline list fields so they deserialize as lists.
+- Correct the `GetActiveStopLimitOrder v2` endpoint path. The upstream StoneX doc page has a typo
+  in its URI template (`/v2{orderId}/…`, missing the slash every sibling v2 order endpoint has),
+  which would have made the client request a non-existent path; a curated generator override now
+  emits the correct `/order/v2/{orderId}/activeStopLimitOrder`.
 
 ## [0.1.3] - 2026-06-27
 
