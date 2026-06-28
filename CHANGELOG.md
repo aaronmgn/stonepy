@@ -20,6 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A `tests/test_self_documentation.py` suite that guards the documentation contract: every model,
   enum, resource group, and exported symbol stays documented, and field descriptions keep reaching
   the JSON schema.
+- 56 new resource methods covering the full v2 endpoint surface, exposed on the synchronous and
+  asynchronous clients. New resource groups `pm`, `fixedmargin`, `tradingadvisor`,
+  `client_preference`, and `order_including_closed`, plus new methods on `order` (simulate,
+  update, trade, historical/changed/by-reference queries, trades wall), `market`, `news`,
+  `message`, `margin`, `session` (`validate_session`), and `user_account` (social actions,
+  multi-user lookups, followers, top holders, trader search). Each method has sync and async
+  tests.
+- 30 new DTO models for the v2 responses and requests, each with auto-generated reference pages.
 
 ### Changed
 
@@ -29,6 +37,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deploy the documentation site with GitHub Actions (`upload-pages-artifact` + `deploy-pages`,
   both on Node 24) instead of the legacy branch builder, eliminating the Node.js 20 deprecation
   warning from Pages builds.
+- Regenerated the model and endpoint layer against StoneX catalog `afa936e` (128 endpoints and
+  267 data types, up from 72 and 240). Several models gained correct request/response
+  classification, resolved type references, and required-ness. Three DTOs adopted their v2 names
+  (`GetMarketInformationResponseDTO`, `ApiClientCommunicationUpdateRequestDTO`, and
+  `ApiSaveWatchlistRequestDTO` became `…v2`), and `get_order`, `get_open_position`, and
+  `get_active_stop_limit_order` now take the v2 `client_account_id` parameter.
+
+### Fixed
+
+- Generator robustness against the larger catalog: alias the lowercase `bool` type to the
+  catalog's `boolean`, omit the unused `Param` import from parameter-free endpoint modules,
+  annotate unwrappable long generated lines with `# noqa: E501`, and restore the dropped array
+  marker on the News headline list fields so they deserialize as lists.
 
 ## [0.1.3] - 2026-06-27
 
