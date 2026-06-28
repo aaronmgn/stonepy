@@ -5,21 +5,21 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class ApiValidateSessionRequestDTOv2(ResponseModel):
+class ApiValidateSessionRequestDTOv2(RequestModel):
     """Request to validate the credentials for a session."""
 
-    client_account_id: int | None = Field(default=None, alias="ClientAccountId")
+    client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    user_name: str | None = Field(default=None, alias="UserName")
+    user_name: str = Field(alias="UserName")
     """The username to validate"""
-    session: str | None = Field(default=None, alias="Session")
+    session: str = Field(alias="Session")
     """The session ID to validate with the username"""
-    trading_account_id: int | None = Field(default=None, alias="TradingAccountId")
+    trading_account_id: int = Field(alias="TradingAccountId")
     """Trading account identifier"""
-    contract_id: int | None = Field(default=None, alias="ContractId")
+    contract_id: int = Field(alias="ContractId")
     """Contract identifier"""
 
 

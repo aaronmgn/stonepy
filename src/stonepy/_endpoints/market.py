@@ -7,9 +7,10 @@ from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.pipeline import CallContext
 from stonepy.models import (
     ApiGetMarketInformationExtendedResponseDTOv2,
+    ApiListLatestTradedMarketsResponseDTO,
     ApiSaveMarketInformationResponseDTO,
     FullMarketInformationSearchWithTagsResponseDTOv2,
-    GetMarketInformationResponseDTO,
+    GetMarketInformationResponseDTOv2,
     GetPriceBarResponseDTO,
     GetPriceTickResponseDTO,
     ListMarketInformationResponseDTO,
@@ -19,6 +20,7 @@ from stonepy.models import (
     ListProductInformationDTO,
     ListProductInformationResponseDTO,
     MarketInformationSearchWithTagsResponseDTO,
+    MarketInformationTagLookupResponseDTO,
     MarketSpreadData,
     MultipleMarketInformationRequestDTO,
     SaveMarketInformationRequestDTO,
@@ -404,14 +406,14 @@ async def aget_market_information_extended(
     )
 
 
-GET_MARKET_INFORMATION_SPEC: EndpointSpec[GetMarketInformationResponseDTO] = EndpointSpec(
+GET_MARKET_INFORMATION_SPEC: EndpointSpec[GetMarketInformationResponseDTOv2] = EndpointSpec(
     name="GetMarketInformation v2",
     method="GET",
     path="/market/v2/market/{marketId}/information?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",
-    response_model=GetMarketInformationResponseDTO,
+    response_model=GetMarketInformationResponseDTOv2,
     params=(
         Param(name="MarketId", location="path", python_name="market_id"),
         Param(name="ClientAccountId", location="query", python_name="client_account_id"),
@@ -421,7 +423,7 @@ GET_MARKET_INFORMATION_SPEC: EndpointSpec[GetMarketInformationResponseDTO] = End
 
 def get_market_information(
     ctx: CallContext, market_id: str, client_account_id: int
-) -> GetMarketInformationResponseDTO:
+) -> GetMarketInformationResponseDTOv2:
     """Get Market Information for the single specified market supplied in the parameter."""
     return ctx.invoke(
         GET_MARKET_INFORMATION_SPEC,
@@ -432,7 +434,7 @@ def get_market_information(
 
 async def aget_market_information(
     ctx: CallContext, market_id: str, client_account_id: int
-) -> GetMarketInformationResponseDTO:
+) -> GetMarketInformationResponseDTOv2:
     """Get Market Information for the single specified market supplied in the parameter."""
     return await ctx.ainvoke(
         GET_MARKET_INFORMATION_SPEC,
@@ -949,6 +951,49 @@ async def aget_price_ticks_between_dates(
             "toTimestampUTC": to_timestamp_utc,
             "priceType": price_type,
         },
+    )
+
+
+LIST_LATEST_TRADED_MARKETS_SPEC: EndpointSpec[ApiListLatestTradedMarketsResponseDTO] = EndpointSpec(
+    name="ListLatestTradedMarkets",
+    method="GET",
+    path="/market/latesttraded",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="market",
+    response_model=ApiListLatestTradedMarketsResponseDTO,
+    params=(
+        Param(name="screenNames", location="query", python_name="screen_names"),
+        Param(name="numberOfResults", location="query", python_name="number_of_results"),
+    ),
+)
+
+
+def list_latest_traded_markets(
+    ctx: CallContext, screen_names: list[str], number_of_results: int
+) -> ApiListLatestTradedMarketsResponseDTO:
+    """
+    Lists the latest trades for each of the specified users. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return ctx.invoke(
+        LIST_LATEST_TRADED_MARKETS_SPEC,
+        query={"screenNames": screen_names, "numberOfResults": number_of_results},
+    )
+
+
+async def alist_latest_traded_markets(
+    ctx: CallContext, screen_names: list[str], number_of_results: int
+) -> ApiListLatestTradedMarketsResponseDTO:
+    """
+    Lists the latest trades for each of the specified users. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(
+        LIST_LATEST_TRADED_MARKETS_SPEC,
+        query={"screenNames": screen_names, "numberOfResults": number_of_results},
     )
 
 
@@ -1481,6 +1526,36 @@ async def asearch_with_tags(
     )
 
 
+TAG_LOOKUP_SPEC: EndpointSpec[MarketInformationTagLookupResponseDTO] = EndpointSpec(
+    name="TagLookup v2",
+    method="GET",
+    path="/market/v2/market/tagLookup?clientAccountId={clientAccountId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="market",
+    response_model=MarketInformationTagLookupResponseDTO,
+    params=(Param(name="clientAccountId", location="query", python_name="client_account_id"),),
+)
+
+
+def tag_lookup(ctx: CallContext, client_account_id: str) -> MarketInformationTagLookupResponseDTO:
+    """
+    Gets all of the tags that the requesting user is allowed to see. Tags are returned in a
+    primary / secondary hierarchy.
+    """
+    return ctx.invoke(TAG_LOOKUP_SPEC, query={"clientAccountId": client_account_id})
+
+
+async def atag_lookup(
+    ctx: CallContext, client_account_id: str
+) -> MarketInformationTagLookupResponseDTO:
+    """
+    Gets all of the tags that the requesting user is allowed to see. Tags are returned in a
+    primary / secondary hierarchy.
+    """
+    return await ctx.ainvoke(TAG_LOOKUP_SPEC, query={"clientAccountId": client_account_id})
+
+
 __all__ = [
     "FULL_SEARCH_WITH_TAGS_SPEC",
     "full_search_with_tags",
@@ -1521,6 +1596,9 @@ __all__ = [
     "GET_PRICE_TICKS_BETWEEN_DATES_SPEC",
     "get_price_ticks_between_dates",
     "aget_price_ticks_between_dates",
+    "LIST_LATEST_TRADED_MARKETS_SPEC",
+    "list_latest_traded_markets",
+    "alist_latest_traded_markets",
     "LIST_MARKET_INFORMATION_SEARCH_SPEC",
     "list_market_information_search",
     "alist_market_information_search",
@@ -1542,4 +1620,7 @@ __all__ = [
     "SEARCH_WITH_TAGS_SPEC",
     "search_with_tags",
     "asearch_with_tags",
+    "TAG_LOOKUP_SPEC",
+    "tag_lookup",
+    "atag_lookup",
 ]

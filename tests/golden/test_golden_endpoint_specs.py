@@ -7,7 +7,7 @@ from stonepy._endpoints.session import LOG_ON_SPEC
 from stonepy.models import (
     ApiLogOnRequestDTO,
     ApiLogOnResponseDTOv2,
-    GetMarketInformationResponseDTO,
+    GetMarketInformationResponseDTOv2,
     ListActiveOrdersRequestDTO,
     ListActiveOrdersResponseDTO,
 )
@@ -21,7 +21,7 @@ def test_get_market_information_spec_matches_docs() -> None:
     )
     assert GET_MARKET_INFORMATION_SPEC.auth_policy is AuthPolicy.SESSION
     assert GET_MARKET_INFORMATION_SPEC.idempotent is True
-    assert GET_MARKET_INFORMATION_SPEC.response_model is GetMarketInformationResponseDTO
+    assert GET_MARKET_INFORMATION_SPEC.response_model is GetMarketInformationResponseDTOv2
     assert [(p.name, p.location, p.python_name) for p in GET_MARKET_INFORMATION_SPEC.params] == [
         ("MarketId", "path", "market_id"),
         ("ClientAccountId", "query", "client_account_id"),

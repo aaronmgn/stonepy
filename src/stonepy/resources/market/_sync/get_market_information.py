@@ -5,12 +5,12 @@ from __future__ import annotations
 
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import market as _ep
-from stonepy.models import GetMarketInformationResponseDTO
+from stonepy.models import GetMarketInformationResponseDTOv2
 
 
 class _GetMarketInformationMixin(BaseResource):
     def get_market_information(
         self, market_id: str, client_account_id: int
-    ) -> GetMarketInformationResponseDTO:
+    ) -> GetMarketInformationResponseDTOv2:
         """Get Market Information for the single specified market supplied in the parameter."""
         return _ep.get_market_information(self._ctx, market_id, client_account_id)

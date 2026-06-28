@@ -9,7 +9,7 @@ from stonepy.models import GetActiveStopLimitOrderResponseDTOv2
 
 class _GetActiveStopLimitOrderMixin(BaseResource):
     async def get_active_stop_limit_order(
-        self, order_id: int
+        self, order_id: int, client_account_id: int
     ) -> GetActiveStopLimitOrderResponseDTOv2:
         """
         Queries for an active stop limit order with a specified order ID. It returns a
@@ -19,4 +19,4 @@ class _GetActiveStopLimitOrderMixin(BaseResource):
         data to display in the grid, and call this URI when you receive updates on the
         order stream to get the updated data in this format.
         """
-        return await _ep.aget_active_stop_limit_order(self._ctx, order_id)
+        return await _ep.aget_active_stop_limit_order(self._ctx, order_id, client_account_id)

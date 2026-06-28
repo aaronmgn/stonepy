@@ -8,7 +8,7 @@ import respx
 from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import (
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
 )
 
@@ -23,7 +23,7 @@ def test_save_client_communication_message_response_returns_response() -> None:
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
-        request = ApiClientCommunicationUpdateRequestDTO.model_construct()
+        request = ApiClientCommunicationUpdateRequestDTOv2.model_construct()
         resp = client.message.save_client_communication_message_response(request)
         assert isinstance(resp, ApiClientCommunicationUpdateResponseDTO)
         assert route.called
@@ -45,7 +45,7 @@ def test_save_client_communication_message_response_async() -> None:
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
-            request = ApiClientCommunicationUpdateRequestDTO.model_construct()
+            request = ApiClientCommunicationUpdateRequestDTOv2.model_construct()
             resp = await client.message.save_client_communication_message_response(request)
             assert isinstance(resp, ApiClientCommunicationUpdateResponseDTO)
             assert route.called

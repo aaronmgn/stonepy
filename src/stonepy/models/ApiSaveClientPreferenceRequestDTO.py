@@ -7,16 +7,16 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
     from .ClientPreferenceKeyDTO import ClientPreferenceKeyDTO
 
 
-class ApiSaveClientPreferenceRequestDTO(ResponseModel):
+class ApiSaveClientPreferenceRequestDTO(RequestModel):
     """Save client preferences."""
 
-    client_account_id: int | None = Field(default=None, alias="ClientAccountId")
+    client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
     client_preference: list[ClientPreferenceKeyDTO] | None = Field(
         default=None, alias="ClientPreference"

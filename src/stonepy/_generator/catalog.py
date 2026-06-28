@@ -28,10 +28,14 @@ _DIRTY_TYPE_ALIASES: Final[dict[str, str]] = {
     "string": "string",
     "status": "string",
     "boolean": "boolean",
+    # Some v2 data types (e.g. ApiAccountOperatorsDTO v2, ApiRestrictionsDTO v2) spell the
+    # boolean primitive ``bool``; treat it as the catalog's canonical ``boolean``.
+    "bool": "boolean",
 }
-DEFAULT_ALLOWED_UNRESOLVED: Final[frozenset[str]] = frozenset(
-    {"ApiTradeActionDTO", "NewsDTO", "NewsHeadlinesResponseDTO"}
-)
+# ``LinkedAccountResult`` ships five properties with empty name/type/ref in the catalog, which
+# normalize to the ``Unresolved`` sentinel. The page documents no usable field shape, so this is
+# a declared catalog gap rather than a generator bug; allow it through the resolution gate.
+DEFAULT_ALLOWED_UNRESOLVED: Final[frozenset[str]] = frozenset({"Unresolved"})
 _PRIMITIVE_TYPE_NAMES: Final[frozenset[str]] = frozenset(
     {
         "integer",
@@ -86,9 +90,11 @@ _ARRAY_PROPERTY_OVERRIDES: Final[frozenset[tuple[str, str]]] = frozenset(
         ("ListOpenPositionsResponseDTO", "OpenPositions"),
         ("ListProductInformationResponseDTO", "ProductInformation"),
         ("ListSpreadMarketsResponseDTO", "Markets"),
+        ("ListNewsHeadlinesResponseDTO", "Headlines"),
         ("ListStopLimitOrderHistoryResponseDTO", "StopLimitOrderHistory"),
         ("ListTradeHistoryResponseDTO", "SupplementalOpenOrders"),
         ("ListTradeHistoryResponseDTO", "TradeHistory"),
+        ("NewsHeadlinesResponseDTO", "Headlines"),
         ("ManagedClientDTO", "TradingAccounts"),
         ("MarketInformationSearchWithTagsResponseDTO", "Markets"),
         ("MarketInformationSearchWithTagsResponseDTO", "Tags"),

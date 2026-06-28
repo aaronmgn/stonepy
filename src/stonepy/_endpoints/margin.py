@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.pipeline import CallContext
-from stonepy.models import ClientAccountMarginResponseDTO
+from stonepy.models import ApiManagedClientAccountsMarginResponseDTO, ClientAccountMarginResponseDTO
 
 GET_CLIENT_ACCOUNT_MARGIN_SPEC: EndpointSpec[ClientAccountMarginResponseDTO] = EndpointSpec(
     name="GetClientAccountMargin v2",
@@ -35,8 +35,38 @@ async def aget_client_account_margin(
     )
 
 
+LIST_MANAGED_CLIENT_ACCOUNTS_MARGIN_SPEC: EndpointSpec[
+    ApiManagedClientAccountsMarginResponseDTO
+] = EndpointSpec(
+    name="ListManagedClientAccountsMargin v2",
+    method="GET",
+    path="/margin/ManagedClientAccountsMargin",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="margin",
+    response_model=ApiManagedClientAccountsMarginResponseDTO,
+)
+
+
+def list_managed_client_accounts_margin(
+    ctx: CallContext,
+) -> ApiManagedClientAccountsMarginResponseDTO:
+    """Retrieves the current margin levels for each managed client assigned to a Trading Advisor."""
+    return ctx.invoke(LIST_MANAGED_CLIENT_ACCOUNTS_MARGIN_SPEC)
+
+
+async def alist_managed_client_accounts_margin(
+    ctx: CallContext,
+) -> ApiManagedClientAccountsMarginResponseDTO:
+    """Retrieves the current margin levels for each managed client assigned to a Trading Advisor."""
+    return await ctx.ainvoke(LIST_MANAGED_CLIENT_ACCOUNTS_MARGIN_SPEC)
+
+
 __all__ = [
     "GET_CLIENT_ACCOUNT_MARGIN_SPEC",
     "get_client_account_margin",
     "aget_client_account_margin",
+    "LIST_MANAGED_CLIENT_ACCOUNTS_MARGIN_SPEC",
+    "list_managed_client_accounts_margin",
+    "alist_managed_client_accounts_margin",
 ]

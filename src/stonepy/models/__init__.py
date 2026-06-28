@@ -17,6 +17,7 @@ from .ApiAccountHolderDTO import ApiAccountHolderDTO
 from .ApiAccountInformationSaveRequestDTO import ApiAccountInformationSaveRequestDTO
 from .ApiAccountInformationSaveResponseDTO import ApiAccountInformationSaveResponseDTO
 from .ApiAccountOperatorDTOv2 import ApiAccountOperatorDTOv2
+from .ApiAccountOperatorsDTOv2 import ApiAccountOperatorsDTOv2
 from .ApiActiveOrderDTO import ApiActiveOrderDTO
 from .ApiActiveStopLimitOrderDTOv2 import ApiActiveStopLimitOrderDTOv2
 from .ApiAdvisoryTradeOrderResponseDTO import ApiAdvisoryTradeOrderResponseDTO
@@ -40,7 +41,7 @@ from .ApiClientApplicationMessageTranslationResponseDTO import (
     ApiClientApplicationMessageTranslationResponseDTO,
 )
 from .ApiClientCommunicationResponseDTO import ApiClientCommunicationResponseDTO
-from .ApiClientCommunicationUpdateRequestDTO import ApiClientCommunicationUpdateRequestDTO
+from .ApiClientCommunicationUpdateRequestDTOv2 import ApiClientCommunicationUpdateRequestDTOv2
 from .ApiClientCommunicationUpdateResponseDTO import ApiClientCommunicationUpdateResponseDTO
 from .ApiClientPreferencesOverriddenMarginFactorDTO import (
     ApiClientPreferencesOverriddenMarginFactorDTO,
@@ -99,14 +100,23 @@ from .ApiFreeCashToTradeResponseDTO import ApiFreeCashToTradeResponseDTO
 from .ApiFxFinancingDTO import ApiFxFinancingDTO
 from .ApiGetClientPreferenceResponseDTO import ApiGetClientPreferenceResponseDTO
 from .ApiGetClientPreferencesResponseDTO import ApiGetClientPreferencesResponseDTO
+from .ApiGetCommunityActionsResponseDTO import ApiGetCommunityActionsResponseDTO
 from .ApiGetKeyListClientPreferenceResponseDTO import ApiGetKeyListClientPreferenceResponseDTO
 from .ApiGetMarketInformationExtendedResponseDTOv2 import (
     ApiGetMarketInformationExtendedResponseDTOv2,
 )
+from .ApiGetMultipleUsersDetailsResponseDTO import ApiGetMultipleUsersDetailsResponseDTO
 from .ApiGetPreferencesResponseDTO import ApiGetPreferencesResponseDTO
+from .ApiGetWallItemsForUsersResponseDTO import ApiGetWallItemsForUsersResponseDTO
+from .ApiGetWallSubItemsResponseDTO import ApiGetWallSubItemsResponseDTO
 from .ApiIfDoneDTOv2 import ApiIfDoneDTOv2
 from .ApiIfDoneResponseDTO import ApiIfDoneResponseDTO
 from .ApiKnockoutDTO import ApiKnockoutDTO
+from .ApiListFollowedUsersResponseDTO import ApiListFollowedUsersResponseDTO
+from .ApiListFollowingUsersResponseDTO import ApiListFollowingUsersResponseDTO
+from .ApiListLatestTradedMarketsResponseDTO import ApiListLatestTradedMarketsResponseDTO
+from .ApiListTopholdersDTO import ApiListTopholdersDTO
+from .ApiListTopholdersForMarketsResponseDTO import ApiListTopholdersForMarketsResponseDTO
 from .ApiLogOffRequestDTO import ApiLogOffRequestDTO
 from .ApiLogOffResponseDTO import ApiLogOffResponseDTO
 from .ApiLogOnRequestDTO import ApiLogOnRequestDTO
@@ -133,13 +143,14 @@ from .ApiPrimaryMarketTagDTO import ApiPrimaryMarketTagDTO
 from .ApiProductInformationDTO import ApiProductInformationDTO
 from .ApiQuoteResponseDTO import ApiQuoteResponseDTO
 from .ApiRestrictionDTOv2 import ApiRestrictionDTOv2
+from .ApiRestrictionsDTOv2 import ApiRestrictionsDTOv2
 from .ApiSaveAccountInformationRequestDTO import ApiSaveAccountInformationRequestDTO
 from .ApiSaveAccountInformationResponseDTO import ApiSaveAccountInformationResponseDTO
 from .ApiSaveClientPreferenceRequestDTO import ApiSaveClientPreferenceRequestDTO
 from .ApiSaveMarketInformationResponseDTO import ApiSaveMarketInformationResponseDTO
 from .ApiSavePreferencesRequestDTO import ApiSavePreferencesRequestDTO
 from .ApiSaveSignalPreferencesResponseDTO import ApiSaveSignalPreferencesResponseDTO
-from .ApiSaveWatchlistRequestDTO import ApiSaveWatchlistRequestDTO
+from .ApiSaveWatchlistRequestDTOv2 import ApiSaveWatchlistRequestDTOv2
 from .ApiSaveWatchlistResponseDTO import ApiSaveWatchlistResponseDTO
 from .ApiSimulateOrderResponseDTO import ApiSimulateOrderResponseDTO
 from .ApiSimulateTradeOrderResponseDTO import ApiSimulateTradeOrderResponseDTO
@@ -148,16 +159,21 @@ from .ApiStepMarginDTO import ApiStepMarginDTO
 from .ApiStopLimitOrderDTOv2 import ApiStopLimitOrderDTOv2
 from .ApiStopLimitOrderHistoryDTO import ApiStopLimitOrderHistoryDTO
 from .ApiStopLimitResponseDTO import ApiStopLimitResponseDTO
+from .ApiTopholderDTO import ApiTopholderDTO
+from .ApiTradeActionDTO import ApiTradeActionDTO
+from .ApiTradedMarketsDTO import ApiTradedMarketsDTO
 from .ApiTradeHistoryDTO import ApiTradeHistoryDTO
 from .ApiTradeOrderDTOv2 import ApiTradeOrderDTOv2
 from .ApiTradeOrderResponseDTO import ApiTradeOrderResponseDTO
 from .ApiTraderDetailsDTO import ApiTraderDetailsDTO
+from .ApiTraderSearchResponseDTO import ApiTraderSearchResponseDTO
 from .ApiTradingAccountDTOv2 import ApiTradingAccountDTOv2
 from .ApiTradingDayTimesDTO import ApiTradingDayTimesDTO
 from .ApiUpdateDeleteClientPreferenceResponseDTO import ApiUpdateDeleteClientPreferenceResponseDTO
 from .ApiUserDynamicProfileDTO import ApiUserDynamicProfileDTO
 from .ApiUserFollowedUsersDTO import ApiUserFollowedUsersDTO
 from .ApiUserFollowersDTO import ApiUserFollowersDTO
+from .ApiUsernameResponseDTO import ApiUsernameResponseDTO
 from .ApiUserProfileDTO import ApiUserProfileDTO
 from .ApiUserTradingAccountDTO import ApiUserTradingAccountDTO
 from .ApiValidateSessionRequestDTOv2 import ApiValidateSessionRequestDTOv2
@@ -202,12 +218,16 @@ from .FullMarketInformationSearchWithTagsResponseDTOv2 import (
     FullMarketInformationSearchWithTagsResponseDTOv2,
 )
 from .GetActiveStopLimitOrderResponseDTOv2 import GetActiveStopLimitOrderResponseDTOv2
+from .GetAllTradesWallResponseDTO import GetAllTradesWallResponseDTO
+from .GetChangedOrdersResponseDTO import GetChangedOrdersResponseDTO
 from .GetClientPreferenceResponseDTO import GetClientPreferenceResponseDTO
 from .GetClientPreferencesResponseDTO import GetClientPreferencesResponseDTO
 from .GetKeyListClientPreferenceResponseDTO import GetKeyListClientPreferenceResponseDTO
 from .GetListClientPreferenceResponseDTO import GetListClientPreferenceResponseDTO
-from .GetMarketInformationResponseDTO import GetMarketInformationResponseDTO
+from .GetMarketInformationResponseDTOv2 import GetMarketInformationResponseDTOv2
+from .GetMarketsTradesWallResponseDTO import GetMarketsTradesWallResponseDTO
 from .GetMessagePopupResponseDTO import GetMessagePopupResponseDTO
+from .GetNewsDetailResponseDTO import GetNewsDetailResponseDTO
 from .GetOpenPositionResponseDTOv2 import GetOpenPositionResponseDTOv2
 from .GetOrderResponseDTOv2 import GetOrderResponseDTOv2
 from .GetOrdersResponseDTOv2 import GetOrdersResponseDTOv2
@@ -231,6 +251,8 @@ from .ListMarketInformationResponseDTO import ListMarketInformationResponseDTO
 from .ListMarketInformationSearchResponseDTO import ListMarketInformationSearchResponseDTO
 from .ListMarketSearchPaginatedResponseDTO import ListMarketSearchPaginatedResponseDTO
 from .ListMarketSearchResponseDTO import ListMarketSearchResponseDTO
+from .ListNewsHeadlinesRequestDTO import ListNewsHeadlinesRequestDTO
+from .ListNewsHeadlinesResponseDTO import ListNewsHeadlinesResponseDTO
 from .ListOpenPositionsResponseDTO import ListOpenPositionsResponseDTO
 from .ListProductInformationDTO import ListProductInformationDTO
 from .ListProductInformationResponseDTO import ListProductInformationResponseDTO
@@ -252,6 +274,10 @@ from .MarketSearchResultDTO import MarketSearchResultDTO
 from .MarketSpreadData import MarketSpreadData
 from .MultipleMarketInformationRequestDTO import MultipleMarketInformationRequestDTO
 from .NewFixedMarginTradeOrderRequestDTO import NewFixedMarginTradeOrderRequestDTO
+from .NewsDetailDTO import NewsDetailDTO
+from .NewsDTO import NewsDTO
+from .NewsHeadlineDTO import NewsHeadlineDTO
+from .NewsHeadlinesResponseDTO import NewsHeadlinesResponseDTO
 from .NewsResponseDTO import NewsResponseDTO
 from .NewStopLimitOrderRequestDTO import NewStopLimitOrderRequestDTO
 from .NewTradeOrderRequestDTO import NewTradeOrderRequestDTO
@@ -288,6 +314,7 @@ from .SystemStatusDTO import SystemStatusDTO
 from .SystemStatusRequestDTO import SystemStatusRequestDTO
 from .Timestamp import Timestamp
 from .TradeMarginDTO import TradeMarginDTO
+from .TradingAccountMarginDTO import TradingAccountMarginDTO
 from .UpdateDeleteClientPreferenceResponseDTO import UpdateDeleteClientPreferenceResponseDTO
 from .UpdateFixedMarginTradeOrderRequestDTO import UpdateFixedMarginTradeOrderRequestDTO
 from .UpdateStopLimitOrderRequestDTO import UpdateStopLimitOrderRequestDTO
@@ -310,6 +337,7 @@ __all__ = [
     "ApiAccountInformationSaveRequestDTO",
     "ApiAccountInformationSaveResponseDTO",
     "ApiAccountOperatorDTOv2",
+    "ApiAccountOperatorsDTOv2",
     "ApiActiveOrderDTO",
     "ApiActiveStopLimitOrderDTOv2",
     "ApiAdvisoryTradeOrderResponseDTO",
@@ -329,7 +357,7 @@ __all__ = [
     "ApiClientApplicationMessageTranslationRequestDTO",
     "ApiClientApplicationMessageTranslationResponseDTO",
     "ApiClientCommunicationResponseDTO",
-    "ApiClientCommunicationUpdateRequestDTO",
+    "ApiClientCommunicationUpdateRequestDTOv2",
     "ApiClientCommunicationUpdateResponseDTO",
     "ApiClientPreferencesOverriddenMarginFactorDTO",
     "ApiClientPreferencesOverriddenPriceToleranceDTO",
@@ -362,12 +390,21 @@ __all__ = [
     "ApiFxFinancingDTO",
     "ApiGetClientPreferenceResponseDTO",
     "ApiGetClientPreferencesResponseDTO",
+    "ApiGetCommunityActionsResponseDTO",
     "ApiGetKeyListClientPreferenceResponseDTO",
     "ApiGetMarketInformationExtendedResponseDTOv2",
+    "ApiGetMultipleUsersDetailsResponseDTO",
     "ApiGetPreferencesResponseDTO",
+    "ApiGetWallItemsForUsersResponseDTO",
+    "ApiGetWallSubItemsResponseDTO",
     "ApiIfDoneDTOv2",
     "ApiIfDoneResponseDTO",
     "ApiKnockoutDTO",
+    "ApiListFollowedUsersResponseDTO",
+    "ApiListFollowingUsersResponseDTO",
+    "ApiListLatestTradedMarketsResponseDTO",
+    "ApiListTopholdersDTO",
+    "ApiListTopholdersForMarketsResponseDTO",
     "ApiLogOffRequestDTO",
     "ApiLogOffResponseDTO",
     "ApiLogOnRequestDTO",
@@ -394,13 +431,14 @@ __all__ = [
     "ApiProductInformationDTO",
     "ApiQuoteResponseDTO",
     "ApiRestrictionDTOv2",
+    "ApiRestrictionsDTOv2",
     "ApiSaveAccountInformationRequestDTO",
     "ApiSaveAccountInformationResponseDTO",
     "ApiSaveClientPreferenceRequestDTO",
     "ApiSaveMarketInformationResponseDTO",
     "ApiSavePreferencesRequestDTO",
     "ApiSaveSignalPreferencesResponseDTO",
-    "ApiSaveWatchlistRequestDTO",
+    "ApiSaveWatchlistRequestDTOv2",
     "ApiSaveWatchlistResponseDTO",
     "ApiSimulateOrderResponseDTO",
     "ApiSimulateTradeOrderResponseDTO",
@@ -409,10 +447,14 @@ __all__ = [
     "ApiStopLimitOrderDTOv2",
     "ApiStopLimitOrderHistoryDTO",
     "ApiStopLimitResponseDTO",
+    "ApiTopholderDTO",
+    "ApiTradeActionDTO",
     "ApiTradeHistoryDTO",
     "ApiTradeOrderDTOv2",
     "ApiTradeOrderResponseDTO",
+    "ApiTradedMarketsDTO",
     "ApiTraderDetailsDTO",
+    "ApiTraderSearchResponseDTO",
     "ApiTradingAccountDTOv2",
     "ApiTradingDayTimesDTO",
     "ApiUpdateDeleteClientPreferenceResponseDTO",
@@ -421,6 +463,7 @@ __all__ = [
     "ApiUserFollowersDTO",
     "ApiUserProfileDTO",
     "ApiUserTradingAccountDTO",
+    "ApiUsernameResponseDTO",
     "ApiValidateSessionRequestDTOv2",
     "ApiValidateSessionResponseDTO",
     "ApiWallItemDTO",
@@ -446,12 +489,16 @@ __all__ = [
     "FixedMarginOrderResponseDTO",
     "FullMarketInformationSearchWithTagsResponseDTOv2",
     "GetActiveStopLimitOrderResponseDTOv2",
+    "GetAllTradesWallResponseDTO",
+    "GetChangedOrdersResponseDTO",
     "GetClientPreferenceResponseDTO",
     "GetClientPreferencesResponseDTO",
     "GetKeyListClientPreferenceResponseDTO",
     "GetListClientPreferenceResponseDTO",
-    "GetMarketInformationResponseDTO",
+    "GetMarketInformationResponseDTOv2",
+    "GetMarketsTradesWallResponseDTO",
     "GetMessagePopupResponseDTO",
+    "GetNewsDetailResponseDTO",
     "GetOpenPositionResponseDTOv2",
     "GetOrderResponseDTOv2",
     "GetOrdersResponseDTOv2",
@@ -477,6 +524,8 @@ __all__ = [
     "ListMarketInformationSearchResponseDTO",
     "ListMarketSearchPaginatedResponseDTO",
     "ListMarketSearchResponseDTO",
+    "ListNewsHeadlinesRequestDTO",
+    "ListNewsHeadlinesResponseDTO",
     "ListOpenPositionsResponseDTO",
     "ListProductInformationDTO",
     "ListProductInformationResponseDTO",
@@ -499,6 +548,10 @@ __all__ = [
     "NewFixedMarginTradeOrderRequestDTO",
     "NewStopLimitOrderRequestDTO",
     "NewTradeOrderRequestDTO",
+    "NewsDTO",
+    "NewsDetailDTO",
+    "NewsHeadlineDTO",
+    "NewsHeadlinesResponseDTO",
     "NewsResponseDTO",
     "OpenOrderDTO",
     "OpenOrdersResponseDTO",
@@ -539,6 +592,7 @@ __all__ = [
     "SystemStatusRequestDTO",
     "Timestamp",
     "TradeMarginDTO",
+    "TradingAccountMarginDTO",
     "UpdateDeleteClientPreferenceResponseDTO",
     "UpdateFixedMarginTradeOrderRequestDTO",
     "UpdateStopLimitOrderRequestDTO",
@@ -558,6 +612,7 @@ for _model in (
     ApiAccountInformationSaveRequestDTO,
     ApiAccountInformationSaveResponseDTO,
     ApiAccountOperatorDTOv2,
+    ApiAccountOperatorsDTOv2,
     ApiActiveOrderDTO,
     ApiActiveStopLimitOrderDTOv2,
     ApiAdvisoryTradeOrderResponseDTO,
@@ -577,7 +632,7 @@ for _model in (
     ApiClientApplicationMessageTranslationRequestDTO,
     ApiClientApplicationMessageTranslationResponseDTO,
     ApiClientCommunicationResponseDTO,
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
     ApiClientPreferencesOverriddenMarginFactorDTO,
     ApiClientPreferencesOverriddenPriceToleranceDTO,
@@ -610,12 +665,21 @@ for _model in (
     ApiFxFinancingDTO,
     ApiGetClientPreferenceResponseDTO,
     ApiGetClientPreferencesResponseDTO,
+    ApiGetCommunityActionsResponseDTO,
     ApiGetKeyListClientPreferenceResponseDTO,
     ApiGetMarketInformationExtendedResponseDTOv2,
+    ApiGetMultipleUsersDetailsResponseDTO,
     ApiGetPreferencesResponseDTO,
+    ApiGetWallItemsForUsersResponseDTO,
+    ApiGetWallSubItemsResponseDTO,
     ApiIfDoneDTOv2,
     ApiIfDoneResponseDTO,
     ApiKnockoutDTO,
+    ApiListFollowedUsersResponseDTO,
+    ApiListFollowingUsersResponseDTO,
+    ApiListLatestTradedMarketsResponseDTO,
+    ApiListTopholdersDTO,
+    ApiListTopholdersForMarketsResponseDTO,
     ApiLogOffRequestDTO,
     ApiLogOffResponseDTO,
     ApiLogOnRequestDTO,
@@ -642,13 +706,14 @@ for _model in (
     ApiProductInformationDTO,
     ApiQuoteResponseDTO,
     ApiRestrictionDTOv2,
+    ApiRestrictionsDTOv2,
     ApiSaveAccountInformationRequestDTO,
     ApiSaveAccountInformationResponseDTO,
     ApiSaveClientPreferenceRequestDTO,
     ApiSaveMarketInformationResponseDTO,
     ApiSavePreferencesRequestDTO,
     ApiSaveSignalPreferencesResponseDTO,
-    ApiSaveWatchlistRequestDTO,
+    ApiSaveWatchlistRequestDTOv2,
     ApiSaveWatchlistResponseDTO,
     ApiSimulateOrderResponseDTO,
     ApiSimulateTradeOrderResponseDTO,
@@ -657,10 +722,14 @@ for _model in (
     ApiStopLimitOrderDTOv2,
     ApiStopLimitOrderHistoryDTO,
     ApiStopLimitResponseDTO,
+    ApiTopholderDTO,
+    ApiTradeActionDTO,
     ApiTradeHistoryDTO,
     ApiTradeOrderDTOv2,
     ApiTradeOrderResponseDTO,
+    ApiTradedMarketsDTO,
     ApiTraderDetailsDTO,
+    ApiTraderSearchResponseDTO,
     ApiTradingAccountDTOv2,
     ApiTradingDayTimesDTO,
     ApiUpdateDeleteClientPreferenceResponseDTO,
@@ -669,6 +738,7 @@ for _model in (
     ApiUserFollowersDTO,
     ApiUserProfileDTO,
     ApiUserTradingAccountDTO,
+    ApiUsernameResponseDTO,
     ApiValidateSessionRequestDTOv2,
     ApiValidateSessionResponseDTO,
     ApiWallItemDTO,
@@ -692,12 +762,16 @@ for _model in (
     FixedMarginOrderResponseDTO,
     FullMarketInformationSearchWithTagsResponseDTOv2,
     GetActiveStopLimitOrderResponseDTOv2,
+    GetAllTradesWallResponseDTO,
+    GetChangedOrdersResponseDTO,
     GetClientPreferenceResponseDTO,
     GetClientPreferencesResponseDTO,
     GetKeyListClientPreferenceResponseDTO,
     GetListClientPreferenceResponseDTO,
-    GetMarketInformationResponseDTO,
+    GetMarketInformationResponseDTOv2,
+    GetMarketsTradesWallResponseDTO,
     GetMessagePopupResponseDTO,
+    GetNewsDetailResponseDTO,
     GetOpenPositionResponseDTOv2,
     GetOrderResponseDTOv2,
     GetOrdersResponseDTOv2,
@@ -721,6 +795,8 @@ for _model in (
     ListMarketInformationSearchResponseDTO,
     ListMarketSearchPaginatedResponseDTO,
     ListMarketSearchResponseDTO,
+    ListNewsHeadlinesRequestDTO,
+    ListNewsHeadlinesResponseDTO,
     ListOpenPositionsResponseDTO,
     ListProductInformationDTO,
     ListProductInformationResponseDTO,
@@ -742,6 +818,10 @@ for _model in (
     NewFixedMarginTradeOrderRequestDTO,
     NewStopLimitOrderRequestDTO,
     NewTradeOrderRequestDTO,
+    NewsDTO,
+    NewsDetailDTO,
+    NewsHeadlineDTO,
+    NewsHeadlinesResponseDTO,
     NewsResponseDTO,
     OpenOrderDTO,
     OpenOrdersResponseDTO,
@@ -776,6 +856,7 @@ for _model in (
     SystemStatusRequestDTO,
     Timestamp,
     TradeMarginDTO,
+    TradingAccountMarginDTO,
     UpdateDeleteClientPreferenceResponseDTO,
     UpdateFixedMarginTradeOrderRequestDTO,
     UpdateStopLimitOrderRequestDTO,

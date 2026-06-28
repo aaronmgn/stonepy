@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import news as _ep
-from stonepy._endpoints.news import NewsHeadlinesResponseDTO
+from stonepy.models import NewsHeadlinesResponseDTO
 
 
 class _GetNewsHeadlinesMixin(BaseResource):
