@@ -1,0 +1,15 @@
+"""Resource method: TradeFM."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import fixedmargin as _ep
+from stonepy.models import FixedMarginOrderResponseDTO, NewFixedMarginTradeOrderRequestDTO
+
+
+class _TradeFmMixin(BaseResource):
+    async def trade_fm(
+        self, request: NewFixedMarginTradeOrderRequestDTO
+    ) -> FixedMarginOrderResponseDTO:
+        """This service is used to place a fixed margin trade on a particular market."""
+        return await _ep.atrade_fm(self._ctx, request)

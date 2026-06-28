@@ -8,19 +8,29 @@ from stonepy._core.resource import BaseResource
 from ._sync.get_client_account_margin import (
     _GetClientAccountMarginMixin as _SyncGetClientAccountMarginMixin,
 )
+from ._sync.list_managed_client_accounts_margin import (
+    _ListManagedClientAccountsMarginMixin as _SyncListManagedClientAccountsMarginMixin,
+)
 from .get_client_account_margin import (
     _GetClientAccountMarginMixin as _AsyncGetClientAccountMarginMixin,
 )
+from .list_managed_client_accounts_margin import (
+    _ListManagedClientAccountsMarginMixin as _AsyncListManagedClientAccountsMarginMixin,
+)
 
 
-class MarginResource(_SyncGetClientAccountMarginMixin, BaseResource):
+class MarginResource(
+    _SyncGetClientAccountMarginMixin, _SyncListManagedClientAccountsMarginMixin, BaseResource
+):
     """
     Synchronous `margin` resource group; access it via `StoneXClient.margin`. Each method maps
     to one StoneX CIAPI v2 endpoint.
     """
 
 
-class AsyncMarginResource(_AsyncGetClientAccountMarginMixin, BaseResource):
+class AsyncMarginResource(
+    _AsyncGetClientAccountMarginMixin, _AsyncListManagedClientAccountsMarginMixin, BaseResource
+):
     """
     Asynchronous `margin` resource group; access it via `AsyncStoneXClient.margin`. Each
     method is the awaitable twin of the synchronous resource's method.

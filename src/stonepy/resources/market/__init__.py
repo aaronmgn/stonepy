@@ -36,6 +36,9 @@ from ._sync.get_price_ticks_before_date import (
 from ._sync.get_price_ticks_between_dates import (
     _GetPriceTicksBetweenDatesMixin as _SyncGetPriceTicksBetweenDatesMixin,
 )
+from ._sync.list_latest_traded_markets import (
+    _ListLatestTradedMarketsMixin as _SyncListLatestTradedMarketsMixin,
+)
 from ._sync.list_market_information import (
     _ListMarketInformationMixin as _SyncListMarketInformationMixin,
 )
@@ -53,6 +56,7 @@ from ._sync.save_product_information import (
     _SaveProductInformationMixin as _SyncSaveProductInformationMixin,
 )
 from ._sync.search_with_tags import _SearchWithTagsMixin as _SyncSearchWithTagsMixin
+from ._sync.tag_lookup import _TagLookupMixin as _SyncTagLookupMixin
 from .full_search_with_tags import _FullSearchWithTagsMixin as _AsyncFullSearchWithTagsMixin
 from .get_full_search_with_tags import (
     _GetFullSearchWithTagsMixin as _AsyncGetFullSearchWithTagsMixin,
@@ -82,6 +86,9 @@ from .get_price_ticks_before_date import (
 from .get_price_ticks_between_dates import (
     _GetPriceTicksBetweenDatesMixin as _AsyncGetPriceTicksBetweenDatesMixin,
 )
+from .list_latest_traded_markets import (
+    _ListLatestTradedMarketsMixin as _AsyncListLatestTradedMarketsMixin,
+)
 from .list_market_information import _ListMarketInformationMixin as _AsyncListMarketInformationMixin
 from .list_market_information_search import (
     _ListMarketInformationSearchMixin as _AsyncListMarketInformationSearchMixin,
@@ -95,6 +102,7 @@ from .save_product_information import (
     _SaveProductInformationMixin as _AsyncSaveProductInformationMixin,
 )
 from .search_with_tags import _SearchWithTagsMixin as _AsyncSearchWithTagsMixin
+from .tag_lookup import _TagLookupMixin as _AsyncTagLookupMixin
 
 
 class MarketResource(
@@ -111,6 +119,7 @@ class MarketResource(
     _SyncGetPriceTicksAfterDateMixin,
     _SyncGetPriceTicksBeforeDateMixin,
     _SyncGetPriceTicksBetweenDatesMixin,
+    _SyncListLatestTradedMarketsMixin,
     _SyncListMarketInformationMixin,
     _SyncListMarketInformationSearchMixin,
     _SyncListMarketSearchMixin,
@@ -118,6 +127,7 @@ class MarketResource(
     _SyncSaveMarketInformationMixin,
     _SyncSaveProductInformationMixin,
     _SyncSearchWithTagsMixin,
+    _SyncTagLookupMixin,
     BaseResource,
 ):
     """
@@ -140,6 +150,7 @@ class AsyncMarketResource(
     _AsyncGetPriceTicksAfterDateMixin,
     _AsyncGetPriceTicksBeforeDateMixin,
     _AsyncGetPriceTicksBetweenDatesMixin,
+    _AsyncListLatestTradedMarketsMixin,
     _AsyncListMarketInformationMixin,
     _AsyncListMarketInformationSearchMixin,
     _AsyncListMarketSearchMixin,
@@ -147,6 +158,7 @@ class AsyncMarketResource(
     _AsyncSaveMarketInformationMixin,
     _AsyncSaveProductInformationMixin,
     _AsyncSearchWithTagsMixin,
+    _AsyncTagLookupMixin,
     BaseResource,
 ):
     """

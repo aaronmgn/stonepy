@@ -18,6 +18,10 @@ from stonepy._core.transport import AsyncTransport, SyncTransport
 from stonepy._endpoints import session as _session_ep
 from stonepy.models import ApiLogOnRequestDTO
 from stonepy.resources.cfd import AsyncCfdResource, CfdResource
+from stonepy.resources.client_preference import (
+    AsyncClientPreferenceResource,
+    ClientPreferenceResource,
+)
 from stonepy.resources.clientapplication import (
     AsyncClientapplicationResource,
     ClientapplicationResource,
@@ -26,15 +30,22 @@ from stonepy.resources.clientpreference import (
     AsyncClientpreferenceResource,
     ClientpreferenceResource,
 )
+from stonepy.resources.fixedmargin import AsyncFixedmarginResource, FixedmarginResource
 from stonepy.resources.margin import AsyncMarginResource, MarginResource
 from stonepy.resources.market import AsyncMarketResource, MarketResource
 from stonepy.resources.message import AsyncMessageResource, MessageResource
 from stonepy.resources.news import AsyncNewsResource, NewsResource
 from stonepy.resources.order import AsyncOrderResource, OrderResource
+from stonepy.resources.order_including_closed import (
+    AsyncOrderIncludingClosedResource,
+    OrderIncludingClosedResource,
+)
+from stonepy.resources.pm import AsyncPmResource, PmResource
 from stonepy.resources.preference import AsyncPreferenceResource, PreferenceResource
 from stonepy.resources.price_alert import AsyncPriceAlertResource, PriceAlertResource
 from stonepy.resources.session import AsyncSessionResource, SessionResource
 from stonepy.resources.spread import AsyncSpreadResource, SpreadResource
+from stonepy.resources.tradingadvisor import AsyncTradingadvisorResource, TradingadvisorResource
 from stonepy.resources.user_account import AsyncUserAccountResource, UserAccountResource
 from stonepy.resources.watchlist import AsyncWatchlistResource, WatchlistResource
 
@@ -162,34 +173,44 @@ class StoneXClient:
                 config,
                 {
                     "cfd",
+                    "client_preference",
                     "clientapplication",
                     "clientpreference",
+                    "fixedmargin",
                     "margin",
                     "market",
                     "message",
                     "news",
                     "order",
+                    "order_including_closed",
+                    "pm",
                     "preference",
                     "price_alert",
                     "session",
                     "spread",
+                    "tradingadvisor",
                     "user_account",
                     "watchlist",
                 },
             ).items()
         }
         self._cfd: CfdResource | None = None
+        self._client_preference: ClientPreferenceResource | None = None
         self._clientapplication: ClientapplicationResource | None = None
         self._clientpreference: ClientpreferenceResource | None = None
+        self._fixedmargin: FixedmarginResource | None = None
         self._margin: MarginResource | None = None
         self._market: MarketResource | None = None
         self._message: MessageResource | None = None
         self._news: NewsResource | None = None
         self._order: OrderResource | None = None
+        self._order_including_closed: OrderIncludingClosedResource | None = None
+        self._pm: PmResource | None = None
         self._preference: PreferenceResource | None = None
         self._price_alert: PriceAlertResource | None = None
         self._session: SessionResource | None = None
         self._spread: SpreadResource | None = None
+        self._tradingadvisor: TradingadvisorResource | None = None
         self._user_account: UserAccountResource | None = None
         self._watchlist: WatchlistResource | None = None
 
@@ -199,6 +220,13 @@ class StoneXClient:
         if self._cfd is None:
             self._cfd = CfdResource(self._ctx)
         return self._cfd
+
+    @property
+    def client_preference(self) -> ClientPreferenceResource:
+        """Return the client_preference resource group."""
+        if self._client_preference is None:
+            self._client_preference = ClientPreferenceResource(self._ctx)
+        return self._client_preference
 
     @property
     def clientapplication(self) -> ClientapplicationResource:
@@ -213,6 +241,13 @@ class StoneXClient:
         if self._clientpreference is None:
             self._clientpreference = ClientpreferenceResource(self._ctx)
         return self._clientpreference
+
+    @property
+    def fixedmargin(self) -> FixedmarginResource:
+        """Return the fixedmargin resource group."""
+        if self._fixedmargin is None:
+            self._fixedmargin = FixedmarginResource(self._ctx)
+        return self._fixedmargin
 
     @property
     def margin(self) -> MarginResource:
@@ -250,6 +285,20 @@ class StoneXClient:
         return self._order
 
     @property
+    def order_including_closed(self) -> OrderIncludingClosedResource:
+        """Return the order_including_closed resource group."""
+        if self._order_including_closed is None:
+            self._order_including_closed = OrderIncludingClosedResource(self._ctx)
+        return self._order_including_closed
+
+    @property
+    def pm(self) -> PmResource:
+        """Return the pm resource group."""
+        if self._pm is None:
+            self._pm = PmResource(self._ctx)
+        return self._pm
+
+    @property
     def preference(self) -> PreferenceResource:
         """Return the preference resource group."""
         if self._preference is None:
@@ -276,6 +325,13 @@ class StoneXClient:
         if self._spread is None:
             self._spread = SpreadResource(self._ctx)
         return self._spread
+
+    @property
+    def tradingadvisor(self) -> TradingadvisorResource:
+        """Return the tradingadvisor resource group."""
+        if self._tradingadvisor is None:
+            self._tradingadvisor = TradingadvisorResource(self._ctx)
+        return self._tradingadvisor
 
     @property
     def user_account(self) -> UserAccountResource:
@@ -328,34 +384,44 @@ class AsyncStoneXClient:
                 config,
                 {
                     "cfd",
+                    "client_preference",
                     "clientapplication",
                     "clientpreference",
+                    "fixedmargin",
                     "margin",
                     "market",
                     "message",
                     "news",
                     "order",
+                    "order_including_closed",
+                    "pm",
                     "preference",
                     "price_alert",
                     "session",
                     "spread",
+                    "tradingadvisor",
                     "user_account",
                     "watchlist",
                 },
             ).items()
         }
         self._cfd: AsyncCfdResource | None = None
+        self._client_preference: AsyncClientPreferenceResource | None = None
         self._clientapplication: AsyncClientapplicationResource | None = None
         self._clientpreference: AsyncClientpreferenceResource | None = None
+        self._fixedmargin: AsyncFixedmarginResource | None = None
         self._margin: AsyncMarginResource | None = None
         self._market: AsyncMarketResource | None = None
         self._message: AsyncMessageResource | None = None
         self._news: AsyncNewsResource | None = None
         self._order: AsyncOrderResource | None = None
+        self._order_including_closed: AsyncOrderIncludingClosedResource | None = None
+        self._pm: AsyncPmResource | None = None
         self._preference: AsyncPreferenceResource | None = None
         self._price_alert: AsyncPriceAlertResource | None = None
         self._session: AsyncSessionResource | None = None
         self._spread: AsyncSpreadResource | None = None
+        self._tradingadvisor: AsyncTradingadvisorResource | None = None
         self._user_account: AsyncUserAccountResource | None = None
         self._watchlist: AsyncWatchlistResource | None = None
 
@@ -365,6 +431,13 @@ class AsyncStoneXClient:
         if self._cfd is None:
             self._cfd = AsyncCfdResource(self._ctx)
         return self._cfd
+
+    @property
+    def client_preference(self) -> AsyncClientPreferenceResource:
+        """Return the client_preference resource group."""
+        if self._client_preference is None:
+            self._client_preference = AsyncClientPreferenceResource(self._ctx)
+        return self._client_preference
 
     @property
     def clientapplication(self) -> AsyncClientapplicationResource:
@@ -379,6 +452,13 @@ class AsyncStoneXClient:
         if self._clientpreference is None:
             self._clientpreference = AsyncClientpreferenceResource(self._ctx)
         return self._clientpreference
+
+    @property
+    def fixedmargin(self) -> AsyncFixedmarginResource:
+        """Return the fixedmargin resource group."""
+        if self._fixedmargin is None:
+            self._fixedmargin = AsyncFixedmarginResource(self._ctx)
+        return self._fixedmargin
 
     @property
     def margin(self) -> AsyncMarginResource:
@@ -416,6 +496,20 @@ class AsyncStoneXClient:
         return self._order
 
     @property
+    def order_including_closed(self) -> AsyncOrderIncludingClosedResource:
+        """Return the order_including_closed resource group."""
+        if self._order_including_closed is None:
+            self._order_including_closed = AsyncOrderIncludingClosedResource(self._ctx)
+        return self._order_including_closed
+
+    @property
+    def pm(self) -> AsyncPmResource:
+        """Return the pm resource group."""
+        if self._pm is None:
+            self._pm = AsyncPmResource(self._ctx)
+        return self._pm
+
+    @property
     def preference(self) -> AsyncPreferenceResource:
         """Return the preference resource group."""
         if self._preference is None:
@@ -442,6 +536,13 @@ class AsyncStoneXClient:
         if self._spread is None:
             self._spread = AsyncSpreadResource(self._ctx)
         return self._spread
+
+    @property
+    def tradingadvisor(self) -> AsyncTradingadvisorResource:
+        """Return the tradingadvisor resource group."""
+        if self._tradingadvisor is None:
+            self._tradingadvisor = AsyncTradingadvisorResource(self._ctx)
+        return self._tradingadvisor
 
     @property
     def user_account(self) -> AsyncUserAccountResource:

@@ -10,8 +10,13 @@ from ._sync.get_market_report_headlines import (
 )
 from ._sync.get_market_reports import _GetMarketReportsMixin as _SyncGetMarketReportsMixin
 from ._sync.get_news import _GetNewsMixin as _SyncGetNewsMixin
+from ._sync.get_news_detail import _GetNewsDetailMixin as _SyncGetNewsDetailMixin
 from ._sync.get_news_headlines import _GetNewsHeadlinesMixin as _SyncGetNewsHeadlinesMixin
 from ._sync.get_story import _GetStoryMixin as _SyncGetStoryMixin
+from ._sync.list_news_headlines import _ListNewsHeadlinesMixin as _SyncListNewsHeadlinesMixin
+from ._sync.list_news_headlines_with_source import (
+    _ListNewsHeadlinesWithSourceMixin as _SyncListNewsHeadlinesWithSourceMixin,
+)
 from ._sync.search_market_reports import _SearchMarketReportsMixin as _SyncSearchMarketReportsMixin
 from ._sync.search_news import _SearchNewsMixin as _SyncSearchNewsMixin
 from .get_market_report_headlines import (
@@ -19,8 +24,13 @@ from .get_market_report_headlines import (
 )
 from .get_market_reports import _GetMarketReportsMixin as _AsyncGetMarketReportsMixin
 from .get_news import _GetNewsMixin as _AsyncGetNewsMixin
+from .get_news_detail import _GetNewsDetailMixin as _AsyncGetNewsDetailMixin
 from .get_news_headlines import _GetNewsHeadlinesMixin as _AsyncGetNewsHeadlinesMixin
 from .get_story import _GetStoryMixin as _AsyncGetStoryMixin
+from .list_news_headlines import _ListNewsHeadlinesMixin as _AsyncListNewsHeadlinesMixin
+from .list_news_headlines_with_source import (
+    _ListNewsHeadlinesWithSourceMixin as _AsyncListNewsHeadlinesWithSourceMixin,
+)
 from .search_market_reports import _SearchMarketReportsMixin as _AsyncSearchMarketReportsMixin
 from .search_news import _SearchNewsMixin as _AsyncSearchNewsMixin
 
@@ -29,8 +39,11 @@ class NewsResource(
     _SyncGetMarketReportHeadlinesMixin,
     _SyncGetMarketReportsMixin,
     _SyncGetNewsMixin,
+    _SyncGetNewsDetailMixin,
     _SyncGetNewsHeadlinesMixin,
     _SyncGetStoryMixin,
+    _SyncListNewsHeadlinesMixin,
+    _SyncListNewsHeadlinesWithSourceMixin,
     _SyncSearchMarketReportsMixin,
     _SyncSearchNewsMixin,
     BaseResource,
@@ -45,8 +58,11 @@ class AsyncNewsResource(
     _AsyncGetMarketReportHeadlinesMixin,
     _AsyncGetMarketReportsMixin,
     _AsyncGetNewsMixin,
+    _AsyncGetNewsDetailMixin,
     _AsyncGetNewsHeadlinesMixin,
     _AsyncGetStoryMixin,
+    _AsyncListNewsHeadlinesMixin,
+    _AsyncListNewsHeadlinesWithSourceMixin,
     _AsyncSearchMarketReportsMixin,
     _AsyncSearchNewsMixin,
     BaseResource,

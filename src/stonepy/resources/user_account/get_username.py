@@ -1,0 +1,16 @@
+"""Resource method: GetUsername."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import user_account as _ep
+from stonepy.models import ApiUsernameResponseDTO
+
+
+class _GetUsernameMixin(BaseResource):
+    async def get_username(self, session_id: str, client_account_id: int) -> ApiUsernameResponseDTO:
+        """
+        Retrieves the user's trading account code (username) associated with the account
+        ID passed in the parameter.
+        """
+        return await _ep.aget_username(self._ctx, session_id, client_account_id)

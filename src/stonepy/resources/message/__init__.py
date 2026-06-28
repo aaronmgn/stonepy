@@ -18,6 +18,7 @@ from ._sync.get_client_communication_messages import (
     _GetClientCommunicationMessagesMixin as _SyncGetClientCommunicationMessagesMixin,
 )
 from ._sync.get_message_popup import _GetMessagePopupMixin as _SyncGetMessagePopupMixin
+from ._sync.get_secure_messages import _GetSecureMessagesMixin as _SyncGetSecureMessagesMixin
 from ._sync.get_system_lookup import _GetSystemLookupMixin as _SyncGetSystemLookupMixin
 from ._sync.save_client_communication_message_response import (
     _SaveClientCommunicationMessageResponseMixin as _SyncSaveClientCommunicationMessageResponseMixin,  # noqa: E501
@@ -35,6 +36,7 @@ from .get_client_communication_messages import (
     _GetClientCommunicationMessagesMixin as _AsyncGetClientCommunicationMessagesMixin,
 )
 from .get_message_popup import _GetMessagePopupMixin as _AsyncGetMessagePopupMixin
+from .get_secure_messages import _GetSecureMessagesMixin as _AsyncGetSecureMessagesMixin
 from .get_system_lookup import _GetSystemLookupMixin as _AsyncGetSystemLookupMixin
 from .save_client_communication_message_response import (
     _SaveClientCommunicationMessageResponseMixin as _AsyncSaveClientCommunicationMessageResponseMixin,  # noqa: E501
@@ -47,6 +49,7 @@ class MessageResource(
     _SyncGetClientApplicationMessageTranslationWithInterestingItemsMixin,
     _SyncGetClientCommunicationMessagesMixin,
     _SyncGetMessagePopupMixin,
+    _SyncGetSecureMessagesMixin,
     _SyncGetSystemLookupMixin,
     _SyncSaveClientCommunicationMessageResponseMixin,
     BaseResource,
@@ -63,6 +66,7 @@ class AsyncMessageResource(
     _AsyncGetClientApplicationMessageTranslationWithInterestingItemsMixin,
     _AsyncGetClientCommunicationMessagesMixin,
     _AsyncGetMessagePopupMixin,
+    _AsyncGetSecureMessagesMixin,
     _AsyncGetSystemLookupMixin,
     _AsyncSaveClientCommunicationMessageResponseMixin,
     BaseResource,

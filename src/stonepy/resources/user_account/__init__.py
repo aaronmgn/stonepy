@@ -5,22 +5,78 @@ from __future__ import annotations
 
 from stonepy._core.resource import BaseResource
 
+from ._sync.get_charting_enabled import _GetChartingEnabledMixin as _SyncGetChartingEnabledMixin
 from ._sync.get_client_and_trading_account import (
     _GetClientAndTradingAccountMixin as _SyncGetClientAndTradingAccountMixin,
+)
+from ._sync.get_multiple_users_details_by_client_account_ids import (
+    _GetMultipleUsersDetailsByClientAccountIdsMixin as _SyncGetMultipleUsersDetailsByClientAccountIdsMixin,  # noqa: E501
+)
+from ._sync.get_multiple_users_details_by_facebook_ids import (
+    _GetMultipleUsersDetailsByFacebookIdsMixin as _SyncGetMultipleUsersDetailsByFacebookIdsMixin,
+)
+from ._sync.get_multiple_users_details_by_screen_names import (
+    _GetMultipleUsersDetailsByScreenNamesMixin as _SyncGetMultipleUsersDetailsByScreenNamesMixin,
+)
+from ._sync.get_social_actions import _GetSocialActionsMixin as _SyncGetSocialActionsMixin
+from ._sync.get_username import _GetUsernameMixin as _SyncGetUsernameMixin
+from ._sync.get_wall_items_for_users import (
+    _GetWallItemsForUsersMixin as _SyncGetWallItemsForUsersMixin,
+)
+from ._sync.get_wall_sub_items import _GetWallSubItemsMixin as _SyncGetWallSubItemsMixin
+from ._sync.list_followed import _ListFollowedMixin as _SyncListFollowedMixin
+from ._sync.list_followers import _ListFollowersMixin as _SyncListFollowersMixin
+from ._sync.list_topholders_for_markets import (
+    _ListTopholdersForMarketsMixin as _SyncListTopholdersForMarketsMixin,
 )
 from ._sync.save_account_information import (
     _SaveAccountInformationMixin as _SyncSaveAccountInformationMixin,
 )
+from ._sync.search import _SearchMixin as _SyncSearchMixin
+from .get_charting_enabled import _GetChartingEnabledMixin as _AsyncGetChartingEnabledMixin
 from .get_client_and_trading_account import (
     _GetClientAndTradingAccountMixin as _AsyncGetClientAndTradingAccountMixin,
+)
+from .get_multiple_users_details_by_client_account_ids import (
+    _GetMultipleUsersDetailsByClientAccountIdsMixin as _AsyncGetMultipleUsersDetailsByClientAccountIdsMixin,  # noqa: E501
+)
+from .get_multiple_users_details_by_facebook_ids import (
+    _GetMultipleUsersDetailsByFacebookIdsMixin as _AsyncGetMultipleUsersDetailsByFacebookIdsMixin,
+)
+from .get_multiple_users_details_by_screen_names import (
+    _GetMultipleUsersDetailsByScreenNamesMixin as _AsyncGetMultipleUsersDetailsByScreenNamesMixin,
+)
+from .get_social_actions import _GetSocialActionsMixin as _AsyncGetSocialActionsMixin
+from .get_username import _GetUsernameMixin as _AsyncGetUsernameMixin
+from .get_wall_items_for_users import _GetWallItemsForUsersMixin as _AsyncGetWallItemsForUsersMixin
+from .get_wall_sub_items import _GetWallSubItemsMixin as _AsyncGetWallSubItemsMixin
+from .list_followed import _ListFollowedMixin as _AsyncListFollowedMixin
+from .list_followers import _ListFollowersMixin as _AsyncListFollowersMixin
+from .list_topholders_for_markets import (
+    _ListTopholdersForMarketsMixin as _AsyncListTopholdersForMarketsMixin,
 )
 from .save_account_information import (
     _SaveAccountInformationMixin as _AsyncSaveAccountInformationMixin,
 )
+from .search import _SearchMixin as _AsyncSearchMixin
 
 
 class UserAccountResource(
-    _SyncGetClientAndTradingAccountMixin, _SyncSaveAccountInformationMixin, BaseResource
+    _SyncGetChartingEnabledMixin,
+    _SyncGetClientAndTradingAccountMixin,
+    _SyncGetMultipleUsersDetailsByClientAccountIdsMixin,
+    _SyncGetMultipleUsersDetailsByFacebookIdsMixin,
+    _SyncGetMultipleUsersDetailsByScreenNamesMixin,
+    _SyncGetSocialActionsMixin,
+    _SyncGetUsernameMixin,
+    _SyncGetWallItemsForUsersMixin,
+    _SyncGetWallSubItemsMixin,
+    _SyncListFollowedMixin,
+    _SyncListFollowersMixin,
+    _SyncListTopholdersForMarketsMixin,
+    _SyncSaveAccountInformationMixin,
+    _SyncSearchMixin,
+    BaseResource,
 ):
     """
     Synchronous `user_account` resource group; access it via `StoneXClient.user_account`. Each
@@ -29,7 +85,21 @@ class UserAccountResource(
 
 
 class AsyncUserAccountResource(
-    _AsyncGetClientAndTradingAccountMixin, _AsyncSaveAccountInformationMixin, BaseResource
+    _AsyncGetChartingEnabledMixin,
+    _AsyncGetClientAndTradingAccountMixin,
+    _AsyncGetMultipleUsersDetailsByClientAccountIdsMixin,
+    _AsyncGetMultipleUsersDetailsByFacebookIdsMixin,
+    _AsyncGetMultipleUsersDetailsByScreenNamesMixin,
+    _AsyncGetSocialActionsMixin,
+    _AsyncGetUsernameMixin,
+    _AsyncGetWallItemsForUsersMixin,
+    _AsyncGetWallSubItemsMixin,
+    _AsyncListFollowedMixin,
+    _AsyncListFollowersMixin,
+    _AsyncListTopholdersForMarketsMixin,
+    _AsyncSaveAccountInformationMixin,
+    _AsyncSearchMixin,
+    BaseResource,
 ):
     """
     Asynchronous `user_account` resource group; access it via

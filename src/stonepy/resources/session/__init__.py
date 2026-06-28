@@ -8,13 +8,19 @@ from stonepy._core.resource import BaseResource
 from ._sync.change_password import _ChangePasswordMixin as _SyncChangePasswordMixin
 from ._sync.delete_session import _DeleteSessionMixin as _SyncDeleteSessionMixin
 from ._sync.log_on import _LogOnMixin as _SyncLogOnMixin
+from ._sync.validate_session import _ValidateSessionMixin as _SyncValidateSessionMixin
 from .change_password import _ChangePasswordMixin as _AsyncChangePasswordMixin
 from .delete_session import _DeleteSessionMixin as _AsyncDeleteSessionMixin
 from .log_on import _LogOnMixin as _AsyncLogOnMixin
+from .validate_session import _ValidateSessionMixin as _AsyncValidateSessionMixin
 
 
 class SessionResource(
-    _SyncChangePasswordMixin, _SyncDeleteSessionMixin, _SyncLogOnMixin, BaseResource
+    _SyncChangePasswordMixin,
+    _SyncDeleteSessionMixin,
+    _SyncLogOnMixin,
+    _SyncValidateSessionMixin,
+    BaseResource,
 ):
     """
     Synchronous `session` resource group; access it via `StoneXClient.session`. Each method
@@ -23,7 +29,11 @@ class SessionResource(
 
 
 class AsyncSessionResource(
-    _AsyncChangePasswordMixin, _AsyncDeleteSessionMixin, _AsyncLogOnMixin, BaseResource
+    _AsyncChangePasswordMixin,
+    _AsyncDeleteSessionMixin,
+    _AsyncLogOnMixin,
+    _AsyncValidateSessionMixin,
+    BaseResource,
 ):
     """
     Asynchronous `session` resource group; access it via `AsyncStoneXClient.session`. Each

@@ -1,0 +1,19 @@
+"""Resource method: ListLatestTradedMarkets."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import ApiListLatestTradedMarketsResponseDTO
+
+
+class _ListLatestTradedMarketsMixin(BaseResource):
+    async def list_latest_traded_markets(
+        self, screen_names: list[str], number_of_results: int
+    ) -> ApiListLatestTradedMarketsResponseDTO:
+        """
+        Lists the latest trades for each of the specified users. (Service call used by the
+        CI Connect social trading platform.) Note: this requires that the respective CI
+        Connect user record in the CI Connect database exists.
+        """
+        return await _ep.alist_latest_traded_markets(self._ctx, screen_names, number_of_results)
