@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-06-27
+
 ### Added
 
 - Docstrings throughout the public API, sourced from the upstream StoneX catalog: every generated
@@ -114,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.0
 [0.1.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.3
 [0.1.2]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.2

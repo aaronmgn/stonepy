@@ -11,7 +11,7 @@ from stonepy._core.logging import safe_repr
 from stonepy._core.status import StatusDecoder, default_status_decoder
 
 _T = TypeVar("_T")
-_FALLBACK_VERSION = "0.1.3"
+_FALLBACK_VERSION = "0.2.0"
 
 
 def _default_user_agent() -> str:
