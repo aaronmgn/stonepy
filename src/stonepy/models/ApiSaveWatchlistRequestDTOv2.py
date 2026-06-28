@@ -13,9 +13,11 @@ if TYPE_CHECKING:
     from .ApiClientAccountWatchlistDTO import ApiClientAccountWatchlistDTO
 
 
-class ApiSaveWatchlistRequestDTO(ResponseModel):
+class ApiSaveWatchlistRequestDTOv2(ResponseModel):
     """Request to save a watchlist."""
 
+    client_account_id: int | None = Field(default=None, alias="ClientAccountId")
+    """Client Account ID"""
     watchlist: ApiClientAccountWatchlistDTO | None = Field(default=None, alias="Watchlist")
     """
     The watchlist to save. This will update an existing watchlist; or when the watchlist ID is
@@ -23,4 +25,4 @@ class ApiSaveWatchlistRequestDTO(ResponseModel):
     """
 
 
-ApiSaveWatchlistRequestDTO.model_rebuild(raise_errors=False)
+ApiSaveWatchlistRequestDTOv2.model_rebuild(raise_errors=False)

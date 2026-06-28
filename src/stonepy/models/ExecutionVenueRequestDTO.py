@@ -8,42 +8,42 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
     from .OrderRequestDTO import OrderRequestDTO
 
 
-class ExecutionVenueRequestDTO(ResponseModel):
+class ExecutionVenueRequestDTO(RequestModel):
     """Information about execution venue request."""
 
-    client_account_id: int | None = Field(default=None, alias="ClientAccountId")
+    client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    app_key: str | None = Field(default=None, alias="AppKey")
+    app_key: str = Field(alias="AppKey")
     """Information about app key"""
-    request_id: str | None = Field(default=None, alias="RequestId")
+    request_id: str = Field(alias="RequestId")
     """Request identifier"""
-    quote_id: int | None = Field(default=None, alias="QuoteId")
+    quote_id: int = Field(alias="QuoteId")
     """Quote identifier"""
-    market_id: int | None = Field(default=None, alias="MarketId")
+    market_id: int = Field(alias="MarketId")
     """Market identifier"""
-    order_requests: list[OrderRequestDTO] | None = Field(default=None, alias="OrderRequests")
+    order_requests: list[OrderRequestDTO] = Field(alias="OrderRequests")
     """List of order requests"""
-    request_type_id: int | None = Field(default=None, alias="RequestTypeId")
+    request_type_id: int = Field(alias="RequestTypeId")
     """Request type identifier"""
-    trading_account_id: int | None = Field(default=None, alias="TradingAccountId")
+    trading_account_id: int = Field(alias="TradingAccountId")
     """Trading account identifier"""
-    user_name: str | None = Field(default=None, alias="UserName")
+    user_name: str = Field(alias="UserName")
     """The username"""
-    simulation: bool | None = Field(default=None, alias="Simulation")
+    simulation: bool = Field(alias="Simulation")
     """Flag indicating whether it's a simulation"""
-    transaction_id: str | None = Field(default=None, alias="TransactionId")
+    transaction_id: str = Field(alias="TransactionId")
     """Transaction identifier"""
-    bid: Decimal | None = Field(default=None, alias="Bid")
+    bid: Decimal = Field(alias="Bid")
     """Bid"""
-    ask: Decimal | None = Field(default=None, alias="Ask")
+    ask: Decimal = Field(alias="Ask")
     """Ask"""
-    audit_id: str | None = Field(default=None, alias="AuditId")
+    audit_id: str = Field(alias="AuditId")
     """Audit identifier"""
 
 

@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class UpdateStopLimitOrderRequestDTO(ResponseModel):
+class UpdateStopLimitOrderRequestDTO(RequestModel):
     """A request to update a stop/limit order."""
 
 

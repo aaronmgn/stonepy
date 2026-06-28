@@ -8,7 +8,9 @@ from stonepy.models import GetOpenPositionResponseDTOv2
 
 
 class _GetOpenPositionMixin(BaseResource):
-    async def get_open_position(self, order_id: str) -> GetOpenPositionResponseDTOv2:
+    async def get_open_position(
+        self, order_id: str, client_account_id: int
+    ) -> GetOpenPositionResponseDTOv2:
         """
         Queries for a trade / open position with a specified order ID. It returns a null
         value if the order doesn't exist, or is not a trade / open position. This URI is
@@ -17,4 +19,4 @@ class _GetOpenPositionMixin(BaseResource):
         the grid, and call this URI when you receive updates on the order stream to get
         the updated data in this format.
         """
-        return await _ep.aget_open_position(self._ctx, order_id)
+        return await _ep.aget_open_position(self._ctx, order_id, client_account_id)

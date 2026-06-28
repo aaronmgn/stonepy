@@ -6,14 +6,14 @@ from __future__ import annotations
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import message as _ep
 from stonepy.models import (
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
 )
 
 
 class _SaveClientCommunicationMessageResponseMixin(BaseResource):
     def save_client_communication_message_response(
-        self, request: ApiClientCommunicationUpdateRequestDTO
+        self, request: ApiClientCommunicationUpdateRequestDTOv2
     ) -> ApiClientCommunicationUpdateResponseDTO:
         """Saves changes to the client's communication message response."""
         return _ep.save_client_communication_message_response(self._ctx, request)

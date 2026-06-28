@@ -3,10 +3,10 @@
 
 from __future__ import annotations
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class SaveAllocationProfileRequestDTO(ResponseModel):
+class SaveAllocationProfileRequestDTO(RequestModel):
     """Request to create or update a Trading Advisor allocation profile."""
 
 

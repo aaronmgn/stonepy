@@ -7,13 +7,14 @@ trading platform.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
 from stonepy._core.models import ResponseModel, StoneXDateTime
 
-Unresolved = Any
+if TYPE_CHECKING:
+    from .ApiTradeActionDTO import ApiTradeActionDTO
 
 
 class ApiWallItemDTO(ResponseModel):
@@ -41,7 +42,7 @@ class ApiWallItemDTO(ResponseModel):
     """
     comment_text: str | None = Field(default=None, alias="CommentText")
     """If the wall item is a comment, this contains the comment text."""
-    trade_action: Unresolved | None = Field(default=None, alias="TradeAction")
+    trade_action: ApiTradeActionDTO | None = Field(default=None, alias="TradeAction")
     """If the wall item is a trade, this contains the trade details."""
     user_likes: str | None = Field(default=None, alias="UserLikes")
     """Screen names of CI Connect users who have liked this wall item."""

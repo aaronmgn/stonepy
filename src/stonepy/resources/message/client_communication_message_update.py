@@ -5,14 +5,14 @@ from __future__ import annotations
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import message as _ep
 from stonepy.models import (
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
 )
 
 
 class _ClientCommunicationMessageUpdateMixin(BaseResource):
     async def client_communication_message_update(
-        self, request: ApiClientCommunicationUpdateRequestDTO
+        self, request: ApiClientCommunicationUpdateRequestDTOv2
     ) -> ApiClientCommunicationUpdateResponseDTO:
         """
         Request for responses from clients regarding the specified communication message.

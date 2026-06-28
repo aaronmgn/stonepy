@@ -10,26 +10,26 @@ from decimal import Decimal
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class UpdateFixedMarginTradeOrderRequestDTO(ResponseModel):
+class UpdateFixedMarginTradeOrderRequestDTO(RequestModel):
     """
     A request to add a closing order to an open fixed margin position, or update an existing
     closing order attached to an open fixed margin position.
     """
 
-    trading_account_id: int | None = Field(default=None, alias="TradingAccountId")
+    trading_account_id: int = Field(alias="TradingAccountId")
     """The ID of the trading account."""
-    market_id: int | None = Field(default=None, alias="MarketId")
+    market_id: int = Field(alias="MarketId")
     """The unique identifier for a market."""
-    order_id: int | None = Field(default=None, alias="OrderId")
+    order_id: int = Field(alias="OrderId")
     """Unique identifier for the order."""
-    take_profit_price: Decimal | None = Field(default=None, alias="TakeProfitPrice")
+    take_profit_price: Decimal = Field(alias="TakeProfitPrice")
     """The optional price at which the trade is closed to take profits."""
-    stop_loss_price: Decimal | None = Field(default=None, alias="StopLossPrice")
+    stop_loss_price: Decimal = Field(alias="StopLossPrice")
     """The optional market price at which the stop loss is triggered."""
-    trailing_stop_distance: Decimal | None = Field(default=None, alias="TrailingStopDistance")
+    trailing_stop_distance: Decimal = Field(alias="TrailingStopDistance")
     """
     The distance away from the current market price that the stop loss should maintain if it
     is a trailing stop loss order.

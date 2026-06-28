@@ -5,13 +5,13 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class DeleteAllocationProfileRequestDTO(ResponseModel):
+class DeleteAllocationProfileRequestDTO(RequestModel):
     """Request to delete a Trading Advisor allocation profile."""
 
-    id: int | None = Field(default=None, alias="Id")
+    id: int = Field(alias="Id")
     """The identifier of the allocation profile that is being deleted."""
 
 

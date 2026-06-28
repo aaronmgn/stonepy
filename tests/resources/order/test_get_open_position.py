@@ -14,18 +14,20 @@ _RESPONSE_BODY = '{"OpenPosition":{"OrderId":1,"MarketId":1,"MarketName":"x","Di
 
 @respx.mock
 def test_get_open_position_returns_response() -> None:
-    route = respx.get("https://api.example/order/x/openposition").mock(
+    route = respx.get("https://api.example/order/v2/x/openPosition").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
         order_id = "x"
-        resp = client.order.get_open_position(order_id)
+        client_account_id = 1
+        resp = client.order.get_open_position(order_id, client_account_id)
         assert isinstance(resp, GetOpenPositionResponseDTOv2)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/order/x/openposition"
+        assert route.calls[0].request.url.path == "/order/v2/x/openPosition"
+        assert dict(route.calls[0].request.url.params) == {"clientAccountId": "1"}
     finally:
         client.close()
 
@@ -33,14 +35,15 @@ def test_get_open_position_returns_response() -> None:
 @respx.mock
 def test_get_open_position_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/order/x/openposition").mock(
+        route = respx.get("https://api.example/order/v2/x/openPosition").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
             order_id = "x"
-            resp = await client.order.get_open_position(order_id)
+            client_account_id = 1
+            resp = await client.order.get_open_position(order_id, client_account_id)
             assert isinstance(resp, GetOpenPositionResponseDTOv2)
             assert route.called
             assert route.calls[0].request.method == "GET"

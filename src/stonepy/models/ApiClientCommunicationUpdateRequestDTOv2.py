@@ -8,15 +8,17 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 
-class ApiClientCommunicationUpdateRequestDTO(RequestModel):
+class ApiClientCommunicationUpdateRequestDTOv2(RequestModel):
     """Request for client responses to the specified client message."""
 
+    client_account_id: int = Field(alias="ClientAccountId")
+    """The identifier for the client account"""
     client_communication_id: int = Field(alias="ClientCommunicationId")
-    """The identifier for the client communication message."""
+    """The identifier for the client communication message"""
     accepted: bool = Field(alias="Accepted")
-    """Flag indicating if the client has read and accepted the message."""
+    """Flag indicating if the client has read and accepted the message"""
     other_response: str = Field(alias="OtherResponse")
-    """Any other client response to the message."""
+    """Any other client response to the message"""
 
 
-ApiClientCommunicationUpdateRequestDTO.model_rebuild(raise_errors=False)
+ApiClientCommunicationUpdateRequestDTOv2.model_rebuild(raise_errors=False)

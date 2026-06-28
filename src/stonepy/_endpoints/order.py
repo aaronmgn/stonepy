@@ -9,9 +9,16 @@ from stonepy.models import (
     ApiSimulateTradeOrderResponseDTO,
     ApiTradeOrderResponseDTO,
     CancelOrderRequestDTO,
+    EnrichedOrderDTO,
+    ExecutionResponseDTO,
+    ExecutionVenueRequestDTO,
     GetActiveStopLimitOrderResponseDTOv2,
+    GetAllTradesWallResponseDTO,
+    GetChangedOrdersResponseDTO,
+    GetMarketsTradesWallResponseDTO,
     GetOpenPositionResponseDTOv2,
     GetOrderResponseDTOv2,
+    GetOrdersResponseDTOv2,
     ListActiveOrdersRequestDTO,
     ListActiveOrdersResponseDTO,
     ListActiveStopLimitOrderResponseDTO,
@@ -20,6 +27,9 @@ from stonepy.models import (
     ListTradeHistoryResponseDTO,
     NewStopLimitOrderRequestDTO,
     NewTradeOrderRequestDTO,
+    OrderHistoryDTO,
+    UpdateStopLimitOrderRequestDTO,
+    UpdateTradeOrderRequestDTO,
 )
 
 CANCEL_ORDER_SPEC: EndpointSpec[ApiTradeOrderResponseDTO] = EndpointSpec(
@@ -54,19 +64,22 @@ async def acancel_order(
 
 
 GET_ACTIVE_STOP_LIMIT_ORDER_SPEC: EndpointSpec[GetActiveStopLimitOrderResponseDTOv2] = EndpointSpec(
-    name="GetActiveStopLimitOrder",
+    name="GetActiveStopLimitOrder v2",
     method="GET",
-    path="/order/{OrderId}/activestoplimitorder",
+    path="/order/v2{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
     response_model=GetActiveStopLimitOrderResponseDTOv2,
-    params=(Param(name="OrderId", location="path", python_name="order_id"),),
+    params=(
+        Param(name="OrderId", location="path", python_name="order_id"),
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+    ),
 )
 
 
 def get_active_stop_limit_order(
-    ctx: CallContext, order_id: int
+    ctx: CallContext, order_id: int, client_account_id: int
 ) -> GetActiveStopLimitOrderResponseDTOv2:
     """
     Queries for an active stop limit order with a specified order ID. It returns a null value
@@ -76,11 +89,15 @@ def get_active_stop_limit_order(
     call this URI when you receive updates on the order stream to get the updated data in this
     format.
     """
-    return ctx.invoke(GET_ACTIVE_STOP_LIMIT_ORDER_SPEC, path_params={"OrderId": order_id})
+    return ctx.invoke(
+        GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
+        path_params={"OrderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
 
 
 async def aget_active_stop_limit_order(
-    ctx: CallContext, order_id: int
+    ctx: CallContext, order_id: int, client_account_id: int
 ) -> GetActiveStopLimitOrderResponseDTOv2:
     """
     Queries for an active stop limit order with a specified order ID. It returns a null value
@@ -90,22 +107,164 @@ async def aget_active_stop_limit_order(
     call this URI when you receive updates on the order stream to get the updated data in this
     format.
     """
-    return await ctx.ainvoke(GET_ACTIVE_STOP_LIMIT_ORDER_SPEC, path_params={"OrderId": order_id})
+    return await ctx.ainvoke(
+        GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
+        path_params={"OrderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
+
+
+GET_ALL_TRADES_WALL_SPEC: EndpointSpec[GetAllTradesWallResponseDTO] = EndpointSpec(
+    name="GetAllTradesWall",
+    method="GET",
+    path="/order/getalltradeswallinfo",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=GetAllTradesWallResponseDTO,
+    params=(
+        Param(name="direction", location="query", python_name="direction"),
+        Param(name="numberOfResults", location="query", python_name="number_of_results"),
+    ),
+)
+
+
+def get_all_trades_wall(
+    ctx: CallContext, direction: str, number_of_results: int
+) -> GetAllTradesWallResponseDTO:
+    """
+    Gets a list of the latest trading activities for members of the CI Connect community. The
+    result consists of all the trade actions recorded in the system regardless of the market
+    or user. (Service call used by the CI Connect social trading platform.) Note: this
+    requires an existence of the respective CI Connect user record in the CI Connect database.
+    """
+    return ctx.invoke(
+        GET_ALL_TRADES_WALL_SPEC,
+        query={"direction": direction, "numberOfResults": number_of_results},
+    )
+
+
+async def aget_all_trades_wall(
+    ctx: CallContext, direction: str, number_of_results: int
+) -> GetAllTradesWallResponseDTO:
+    """
+    Gets a list of the latest trading activities for members of the CI Connect community. The
+    result consists of all the trade actions recorded in the system regardless of the market
+    or user. (Service call used by the CI Connect social trading platform.) Note: this
+    requires an existence of the respective CI Connect user record in the CI Connect database.
+    """
+    return await ctx.ainvoke(
+        GET_ALL_TRADES_WALL_SPEC,
+        query={"direction": direction, "numberOfResults": number_of_results},
+    )
+
+
+GET_CHANGED_ORDERS_SPEC: EndpointSpec[GetChangedOrdersResponseDTO] = EndpointSpec(
+    name="GetChangedOrders",
+    method="GET",
+    path="/order/changedorders",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=GetChangedOrdersResponseDTO,
+    params=(
+        Param(name="TradingAccountId", location="query", python_name="trading_account_id"),
+        Param(name="from", location="query", python_name="from_"),
+    ),
+)
+
+
+def get_changed_orders(
+    ctx: CallContext, trading_account_id: int, from_: int
+) -> GetChangedOrdersResponseDTO:
+    """
+    Queries the specified trading account's order history. Includes all orders changed after
+    the given from parameter value. Note: should only be used for the FIX API. Can return
+    unexpected results while using with other purposes.
+    """
+    return ctx.invoke(
+        GET_CHANGED_ORDERS_SPEC, query={"TradingAccountId": trading_account_id, "from": from_}
+    )
+
+
+async def aget_changed_orders(
+    ctx: CallContext, trading_account_id: int, from_: int
+) -> GetChangedOrdersResponseDTO:
+    """
+    Queries the specified trading account's order history. Includes all orders changed after
+    the given from parameter value. Note: should only be used for the FIX API. Can return
+    unexpected results while using with other purposes.
+    """
+    return await ctx.ainvoke(
+        GET_CHANGED_ORDERS_SPEC, query={"TradingAccountId": trading_account_id, "from": from_}
+    )
+
+
+GET_MARKETS_TRADES_WALL_SPEC: EndpointSpec[GetMarketsTradesWallResponseDTO] = EndpointSpec(
+    name="GetMarketsTradesWall",
+    method="GET",
+    path="/order/getmarketstradeswallinfo",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=GetMarketsTradesWallResponseDTO,
+    params=(
+        Param(name="marketIDs", location="query", python_name="market_i_ds"),
+        Param(name="numberOfResults", location="query", python_name="number_of_results"),
+    ),
+)
+
+
+def get_markets_trades_wall(
+    ctx: CallContext, market_i_ds: list[int], number_of_results: int
+) -> GetMarketsTradesWallResponseDTO:
+    """
+    Gets a list of the latest trading activities performed by the members of the CI Connect
+    community on the requested markets. The result consists of all the trade actions recorded
+    in the system for the requested markets regardless of user. (Service call used by the CI
+    Connect social trading platform.) Note: this requires an existence of the respective CI
+    Connect user record in the CI Connect database.
+    """
+    return ctx.invoke(
+        GET_MARKETS_TRADES_WALL_SPEC,
+        query={"marketIDs": market_i_ds, "numberOfResults": number_of_results},
+    )
+
+
+async def aget_markets_trades_wall(
+    ctx: CallContext, market_i_ds: list[int], number_of_results: int
+) -> GetMarketsTradesWallResponseDTO:
+    """
+    Gets a list of the latest trading activities performed by the members of the CI Connect
+    community on the requested markets. The result consists of all the trade actions recorded
+    in the system for the requested markets regardless of user. (Service call used by the CI
+    Connect social trading platform.) Note: this requires an existence of the respective CI
+    Connect user record in the CI Connect database.
+    """
+    return await ctx.ainvoke(
+        GET_MARKETS_TRADES_WALL_SPEC,
+        query={"marketIDs": market_i_ds, "numberOfResults": number_of_results},
+    )
 
 
 GET_OPEN_POSITION_SPEC: EndpointSpec[GetOpenPositionResponseDTOv2] = EndpointSpec(
-    name="GetOpenPosition",
+    name="GetOpenPosition v2",
     method="GET",
-    path="/order/{OrderId}/openposition",
+    path="/order/v2/{orderId}/openPosition?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
     response_model=GetOpenPositionResponseDTOv2,
-    params=(Param(name="OrderId", location="path", python_name="order_id"),),
+    params=(
+        Param(name="OrderId", location="path", python_name="order_id"),
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+    ),
 )
 
 
-def get_open_position(ctx: CallContext, order_id: str) -> GetOpenPositionResponseDTOv2:
+def get_open_position(
+    ctx: CallContext, order_id: str, client_account_id: int
+) -> GetOpenPositionResponseDTOv2:
     """
     Queries for a trade / open position with a specified order ID. It returns a null value if
     the order doesn't exist, or is not a trade / open position. This URI is intended to
@@ -113,10 +272,16 @@ def get_open_position(ctx: CallContext, order_id: str) -> GetOpenPositionRespons
     HTTP service ListOpenPositions for the initial data to display in the grid, and call this
     URI when you receive updates on the order stream to get the updated data in this format.
     """
-    return ctx.invoke(GET_OPEN_POSITION_SPEC, path_params={"OrderId": order_id})
+    return ctx.invoke(
+        GET_OPEN_POSITION_SPEC,
+        path_params={"OrderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
 
 
-async def aget_open_position(ctx: CallContext, order_id: str) -> GetOpenPositionResponseDTOv2:
+async def aget_open_position(
+    ctx: CallContext, order_id: str, client_account_id: int
+) -> GetOpenPositionResponseDTOv2:
     """
     Queries for a trade / open position with a specified order ID. It returns a null value if
     the order doesn't exist, or is not a trade / open position. This URI is intended to
@@ -124,37 +289,184 @@ async def aget_open_position(ctx: CallContext, order_id: str) -> GetOpenPosition
     HTTP service ListOpenPositions for the initial data to display in the grid, and call this
     URI when you receive updates on the order stream to get the updated data in this format.
     """
-    return await ctx.ainvoke(GET_OPEN_POSITION_SPEC, path_params={"OrderId": order_id})
+    return await ctx.ainvoke(
+        GET_OPEN_POSITION_SPEC,
+        path_params={"OrderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
+
+
+GET_ORDERS_BY_REFERENCE_SPEC: EndpointSpec[GetOrdersResponseDTOv2] = EndpointSpec(
+    name="GetOrdersByReference v2",
+    method="GET",
+    path="/order/v2/order/orders/{reference}?clientAccountId={clientAccountId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=GetOrdersResponseDTOv2,
+    params=(
+        Param(name="Reference", location="path", python_name="reference"),
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+    ),
+)
+
+
+def get_orders_by_reference(
+    ctx: CallContext, reference: str, client_account_id: int
+) -> GetOrdersResponseDTOv2:
+    """Queries for an order by a specific order reference."""
+    return ctx.invoke(
+        GET_ORDERS_BY_REFERENCE_SPEC,
+        path_params={"Reference": reference},
+        query={"ClientAccountId": client_account_id},
+    )
+
+
+async def aget_orders_by_reference(
+    ctx: CallContext, reference: str, client_account_id: int
+) -> GetOrdersResponseDTOv2:
+    """Queries for an order by a specific order reference."""
+    return await ctx.ainvoke(
+        GET_ORDERS_BY_REFERENCE_SPEC,
+        path_params={"Reference": reference},
+        query={"ClientAccountId": client_account_id},
+    )
+
+
+GET_ORDERS_SPEC: EndpointSpec[EnrichedOrderDTO] = EndpointSpec(
+    name="GetOrders v2",
+    method="GET",
+    path="/order/v2/orders?clientAccountId={clientAccountId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=EnrichedOrderDTO,
+    params=(
+        Param(name="Limit", location="query", python_name="limit"),
+        Param(name="clientAccountId", location="query", python_name="client_account_id"),
+    ),
+)
+
+
+def get_orders(
+    ctx: CallContext, client_account_id: str, *, limit: int | None = None
+) -> EnrichedOrderDTO:
+    """Query for orders by a specific client account id."""
+    return ctx.invoke(GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id})
+
+
+async def aget_orders(
+    ctx: CallContext, client_account_id: str, *, limit: int | None = None
+) -> EnrichedOrderDTO:
+    """Query for orders by a specific client account id."""
+    return await ctx.ainvoke(
+        GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id}
+    )
+
+
+GET_ORDER_HISTORY_SPEC: EndpointSpec[OrderHistoryDTO] = EndpointSpec(
+    name="GetOrderHistory v2",
+    method="GET",
+    path="/order/v2/orderhistory?clientAccountId={clientAccountId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=OrderHistoryDTO,
+    params=(
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+        Param(name="StartDateTime", location="query", python_name="start_date_time"),
+        Param(name="EndDateTime", location="query", python_name="end_date_time"),
+        Param(name="PageSize", location="query", python_name="page_size"),
+        Param(name="Page", location="query", python_name="page"),
+    ),
+)
+
+
+def get_order_history(
+    ctx: CallContext,
+    client_account_id: int,
+    *,
+    start_date_time: int | None = None,
+    end_date_time: int | None = None,
+    page_size: int | None = None,
+    page: int | None = None,
+) -> OrderHistoryDTO:
+    """Queries for an order history."""
+    return ctx.invoke(
+        GET_ORDER_HISTORY_SPEC,
+        query={
+            "ClientAccountId": client_account_id,
+            "StartDateTime": start_date_time,
+            "EndDateTime": end_date_time,
+            "PageSize": page_size,
+            "Page": page,
+        },
+    )
+
+
+async def aget_order_history(
+    ctx: CallContext,
+    client_account_id: int,
+    *,
+    start_date_time: int | None = None,
+    end_date_time: int | None = None,
+    page_size: int | None = None,
+    page: int | None = None,
+) -> OrderHistoryDTO:
+    """Queries for an order history."""
+    return await ctx.ainvoke(
+        GET_ORDER_HISTORY_SPEC,
+        query={
+            "ClientAccountId": client_account_id,
+            "StartDateTime": start_date_time,
+            "EndDateTime": end_date_time,
+            "PageSize": page_size,
+            "Page": page,
+        },
+    )
 
 
 GET_ORDER_SPEC: EndpointSpec[GetOrderResponseDTOv2] = EndpointSpec(
-    name="GetOrder",
+    name="GetOrder v2",
     method="GET",
-    path="/order/{OrderId}",
+    path="/order/v2/order/{orderId}?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
     response_model=GetOrderResponseDTOv2,
-    params=(Param(name="OrderId", location="path", python_name="order_id"),),
+    params=(
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+        Param(name="orderId", location="path", python_name="order_id"),
+    ),
 )
 
 
-def get_order(ctx: CallContext, order_id: int) -> GetOrderResponseDTOv2:
+def get_order(ctx: CallContext, client_account_id: int, order_id: str) -> GetOrderResponseDTOv2:
     """
-    Queries for an order by a specific order Id. The current implementation only returns
+    Queries for an order by a specific order ID. The current implementation only returns
     active orders (i.e. those with a status of 1 - Pending, 2 - Accepted, 3 - Open, 6 -
     Suspended, 8 - Yellow Card, 11 - Triggered ) .
     """
-    return ctx.invoke(GET_ORDER_SPEC, path_params={"OrderId": order_id})
+    return ctx.invoke(
+        GET_ORDER_SPEC,
+        path_params={"orderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
 
 
-async def aget_order(ctx: CallContext, order_id: int) -> GetOrderResponseDTOv2:
+async def aget_order(
+    ctx: CallContext, client_account_id: int, order_id: str
+) -> GetOrderResponseDTOv2:
     """
-    Queries for an order by a specific order Id. The current implementation only returns
+    Queries for an order by a specific order ID. The current implementation only returns
     active orders (i.e. those with a status of 1 - Pending, 2 - Accepted, 3 - Open, 6 -
     Suspended, 8 - Yellow Card, 11 - Triggered ) .
     """
-    return await ctx.ainvoke(GET_ORDER_SPEC, path_params={"OrderId": order_id})
+    return await ctx.ainvoke(
+        GET_ORDER_SPEC,
+        path_params={"orderId": order_id},
+        query={"ClientAccountId": client_account_id},
+    )
 
 
 LIST_ACTIVE_ORDERS_SPEC: EndpointSpec[ListActiveOrdersResponseDTO] = EndpointSpec(
@@ -431,6 +743,103 @@ async def aorder(
     return await ctx.ainvoke(ORDER_SPEC, body=request)
 
 
+SAVE_ORDER_SPEC: EndpointSpec[ExecutionResponseDTO] = EndpointSpec(
+    name="SaveOrder v2",
+    method="POST",
+    path="/order/v2/save",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ExecutionResponseDTO,
+    request_model=ExecutionVenueRequestDTO,
+    params=(
+        Param(
+            name="ExecutionVenueRequestDTO",
+            location="body",
+            python_name="execution_venue_request_dto",
+        ),
+    ),
+)
+
+
+def save_order(ctx: CallContext, request: ExecutionVenueRequestDTO) -> ExecutionResponseDTO:
+    """Creates an order."""
+    return ctx.invoke(SAVE_ORDER_SPEC, body=request)
+
+
+async def asave_order(ctx: CallContext, request: ExecutionVenueRequestDTO) -> ExecutionResponseDTO:
+    """Creates an order."""
+    return await ctx.ainvoke(SAVE_ORDER_SPEC, body=request)
+
+
+SIMULATE_CANCEL_ORDER_SPEC: EndpointSpec[ApiSimulateTradeOrderResponseDTO] = EndpointSpec(
+    name="SimulateCancelOrder",
+    method="POST",
+    path="/order/simulate/cancel",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiSimulateTradeOrderResponseDTO,
+    request_model=CancelOrderRequestDTO,
+    params=(Param(name="cancelOrder", location="body", python_name="cancel_order"),),
+)
+
+
+def simulate_cancel_order(
+    ctx: CallContext, request: CancelOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    Cancel the specified simulated order - the simulated order can be a resting entry order or
+    an attached closing order to an open position.
+    """
+    return ctx.invoke(SIMULATE_CANCEL_ORDER_SPEC, body=request)
+
+
+async def asimulate_cancel_order(
+    ctx: CallContext, request: CancelOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    Cancel the specified simulated order - the simulated order can be a resting entry order or
+    an attached closing order to an open position.
+    """
+    return await ctx.ainvoke(SIMULATE_CANCEL_ORDER_SPEC, body=request)
+
+
+SIMULATE_ORDER_SPEC: EndpointSpec[ApiSimulateTradeOrderResponseDTO] = EndpointSpec(
+    name="SimulateOrder",
+    method="POST",
+    path="/order/simulate/newstoplimitorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiSimulateTradeOrderResponseDTO,
+    request_model=NewStopLimitOrderRequestDTO,
+    params=(Param(name="order", location="body", python_name="order"),),
+)
+
+
+def simulate_order(
+    ctx: CallContext, request: NewStopLimitOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    API call that places a simulated order. Use this service in a margin calculator to check
+    how much margin is required to place the order before the order is actually placed in an
+    account.
+    """
+    return ctx.invoke(SIMULATE_ORDER_SPEC, body=request)
+
+
+async def asimulate_order(
+    ctx: CallContext, request: NewStopLimitOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    API call that places a simulated order. Use this service in a margin calculator to check
+    how much margin is required to place the order before the order is actually placed in an
+    account.
+    """
+    return await ctx.ainvoke(SIMULATE_ORDER_SPEC, body=request)
+
+
 SIMULATE_TRADE_SPEC: EndpointSpec[ApiSimulateTradeOrderResponseDTO] = EndpointSpec(
     name="SimulateTrade",
     method="POST",
@@ -464,6 +873,175 @@ async def asimulate_trade(
     return await ctx.ainvoke(SIMULATE_TRADE_SPEC, body=request)
 
 
+SIMULATE_UPDATE_ORDER_SPEC: EndpointSpec[ApiSimulateTradeOrderResponseDTO] = EndpointSpec(
+    name="SimulateUpdateOrder",
+    method="POST",
+    path="/order/simulate/updatestoplimitorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiSimulateTradeOrderResponseDTO,
+    request_model=UpdateStopLimitOrderRequestDTO,
+    params=(Param(name="order", location="body", python_name="order"),),
+)
+
+
+def simulate_update_order(
+    ctx: CallContext, request: UpdateStopLimitOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    Update the details of a simulated resting entry order. For example: change the trigger
+    price level or quantity, attach conditional if/done stop/limit orders, or attach an OCO
+    relationship.
+    """
+    return ctx.invoke(SIMULATE_UPDATE_ORDER_SPEC, body=request)
+
+
+async def asimulate_update_order(
+    ctx: CallContext, request: UpdateStopLimitOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    Update the details of a simulated resting entry order. For example: change the trigger
+    price level or quantity, attach conditional if/done stop/limit orders, or attach an OCO
+    relationship.
+    """
+    return await ctx.ainvoke(SIMULATE_UPDATE_ORDER_SPEC, body=request)
+
+
+SIMULATE_UPDATE_TRADE_SPEC: EndpointSpec[ApiSimulateTradeOrderResponseDTO] = EndpointSpec(
+    name="SimulateUpdateTrade",
+    method="POST",
+    path="/order/simulate/updatetradeorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiSimulateTradeOrderResponseDTO,
+    request_model=UpdateTradeOrderRequestDTO,
+    params=(Param(name="update", location="body", python_name="update"),),
+)
+
+
+def simulate_update_trade(
+    ctx: CallContext, request: UpdateTradeOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    This service is used to simulate updating a trade. For example, simulate adding a
+    stop/limit or modifying the details for existing attached orders.
+    """
+    return ctx.invoke(SIMULATE_UPDATE_TRADE_SPEC, body=request)
+
+
+async def asimulate_update_trade(
+    ctx: CallContext, request: UpdateTradeOrderRequestDTO
+) -> ApiSimulateTradeOrderResponseDTO:
+    """
+    This service is used to simulate updating a trade. For example, simulate adding a
+    stop/limit or modifying the details for existing attached orders.
+    """
+    return await ctx.ainvoke(SIMULATE_UPDATE_TRADE_SPEC, body=request)
+
+
+TRADE_SPEC: EndpointSpec[ApiTradeOrderResponseDTO] = EndpointSpec(
+    name="Trade",
+    method="POST",
+    path="/order/newtradeorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiTradeOrderResponseDTO,
+    request_model=NewTradeOrderRequestDTO,
+    params=(Param(name="trade", location="body", python_name="trade"),),
+)
+
+
+def trade(ctx: CallContext, request: NewTradeOrderRequestDTO) -> ApiTradeOrderResponseDTO:
+    """
+    This service is used for two functions: Place an opening trade on a particular market. Do
+    not set any order ID fields when requesting a new trade, the platform will generate them.
+    The trade request may contain conditional if/done attached stop loss and limit closing
+    orders. Place a trade to close an open position. In this case, set the Close property with
+    the Order ID of the opening trade.
+    """
+    return ctx.invoke(TRADE_SPEC, body=request)
+
+
+async def atrade(ctx: CallContext, request: NewTradeOrderRequestDTO) -> ApiTradeOrderResponseDTO:
+    """
+    This service is used for two functions: Place an opening trade on a particular market. Do
+    not set any order ID fields when requesting a new trade, the platform will generate them.
+    The trade request may contain conditional if/done attached stop loss and limit closing
+    orders. Place a trade to close an open position. In this case, set the Close property with
+    the Order ID of the opening trade.
+    """
+    return await ctx.ainvoke(TRADE_SPEC, body=request)
+
+
+UPDATE_ORDER_SPEC: EndpointSpec[ApiTradeOrderResponseDTO] = EndpointSpec(
+    name="UpdateOrder",
+    method="POST",
+    path="/order/updatestoplimitorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiTradeOrderResponseDTO,
+    request_model=UpdateStopLimitOrderRequestDTO,
+    params=(Param(name="order", location="body", python_name="order"),),
+)
+
+
+def update_order(
+    ctx: CallContext, request: UpdateStopLimitOrderRequestDTO
+) -> ApiTradeOrderResponseDTO:
+    """
+    Update the details of a resting entry order. For example: change the trigger price level
+    or quantity, attach conditional if/done stop/limit orders, or attach an OCO relationship.
+    """
+    return ctx.invoke(UPDATE_ORDER_SPEC, body=request)
+
+
+async def aupdate_order(
+    ctx: CallContext, request: UpdateStopLimitOrderRequestDTO
+) -> ApiTradeOrderResponseDTO:
+    """
+    Update the details of a resting entry order. For example: change the trigger price level
+    or quantity, attach conditional if/done stop/limit orders, or attach an OCO relationship.
+    """
+    return await ctx.ainvoke(UPDATE_ORDER_SPEC, body=request)
+
+
+UPDATE_TRADE_SPEC: EndpointSpec[ApiTradeOrderResponseDTO] = EndpointSpec(
+    name="UpdateTrade",
+    method="POST",
+    path="/order/updatetradeorder",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="order",
+    response_model=ApiTradeOrderResponseDTO,
+    request_model=UpdateTradeOrderRequestDTO,
+    params=(Param(name="update", location="body", python_name="update"),),
+)
+
+
+def update_trade(ctx: CallContext, request: UpdateTradeOrderRequestDTO) -> ApiTradeOrderResponseDTO:
+    """
+    This service is used for two functions: Add a new closing stop loss and/or take profit
+    limit order attached to an open position. Modify the details for existing closing orders
+    attached to an open position.
+    """
+    return ctx.invoke(UPDATE_TRADE_SPEC, body=request)
+
+
+async def aupdate_trade(
+    ctx: CallContext, request: UpdateTradeOrderRequestDTO
+) -> ApiTradeOrderResponseDTO:
+    """
+    This service is used for two functions: Add a new closing stop loss and/or take profit
+    limit order attached to an open position. Modify the details for existing closing orders
+    attached to an open position.
+    """
+    return await ctx.ainvoke(UPDATE_TRADE_SPEC, body=request)
+
+
 __all__ = [
     "CANCEL_ORDER_SPEC",
     "cancel_order",
@@ -471,9 +1049,27 @@ __all__ = [
     "GET_ACTIVE_STOP_LIMIT_ORDER_SPEC",
     "get_active_stop_limit_order",
     "aget_active_stop_limit_order",
+    "GET_ALL_TRADES_WALL_SPEC",
+    "get_all_trades_wall",
+    "aget_all_trades_wall",
+    "GET_CHANGED_ORDERS_SPEC",
+    "get_changed_orders",
+    "aget_changed_orders",
+    "GET_MARKETS_TRADES_WALL_SPEC",
+    "get_markets_trades_wall",
+    "aget_markets_trades_wall",
     "GET_OPEN_POSITION_SPEC",
     "get_open_position",
     "aget_open_position",
+    "GET_ORDERS_BY_REFERENCE_SPEC",
+    "get_orders_by_reference",
+    "aget_orders_by_reference",
+    "GET_ORDERS_SPEC",
+    "get_orders",
+    "aget_orders",
+    "GET_ORDER_HISTORY_SPEC",
+    "get_order_history",
+    "aget_order_history",
     "GET_ORDER_SPEC",
     "get_order",
     "aget_order",
@@ -495,7 +1091,31 @@ __all__ = [
     "ORDER_SPEC",
     "order",
     "aorder",
+    "SAVE_ORDER_SPEC",
+    "save_order",
+    "asave_order",
+    "SIMULATE_CANCEL_ORDER_SPEC",
+    "simulate_cancel_order",
+    "asimulate_cancel_order",
+    "SIMULATE_ORDER_SPEC",
+    "simulate_order",
+    "asimulate_order",
     "SIMULATE_TRADE_SPEC",
     "simulate_trade",
     "asimulate_trade",
+    "SIMULATE_UPDATE_ORDER_SPEC",
+    "simulate_update_order",
+    "asimulate_update_order",
+    "SIMULATE_UPDATE_TRADE_SPEC",
+    "simulate_update_trade",
+    "asimulate_update_trade",
+    "TRADE_SPEC",
+    "trade",
+    "atrade",
+    "UPDATE_ORDER_SPEC",
+    "update_order",
+    "aupdate_order",
+    "UPDATE_TRADE_SPEC",
+    "update_trade",
+    "aupdate_trade",
 ]

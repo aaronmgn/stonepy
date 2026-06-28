@@ -9,10 +9,10 @@ from stonepy.models import GetOrderResponseDTOv2
 
 
 class _GetOrderMixin(BaseResource):
-    def get_order(self, order_id: int) -> GetOrderResponseDTOv2:
+    def get_order(self, client_account_id: int, order_id: str) -> GetOrderResponseDTOv2:
         """
         Queries for an order by a specific order Id. The current implementation only
         returns active orders (i.e. those with a status of 1 - Pending, 2 - Accepted, 3 -
         Open, 6 - Suspended, 8 - Yellow Card, 11 - Triggered ) .
         """
-        return _ep.get_order(self._ctx, order_id)
+        return _ep.get_order(self._ctx, client_account_id, order_id)

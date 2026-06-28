@@ -19,6 +19,7 @@ from stonepy.models import (
     ApiAccountInformationSaveRequestDTO,
     ApiAccountInformationSaveResponseDTO,
     ApiAccountOperatorDTOv2,
+    ApiAccountOperatorsDTOv2,
     ApiActiveOrderDTO,
     ApiActiveStopLimitOrderDTOv2,
     ApiAdvisoryTradeOrderResponseDTO,
@@ -38,7 +39,7 @@ from stonepy.models import (
     ApiClientApplicationMessageTranslationRequestDTO,
     ApiClientApplicationMessageTranslationResponseDTO,
     ApiClientCommunicationResponseDTO,
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
     ApiClientPreferencesOverriddenMarginFactorDTO,
     ApiClientPreferencesOverriddenPriceToleranceDTO,
@@ -71,12 +72,21 @@ from stonepy.models import (
     ApiFxFinancingDTO,
     ApiGetClientPreferenceResponseDTO,
     ApiGetClientPreferencesResponseDTO,
+    ApiGetCommunityActionsResponseDTO,
     ApiGetKeyListClientPreferenceResponseDTO,
     ApiGetMarketInformationExtendedResponseDTOv2,
+    ApiGetMultipleUsersDetailsResponseDTO,
     ApiGetPreferencesResponseDTO,
+    ApiGetWallItemsForUsersResponseDTO,
+    ApiGetWallSubItemsResponseDTO,
     ApiIfDoneDTOv2,
     ApiIfDoneResponseDTO,
     ApiKnockoutDTO,
+    ApiListFollowedUsersResponseDTO,
+    ApiListFollowingUsersResponseDTO,
+    ApiListLatestTradedMarketsResponseDTO,
+    ApiListTopholdersDTO,
+    ApiListTopholdersForMarketsResponseDTO,
     ApiLogOffRequestDTO,
     ApiLogOffResponseDTO,
     ApiLogOnRequestDTO,
@@ -103,13 +113,14 @@ from stonepy.models import (
     ApiProductInformationDTO,
     ApiQuoteResponseDTO,
     ApiRestrictionDTOv2,
+    ApiRestrictionsDTOv2,
     ApiSaveAccountInformationRequestDTO,
     ApiSaveAccountInformationResponseDTO,
     ApiSaveClientPreferenceRequestDTO,
     ApiSaveMarketInformationResponseDTO,
     ApiSavePreferencesRequestDTO,
     ApiSaveSignalPreferencesResponseDTO,
-    ApiSaveWatchlistRequestDTO,
+    ApiSaveWatchlistRequestDTOv2,
     ApiSaveWatchlistResponseDTO,
     ApiSimulateOrderResponseDTO,
     ApiSimulateTradeOrderResponseDTO,
@@ -118,16 +129,21 @@ from stonepy.models import (
     ApiStopLimitOrderDTOv2,
     ApiStopLimitOrderHistoryDTO,
     ApiStopLimitResponseDTO,
+    ApiTopholderDTO,
+    ApiTradeActionDTO,
+    ApiTradedMarketsDTO,
     ApiTradeHistoryDTO,
     ApiTradeOrderDTOv2,
     ApiTradeOrderResponseDTO,
     ApiTraderDetailsDTO,
+    ApiTraderSearchResponseDTO,
     ApiTradingAccountDTOv2,
     ApiTradingDayTimesDTO,
     ApiUpdateDeleteClientPreferenceResponseDTO,
     ApiUserDynamicProfileDTO,
     ApiUserFollowedUsersDTO,
     ApiUserFollowersDTO,
+    ApiUsernameResponseDTO,
     ApiUserProfileDTO,
     ApiUserTradingAccountDTO,
     ApiValidateSessionRequestDTOv2,
@@ -153,12 +169,16 @@ from stonepy.models import (
     FixedMarginOrderResponseDTO,
     FullMarketInformationSearchWithTagsResponseDTOv2,
     GetActiveStopLimitOrderResponseDTOv2,
+    GetAllTradesWallResponseDTO,
+    GetChangedOrdersResponseDTO,
     GetClientPreferenceResponseDTO,
     GetClientPreferencesResponseDTO,
     GetKeyListClientPreferenceResponseDTO,
     GetListClientPreferenceResponseDTO,
-    GetMarketInformationResponseDTO,
+    GetMarketInformationResponseDTOv2,
+    GetMarketsTradesWallResponseDTO,
     GetMessagePopupResponseDTO,
+    GetNewsDetailResponseDTO,
     GetOpenPositionResponseDTOv2,
     GetOrderResponseDTOv2,
     GetOrdersResponseDTOv2,
@@ -182,6 +202,8 @@ from stonepy.models import (
     ListMarketInformationSearchResponseDTO,
     ListMarketSearchPaginatedResponseDTO,
     ListMarketSearchResponseDTO,
+    ListNewsHeadlinesRequestDTO,
+    ListNewsHeadlinesResponseDTO,
     ListOpenPositionsResponseDTO,
     ListProductInformationDTO,
     ListProductInformationResponseDTO,
@@ -201,6 +223,10 @@ from stonepy.models import (
     MarketSpreadData,
     MultipleMarketInformationRequestDTO,
     NewFixedMarginTradeOrderRequestDTO,
+    NewsDetailDTO,
+    NewsDTO,
+    NewsHeadlineDTO,
+    NewsHeadlinesResponseDTO,
     NewsResponseDTO,
     NewStopLimitOrderRequestDTO,
     NewTradeOrderRequestDTO,
@@ -237,6 +263,7 @@ from stonepy.models import (
     SystemStatusRequestDTO,
     Timestamp,
     TradeMarginDTO,
+    TradingAccountMarginDTO,
     UpdateDeleteClientPreferenceResponseDTO,
     UpdateFixedMarginTradeOrderRequestDTO,
     UpdateStopLimitOrderRequestDTO,
@@ -346,6 +373,18 @@ MODEL_CASES = [
             "ServiceOfferingId": 1,
         },
         id="ApiAccountOperatorDTOv2",
+    ),
+    pytest.param(
+        ApiAccountOperatorsDTOv2,
+        {
+            "AccountOperatorId": 1,
+            "DaysUntilExpiryForDemo": 1,
+            "Is2FAEnabledAO": False,
+            "IsDMAClient": False,
+            "IsFifo": False,
+            "IsNfaEnabledClient": False,
+        },
+        id="ApiAccountOperatorsDTOv2",
     ),
     pytest.param(
         ApiActiveOrderDTO,
@@ -718,9 +757,9 @@ MODEL_CASES = [
         id="ApiClientCommunicationResponseDTO",
     ),
     pytest.param(
-        ApiClientCommunicationUpdateRequestDTO,
-        {"Accepted": False, "ClientCommunicationId": 1, "OtherResponse": "x"},
-        id="ApiClientCommunicationUpdateRequestDTO",
+        ApiClientCommunicationUpdateRequestDTOv2,
+        {"Accepted": False, "ClientAccountId": 1, "ClientCommunicationId": 1, "OtherResponse": "x"},
+        id="ApiClientCommunicationUpdateRequestDTOv2",
     ),
     pytest.param(
         ApiClientCommunicationUpdateResponseDTO,
@@ -1004,6 +1043,30 @@ MODEL_CASES = [
         id="ApiGetClientPreferencesResponseDTO",
     ),
     pytest.param(
+        ApiGetCommunityActionsResponseDTO,
+        {
+            "CommunityActions": {
+                "CommunityActionId": 1,
+                "CommunityActionTypeDescription": "x",
+                "CommunityActionTypeId": 1,
+                "CreateDate": datetime(2020, 1, 1, tzinfo=UTC),
+                "PrimaryUserDetails": {
+                    "Avatar": "x",
+                    "FirstName": "x",
+                    "LastName": "x",
+                    "ScreenName": "x",
+                },
+                "SecondaryUserDetails": {
+                    "Avatar": "x",
+                    "FirstName": "x",
+                    "LastName": "x",
+                    "ScreenName": "x",
+                },
+            }
+        },
+        id="ApiGetCommunityActionsResponseDTO",
+    ),
+    pytest.param(
         ApiGetKeyListClientPreferenceResponseDTO,
         {"ClientPreferenceKeys": []},
         id="ApiGetKeyListClientPreferenceResponseDTO",
@@ -1030,7 +1093,95 @@ MODEL_CASES = [
         id="ApiGetMarketInformationExtendedResponseDTOv2",
     ),
     pytest.param(
+        ApiGetMultipleUsersDetailsResponseDTO,
+        {
+            "CiConnectUsersDetails": {
+                "CiConnectUserDetails": {
+                    "CreateDate": datetime(2020, 1, 1, tzinfo=UTC),
+                    "LastChangedDate": datetime(2020, 1, 1, tzinfo=UTC),
+                    "UserDynamicProfileDTO": {
+                        "AverageTradeLength": 1,
+                        "LastTradeDateTimeUTC": "x",
+                        "LastTradeDirection": "x",
+                        "LastTradedMarketId": "x",
+                        "LastTradedMarketName": "x",
+                        "LastTradedUnderlyingType": "x",
+                        "NumberFollowed": False,
+                        "NumberFollowing": "x",
+                    },
+                    "UserProfile": {
+                        "AllowApp": False,
+                        "Avatar": "x",
+                        "Biography": "x",
+                        "ClientAccountId": 1,
+                        "CultureId": 1,
+                        "Email": "x",
+                        "FacebookId": "x",
+                        "FirstName": "x",
+                        "IsDemo": False,
+                        "LastLoginDate": datetime(2020, 1, 1, tzinfo=UTC),
+                        "LastName": "x",
+                        "PointsSpent": 1,
+                        "RiskAppetiteId": 1,
+                        "RiskLimitingStrategyIds": 1,
+                        "ScreenName": "x",
+                        "TradingExperience": "x",
+                        "TradingExperienceInYears": 1,
+                        "TradingStrategyIds": 1,
+                    },
+                    "UserTradingAccounts": [],
+                },
+                "ClientAccountId": 1,
+                "FacebookId": "x",
+                "ScreenName": "x",
+            }
+        },
+        id="ApiGetMultipleUsersDetailsResponseDTO",
+    ),
+    pytest.param(
         ApiGetPreferencesResponseDTO, {"Preferences": []}, id="ApiGetPreferencesResponseDTO"
+    ),
+    pytest.param(
+        ApiGetWallItemsForUsersResponseDTO,
+        {"WallItemsForUsers": {"ScreenName": "x", "WallItemsForUser": []}},
+        id="ApiGetWallItemsForUsersResponseDTO",
+    ),
+    pytest.param(
+        ApiGetWallSubItemsResponseDTO,
+        {
+            "WallItems": {
+                "CommentText": "x",
+                "CreateDate": datetime(2020, 1, 1, tzinfo=UTC),
+                "FlaggedAsInappropriate": False,
+                "FromUserAvatar": "x",
+                "FromUserScreenName": "x",
+                "NoOfSubComments": 1,
+                "ParentWallItemId": 1,
+                "ScreenName": "x",
+                "TradeAction": {
+                    "Avatar": "x",
+                    "ClientID": 1,
+                    "Direction": "x",
+                    "FacebookID": "x",
+                    "FirstName": "x",
+                    "LastChangedDateTimeUTC": datetime(2020, 1, 1, tzinfo=UTC),
+                    "LastName": "x",
+                    "MarketID": 1,
+                    "MarketName": "x",
+                    "MarketType": "x",
+                    "OrderId": 1,
+                    "Price": Decimal("1.23"),
+                    "Quantity": Decimal("1.23"),
+                    "ROI": Decimal("1.23"),
+                    "ScreenName": "x",
+                    "TradeActionId": 1,
+                    "TradeType": "x",
+                },
+                "UserLikes": "x",
+                "WallItemId": 1,
+            }
+        },
+        id="ApiGetWallSubItemsResponseDTO",
     ),
     pytest.param(
         ApiIfDoneDTOv2,
@@ -1072,6 +1223,49 @@ MODEL_CASES = [
             "PairedMarkets": 1,
         },
         id="ApiKnockoutDTO",
+    ),
+    pytest.param(
+        ApiListFollowedUsersResponseDTO,
+        {"FollowingUsers": {"Followers": [], "ScreenName": "x"}},
+        id="ApiListFollowedUsersResponseDTO",
+    ),
+    pytest.param(
+        ApiListFollowingUsersResponseDTO,
+        {"FollowedUsers": {"FollowedUsers": [], "ScreenName": "x"}},
+        id="ApiListFollowingUsersResponseDTO",
+    ),
+    pytest.param(
+        ApiListLatestTradedMarketsResponseDTO,
+        {"TradedMarkets": []},
+        id="ApiListLatestTradedMarketsResponseDTO",
+    ),
+    pytest.param(
+        ApiListTopholdersDTO,
+        {
+            "MarketID": 1,
+            "Users": {
+                "Avatar": "x",
+                "Direction": "x",
+                "Quantity": Decimal("1.23"),
+                "ScreenName": "x",
+            },
+        },
+        id="ApiListTopholdersDTO",
+    ),
+    pytest.param(
+        ApiListTopholdersForMarketsResponseDTO,
+        {
+            "TopHolders": {
+                "MarketID": 1,
+                "Users": {
+                    "Avatar": "x",
+                    "Direction": "x",
+                    "Quantity": Decimal("1.23"),
+                    "ScreenName": "x",
+                },
+            }
+        },
+        id="ApiListTopholdersForMarketsResponseDTO",
     ),
     pytest.param(ApiLogOffRequestDTO, {"Session": "x", "UserName": "x"}, id="ApiLogOffRequestDTO"),
     pytest.param(ApiLogOffResponseDTO, {"LoggedOut": False}, id="ApiLogOffResponseDTO"),
@@ -1524,6 +1718,11 @@ MODEL_CASES = [
         id="ApiRestrictionDTOv2",
     ),
     pytest.param(
+        ApiRestrictionsDTOv2,
+        {"ContractId": 1, "ContractType": None, "IsNIGO": False},
+        id="ApiRestrictionsDTOv2",
+    ),
+    pytest.param(
         ApiSaveAccountInformationRequestDTO,
         {"PersonalEmailAddress": "x", "PersonalEmailAddressIsDirty": False},
         id="ApiSaveAccountInformationRequestDTO",
@@ -1542,16 +1741,17 @@ MODEL_CASES = [
     ),
     pytest.param(ApiSaveSignalPreferencesResponseDTO, {}, id="ApiSaveSignalPreferencesResponseDTO"),
     pytest.param(
-        ApiSaveWatchlistRequestDTO,
+        ApiSaveWatchlistRequestDTOv2,
         {
+            "ClientAccountId": 1,
             "Watchlist": {
                 "DisplayOrder": 1,
                 "Items": [],
                 "WatchlistDescription": "x",
                 "WatchlistId": 1,
-            }
+            },
         },
-        id="ApiSaveWatchlistRequestDTO",
+        id="ApiSaveWatchlistRequestDTOv2",
     ),
     pytest.param(ApiSaveWatchlistResponseDTO, {}, id="ApiSaveWatchlistResponseDTO"),
     pytest.param(
@@ -1631,6 +1831,34 @@ MODEL_CASES = [
     ),
     pytest.param(ApiStopLimitResponseDTO, {}, id="ApiStopLimitResponseDTO"),
     pytest.param(
+        ApiTopholderDTO,
+        {"Avatar": "x", "Direction": "x", "Quantity": Decimal("1.23"), "ScreenName": "x"},
+        id="ApiTopholderDTO",
+    ),
+    pytest.param(
+        ApiTradeActionDTO,
+        {
+            "Avatar": "x",
+            "ClientID": 1,
+            "Direction": "x",
+            "FacebookID": "x",
+            "FirstName": "x",
+            "LastChangedDateTimeUTC": datetime(2020, 1, 1, tzinfo=UTC),
+            "LastName": "x",
+            "MarketID": 1,
+            "MarketName": "x",
+            "MarketType": "x",
+            "OrderId": 1,
+            "Price": Decimal("1.23"),
+            "Quantity": Decimal("1.23"),
+            "ROI": Decimal("1.23"),
+            "ScreenName": "x",
+            "TradeActionId": 1,
+            "TradeType": "x",
+        },
+        id="ApiTradeActionDTO",
+    ),
+    pytest.param(
         ApiTradeHistoryDTO,
         {
             "Currency": "x",
@@ -1681,6 +1909,9 @@ MODEL_CASES = [
         id="ApiTradeOrderResponseDTO",
     ),
     pytest.param(
+        ApiTradedMarketsDTO, {"MarketIds": [], "ScreenName": "x"}, id="ApiTradedMarketsDTO"
+    ),
+    pytest.param(
         ApiTraderDetailsDTO,
         {
             "AvatarUrl": "x",
@@ -1696,6 +1927,26 @@ MODEL_CASES = [
             "ScreenName": "x",
         },
         id="ApiTraderDetailsDTO",
+    ),
+    pytest.param(
+        ApiTraderSearchResponseDTO,
+        {
+            "TotalNumberOfResults": 1,
+            "Traders": {
+                "AvatarUrl": "x",
+                "AverageTradeLength": 1,
+                "ClientAccountId": 1,
+                "DateLastTradePlaced": datetime(2020, 1, 1, tzinfo=UTC),
+                "IsFollowing": False,
+                "LastTradedMarket": "x",
+                "LastTradedMarketId": 1,
+                "LastTradedMarketUnderlyingType": "x",
+                "NumberOfFollowers": 1,
+                "NumberOfTradersFollowed": 1,
+                "ScreenName": "x",
+            },
+        },
+        id="ApiTraderSearchResponseDTO",
     ),
     pytest.param(
         ApiTradingAccountDTOv2,
@@ -1775,6 +2026,11 @@ MODEL_CASES = [
         id="ApiUserTradingAccountDTO",
     ),
     pytest.param(
+        ApiUsernameResponseDTO,
+        {"TradingAccountCode": "x", "Username": "x"},
+        id="ApiUsernameResponseDTO",
+    ),
+    pytest.param(
         ApiValidateSessionRequestDTOv2,
         {
             "ClientAccountId": 1,
@@ -1801,7 +2057,25 @@ MODEL_CASES = [
             "NoOfSubComments": 1,
             "ParentWallItemId": 1,
             "ScreenName": "x",
-            "TradeAction": None,
+            "TradeAction": {
+                "Avatar": "x",
+                "ClientID": 1,
+                "Direction": "x",
+                "FacebookID": "x",
+                "FirstName": "x",
+                "LastChangedDateTimeUTC": datetime(2020, 1, 1, tzinfo=UTC),
+                "LastName": "x",
+                "MarketID": 1,
+                "MarketName": "x",
+                "MarketType": "x",
+                "OrderId": 1,
+                "Price": Decimal("1.23"),
+                "Quantity": Decimal("1.23"),
+                "ROI": Decimal("1.23"),
+                "ScreenName": "x",
+                "TradeActionId": 1,
+                "TradeType": "x",
+            },
             "UserLikes": "x",
             "WallItemId": 1,
         },
@@ -2008,6 +2282,12 @@ MODEL_CASES = [
         id="GetActiveStopLimitOrderResponseDTOv2",
     ),
     pytest.param(
+        GetAllTradesWallResponseDTO, {"TradeActions": []}, id="GetAllTradesWallResponseDTO"
+    ),
+    pytest.param(
+        GetChangedOrdersResponseDTO, {"ChangedOrders": []}, id="GetChangedOrdersResponseDTO"
+    ),
+    pytest.param(
         GetClientPreferenceResponseDTO,
         {"ClientPreference": {"Key": "x", "Value": "x"}},
         id="GetClientPreferenceResponseDTO",
@@ -2028,7 +2308,7 @@ MODEL_CASES = [
         id="GetListClientPreferenceResponseDTO",
     ),
     pytest.param(
-        GetMarketInformationResponseDTO,
+        GetMarketInformationResponseDTOv2,
         {
             "MarketInformation": {
                 "AllowGuaranteedOrders": False,
@@ -2147,12 +2427,18 @@ MODEL_CASES = [
                 "Weighting": 1,
             }
         },
-        id="GetMarketInformationResponseDTO",
+        id="GetMarketInformationResponseDTOv2",
+    ),
+    pytest.param(
+        GetMarketsTradesWallResponseDTO, {"TradeActions": []}, id="GetMarketsTradesWallResponseDTO"
     ),
     pytest.param(
         GetMessagePopupResponseDTO,
         {"AskForClientApproval": False, "Message": "x"},
         id="GetMessagePopupResponseDTO",
+    ),
+    pytest.param(
+        GetNewsDetailResponseDTO, {"NewsDetail": {"Story": "x"}}, id="GetNewsDetailResponseDTO"
     ),
     pytest.param(
         GetOpenPositionResponseDTOv2,
@@ -2363,6 +2649,22 @@ MODEL_CASES = [
         id="ListMarketSearchPaginatedResponseDTO",
     ),
     pytest.param(ListMarketSearchResponseDTO, {"Markets": []}, id="ListMarketSearchResponseDTO"),
+    pytest.param(
+        ListNewsHeadlinesRequestDTO,
+        {
+            "Category": "x",
+            "CultureId": 1,
+            "MarketId": 1,
+            "MarketName": "x",
+            "MaxResults": 1,
+            "RicCode": "x",
+            "Source": "x",
+        },
+        id="ListNewsHeadlinesRequestDTO",
+    ),
+    pytest.param(
+        ListNewsHeadlinesResponseDTO, {"Headlines": []}, id="ListNewsHeadlinesResponseDTO"
+    ),
     pytest.param(
         ListOpenPositionsResponseDTO, {"OpenPositions": []}, id="ListOpenPositionsResponseDTO"
     ),
@@ -2600,7 +2902,17 @@ MODEL_CASES = [
         },
         id="NewTradeOrderRequestDTO",
     ),
-    pytest.param(NewsResponseDTO, {"News": None}, id="NewsResponseDTO"),
+    pytest.param(NewsDTO, {"Story": "x", "StoryInHtml": "x"}, id="NewsDTO"),
+    pytest.param(NewsDetailDTO, {"Story": "x"}, id="NewsDetailDTO"),
+    pytest.param(
+        NewsHeadlineDTO,
+        {"Headline": "x", "PublishDate": datetime(2020, 1, 1, tzinfo=UTC), "StoryId": 1},
+        id="NewsHeadlineDTO",
+    ),
+    pytest.param(NewsHeadlinesResponseDTO, {"Headlines": []}, id="NewsHeadlinesResponseDTO"),
+    pytest.param(
+        NewsResponseDTO, {"News": {"Story": "x", "StoryInHtml": "x"}}, id="NewsResponseDTO"
+    ),
     pytest.param(OpenOrderDTO, {"MarketId": 1}, id="OpenOrderDTO"),
     pytest.param(OpenOrdersResponseDTO, {"OpenOrders": []}, id="OpenOrdersResponseDTO"),
     pytest.param(
@@ -3011,6 +3323,24 @@ MODEL_CASES = [
             "Quantity": Decimal("1.23"),
         },
         id="TradeMarginDTO",
+    ),
+    pytest.param(
+        TradingAccountMarginDTO,
+        {
+            "Cash": Decimal("1.23"),
+            "CurrencyISO": "x",
+            "CurrencyId": 1,
+            "Margin": Decimal("1.23"),
+            "MarginIndicator": Decimal("1.23"),
+            "NetEquity": Decimal("1.23"),
+            "OpenTradeEquity": Decimal("1.23"),
+            "PendingFunds": Decimal("1.23"),
+            "TotalMarginRequirement": Decimal("1.23"),
+            "TradeableFunds": Decimal("1.23"),
+            "TradingAccountId": 1,
+            "TradingResource": Decimal("1.23"),
+        },
+        id="TradingAccountMarginDTO",
     ),
     pytest.param(
         UpdateDeleteClientPreferenceResponseDTO,

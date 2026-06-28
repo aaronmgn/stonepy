@@ -7,19 +7,19 @@ from decimal import Decimal
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class NewFixedMarginTradeOrderRequestDTO(ResponseModel):
+class NewFixedMarginTradeOrderRequestDTO(RequestModel):
     """A request to place a new fixed margin trade using a market order."""
 
-    market_id: int | None = Field(default=None, alias="MarketId")
+    market_id: int = Field(alias="MarketId")
     """The unique identifier for a market."""
-    direction: str | None = Field(default=None, alias="Direction")
+    direction: str = Field(alias="Direction")
     """Direction identifier for order/trade, values supported are Buy or Sell ."""
-    trading_account_id: int | None = Field(default=None, alias="TradingAccountId")
+    trading_account_id: int = Field(alias="TradingAccountId")
     """The ID of the trading account associated with the trade/order request."""
-    initial_margin: Decimal | None = Field(default=None, alias="InitialMargin")
+    initial_margin: Decimal = Field(alias="InitialMargin")
     """Amount of trading resources needed in the client account in order to place the trade."""
 
 

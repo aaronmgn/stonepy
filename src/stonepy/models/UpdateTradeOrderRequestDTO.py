@@ -8,18 +8,18 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 
-class UpdateTradeOrderRequestDTO(ResponseModel):
+class UpdateTradeOrderRequestDTO(RequestModel):
     """
     A request to add a closing order to an open position, or update an existing closing order
     attached to an open position.
     """
 
-    order_id: int | None = Field(default=None, alias="OrderId")
+    order_id: int = Field(alias="OrderId")
     """The identifier of the order to update."""
-    close_by_order_id: int | None = Field(default=None, alias="CloseByOrderId")
+    close_by_order_id: int = Field(alias="CloseByOrderId")
     """The identifier used to close this given order."""
 
 

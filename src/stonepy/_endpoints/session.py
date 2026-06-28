@@ -11,6 +11,8 @@ from stonepy.models import (
     ApiLogOffResponseDTO,
     ApiLogOnRequestDTO,
     ApiLogOnResponseDTOv2,
+    ApiValidateSessionRequestDTOv2,
+    ApiValidateSessionResponseDTO,
 )
 
 CHANGE_PASSWORD_SPEC: EndpointSpec[ApiChangePasswordResponseDTO] = EndpointSpec(
@@ -94,6 +96,37 @@ async def alog_on(ctx: CallContext, request: ApiLogOnRequestDTO) -> ApiLogOnResp
     return await ctx.ainvoke(LOG_ON_SPEC, body=request)
 
 
+VALIDATE_SESSION_SPEC: EndpointSpec[ApiValidateSessionResponseDTO] = EndpointSpec(
+    name="ValidateSession v2",
+    method="POST",
+    path="/session/v2/Session/validate",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="session",
+    response_model=ApiValidateSessionResponseDTO,
+    request_model=ApiValidateSessionRequestDTOv2,
+    params=(
+        Param(
+            name="ValidateSessionRequest", location="body", python_name="validate_session_request"
+        ),
+    ),
+)
+
+
+def validate_session(
+    ctx: CallContext, request: ApiValidateSessionRequestDTOv2
+) -> ApiValidateSessionResponseDTO:
+    """Validates a session - checks that your session ID and username combination is valid."""
+    return ctx.invoke(VALIDATE_SESSION_SPEC, body=request)
+
+
+async def avalidate_session(
+    ctx: CallContext, request: ApiValidateSessionRequestDTOv2
+) -> ApiValidateSessionResponseDTO:
+    """Validates a session - checks that your session ID and username combination is valid."""
+    return await ctx.ainvoke(VALIDATE_SESSION_SPEC, body=request)
+
+
 __all__ = [
     "CHANGE_PASSWORD_SPEC",
     "change_password",
@@ -104,4 +137,7 @@ __all__ = [
     "LOG_ON_SPEC",
     "log_on",
     "alog_on",
+    "VALIDATE_SESSION_SPEC",
+    "validate_session",
+    "avalidate_session",
 ]

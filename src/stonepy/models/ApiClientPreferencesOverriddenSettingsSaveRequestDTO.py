@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 from pydantic import Field
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
     from .ApiClientPreferencesOverriddenSettingsSaveDTO import (
@@ -15,14 +15,12 @@ if TYPE_CHECKING:
     )
 
 
-class ApiClientPreferencesOverriddenSettingsSaveRequestDTO(ResponseModel):
+class ApiClientPreferencesOverriddenSettingsSaveRequestDTO(RequestModel):
     """Request to save client preferences that override default values."""
 
-    client_account_id: int | None = Field(default=None, alias="ClientAccountId")
+    client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    settings: ApiClientPreferencesOverriddenSettingsSaveDTO | None = Field(
-        default=None, alias="Settings"
-    )
+    settings: ApiClientPreferencesOverriddenSettingsSaveDTO = Field(alias="Settings")
     """The client level overridden settings to save. This cannot be null"""
 
 

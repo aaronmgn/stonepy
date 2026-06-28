@@ -95,7 +95,7 @@ def render_binding(
         lines.extend(_module_header([binding]))
     lines.extend(_binding_lines(binding))
     source = "".join(lines)
-    return format_python(source) if include_imports else source
+    return _annotate_unwrappable_long_lines(format_python(source)) if include_imports else source
 
 
 def emit_all(catalog: Catalog, out_dir: Path) -> None:
@@ -273,7 +273,28 @@ def _render_module(bindings: list[_Binding]) -> str:
         lines.append(f'    "{binding.function_name}",\n')
         lines.append(f'    "{binding.async_function_name}",\n')
     lines.append("]\n")
-    return format_python("".join(lines))
+    return _annotate_unwrappable_long_lines(format_python("".join(lines)))
+
+
+def _annotate_unwrappable_long_lines(source: str) -> str:
+    """Append ``# noqa: E501`` to formatted lines that overflow the column limit unwrappably.
+
+    A few catalog identifiers are long enough that a ``name: Type`` signature parameter or
+    annotation exceeds the 100-column limit even after ``ruff format`` — the line is atomic, so
+    the formatter cannot split it. Mirror the resource aggregator's handling of long
+    ``import ... as`` lines (see ``emit_client._alias_import``) so generated endpoint modules
+    stay lint-clean. Idempotent: lines already carrying a ``# noqa`` are left untouched.
+    """
+
+    annotated: list[str] = []
+    for line in source.splitlines(keepends=True):
+        body = line.rstrip("\n")
+        if len(body) > 100 and "# noqa" not in body:
+            newline = "\n" if line.endswith("\n") else ""
+            annotated.append(f"{body}  # noqa: E501{newline}")
+        else:
+            annotated.append(line)
+    return "".join(annotated)
 
 
 def _module_header(bindings: list[_Binding]) -> list[str]:
@@ -291,7 +312,10 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
         typing_imports.append("TypeAlias")
     if typing_imports:
         lines.append(f"from typing import {', '.join(sorted(typing_imports))}\n")
-    lines.append("from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param\n")
+    endpoint_imports = ["AuthPolicy", "EndpointSpec"]
+    if any(binding.params for binding in bindings):
+        endpoint_imports.append("Param")
+    lines.append(f"from stonepy._core.endpoint import {', '.join(endpoint_imports)}\n")
     core_model_imports = sorted(
         {name for binding in bindings for name in binding.core_model_imports}
     )

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from .ApiMarketInformationDTOv2 import ApiMarketInformationDTOv2
 
 
-class GetMarketInformationResponseDTO(ResponseModel):
+class GetMarketInformationResponseDTOv2(ResponseModel):
     """Response from a market information request."""
 
     market_information: ApiMarketInformationDTOv2 | None = Field(
@@ -22,4 +22,4 @@ class GetMarketInformationResponseDTO(ResponseModel):
     """The requested market information."""
 
 
-GetMarketInformationResponseDTO.model_rebuild(raise_errors=False)
+GetMarketInformationResponseDTOv2.model_rebuild(raise_errors=False)

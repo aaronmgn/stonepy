@@ -4,12 +4,44 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
+from stonepy._core.models import ResponseModel
 from stonepy._core.pipeline import CallContext
 from stonepy.models import (
     AccountInformationResponseDTOv2,
     ApiAccountInformationSaveRequestDTO,
     ApiAccountInformationSaveResponseDTO,
+    ApiGetCommunityActionsResponseDTO,
+    ApiGetMultipleUsersDetailsResponseDTO,
+    ApiGetWallItemsForUsersResponseDTO,
+    ApiGetWallSubItemsResponseDTO,
+    ApiListFollowedUsersResponseDTO,
+    ApiListFollowingUsersResponseDTO,
+    ApiListTopholdersForMarketsResponseDTO,
+    ApiTraderSearchResponseDTO,
+    ApiUsernameResponseDTO,
 )
+
+GET_CHARTING_ENABLED_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+    name="GetChartingEnabled",
+    method="GET",
+    path="/useraccount/{id}/ChartingEnabled",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ResponseModel,
+    params=(Param(name="id", location="path", python_name="id"),),
+)
+
+
+def get_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
+    """Checks whether the supplied user account is allowed to see charting data."""
+    return ctx.invoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})
+
+
+async def aget_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
+    """Checks whether the supplied user account is allowed to see charting data."""
+    return await ctx.ainvoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})
+
 
 GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountInformationResponseDTOv2] = EndpointSpec(
     name="GetClientAndTradingAccount v2",
@@ -36,6 +68,339 @@ async def aget_client_and_trading_account(ctx: CallContext) -> AccountInformatio
     parameters for this call.
     """
     return await ctx.ainvoke(GET_CLIENT_AND_TRADING_ACCOUNT_SPEC)
+
+
+GET_MULTIPLE_USERS_DETAILS_BY_CLIENT_ACCOUNT_IDS_SPEC: EndpointSpec[
+    ApiGetMultipleUsersDetailsResponseDTO
+] = EndpointSpec(
+    name="GetMultipleUsersDetailsByClientAccountIds",
+    method="GET",
+    path="/useraccount/getusersbyclientaccountids",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetMultipleUsersDetailsResponseDTO,
+)
+
+
+def get_multiple_users_details_by_client_account_ids(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the client account IDs that are passed in
+    the parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_MULTIPLE_USERS_DETAILS_BY_CLIENT_ACCOUNT_IDS_SPEC)
+
+
+async def aget_multiple_users_details_by_client_account_ids(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the client account IDs that are passed in
+    the parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_MULTIPLE_USERS_DETAILS_BY_CLIENT_ACCOUNT_IDS_SPEC)
+
+
+GET_MULTIPLE_USERS_DETAILS_BY_FACEBOOK_IDS_SPEC: EndpointSpec[
+    ApiGetMultipleUsersDetailsResponseDTO
+] = EndpointSpec(
+    name="GetMultipleUsersDetailsByFacebookIds",
+    method="GET",
+    path="/useraccount/getusersbyfacebookids",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetMultipleUsersDetailsResponseDTO,
+)
+
+
+def get_multiple_users_details_by_facebook_ids(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the Facebook IDs that are passed in the
+    parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_MULTIPLE_USERS_DETAILS_BY_FACEBOOK_IDS_SPEC)
+
+
+async def aget_multiple_users_details_by_facebook_ids(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the Facebook IDs that are passed in the
+    parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_MULTIPLE_USERS_DETAILS_BY_FACEBOOK_IDS_SPEC)
+
+
+GET_MULTIPLE_USERS_DETAILS_BY_SCREEN_NAMES_SPEC: EndpointSpec[
+    ApiGetMultipleUsersDetailsResponseDTO
+] = EndpointSpec(
+    name="GetMultipleUsersDetailsByScreenNames",
+    method="GET",
+    path="/useraccount/getusersbyscreennames",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetMultipleUsersDetailsResponseDTO,
+)
+
+
+def get_multiple_users_details_by_screen_names(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the screen names that are passed in the
+    parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_MULTIPLE_USERS_DETAILS_BY_SCREEN_NAMES_SPEC)
+
+
+async def aget_multiple_users_details_by_screen_names(
+    ctx: CallContext,
+) -> ApiGetMultipleUsersDetailsResponseDTO:
+    """
+    Fetches the CI Connect user details for each of the screen names that are passed in the
+    parameter. (Service call used by the CI Connect social trading platform.) Note: this
+    requires that the respective CI Connect user record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_MULTIPLE_USERS_DETAILS_BY_SCREEN_NAMES_SPEC)
+
+
+GET_SOCIAL_ACTIONS_SPEC: EndpointSpec[ApiGetCommunityActionsResponseDTO] = EndpointSpec(
+    name="GetSocialActions",
+    method="GET",
+    path="/useraccount/getsocialactions",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetCommunityActionsResponseDTO,
+)
+
+
+def get_social_actions(ctx: CallContext) -> ApiGetCommunityActionsResponseDTO:
+    """
+    Fetches the community actions or community news from the database whenever the CI Connect
+    user follows another user, newly joins the CI Connect community, or updates their profile.
+    (Service call used by the CI Connect social trading platform.) Note: this requires that
+    the respective CI Connect user record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_SOCIAL_ACTIONS_SPEC)
+
+
+async def aget_social_actions(ctx: CallContext) -> ApiGetCommunityActionsResponseDTO:
+    """
+    Fetches the community actions or community news from the database whenever the CI Connect
+    user follows another user, newly joins the CI Connect community, or updates their profile.
+    (Service call used by the CI Connect social trading platform.) Note: this requires that
+    the respective CI Connect user record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_SOCIAL_ACTIONS_SPEC)
+
+
+GET_USERNAME_SPEC: EndpointSpec[ApiUsernameResponseDTO] = EndpointSpec(
+    name="GetUsername",
+    method="GET",
+    path="/useraccount/username",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiUsernameResponseDTO,
+    params=(
+        Param(name="sessionId", location="query", python_name="session_id"),
+        Param(name="clientAccountId", location="query", python_name="client_account_id"),
+    ),
+)
+
+
+def get_username(
+    ctx: CallContext, session_id: str, client_account_id: int
+) -> ApiUsernameResponseDTO:
+    """
+    Retrieves the user's trading account code (username) associated with the account ID passed
+    in the parameter.
+    """
+    return ctx.invoke(
+        GET_USERNAME_SPEC, query={"sessionId": session_id, "clientAccountId": client_account_id}
+    )
+
+
+async def aget_username(
+    ctx: CallContext, session_id: str, client_account_id: int
+) -> ApiUsernameResponseDTO:
+    """
+    Retrieves the user's trading account code (username) associated with the account ID passed
+    in the parameter.
+    """
+    return await ctx.ainvoke(
+        GET_USERNAME_SPEC, query={"sessionId": session_id, "clientAccountId": client_account_id}
+    )
+
+
+GET_WALL_ITEMS_FOR_USERS_SPEC: EndpointSpec[ApiGetWallItemsForUsersResponseDTO] = EndpointSpec(
+    name="GetWallItemsForUsers",
+    method="GET",
+    path="/useraccount/getwallitemsforusers",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetWallItemsForUsersResponseDTO,
+)
+
+
+def get_wall_items_for_users(ctx: CallContext) -> ApiGetWallItemsForUsersResponseDTO:
+    """
+    Fetches the wall items for the specified screen names. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_WALL_ITEMS_FOR_USERS_SPEC)
+
+
+async def aget_wall_items_for_users(ctx: CallContext) -> ApiGetWallItemsForUsersResponseDTO:
+    """
+    Fetches the wall items for the specified screen names. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_WALL_ITEMS_FOR_USERS_SPEC)
+
+
+GET_WALL_SUB_ITEMS_SPEC: EndpointSpec[ApiGetWallSubItemsResponseDTO] = EndpointSpec(
+    name="GetWallSubItems",
+    method="GET",
+    path="/useraccount/getwallsubitems",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiGetWallSubItemsResponseDTO,
+)
+
+
+def get_wall_sub_items(ctx: CallContext) -> ApiGetWallSubItemsResponseDTO:
+    """
+    Fetches the sub-wall items for the specified wall items. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return ctx.invoke(GET_WALL_SUB_ITEMS_SPEC)
+
+
+async def aget_wall_sub_items(ctx: CallContext) -> ApiGetWallSubItemsResponseDTO:
+    """
+    Fetches the sub-wall items for the specified wall items. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(GET_WALL_SUB_ITEMS_SPEC)
+
+
+LIST_FOLLOWED_SPEC: EndpointSpec[ApiListFollowedUsersResponseDTO] = EndpointSpec(
+    name="ListFollowed",
+    method="GET",
+    path="/useraccount/followed",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiListFollowedUsersResponseDTO,
+    params=(Param(name="screenNames", location="query", python_name="screen_names"),),
+)
+
+
+def list_followed(ctx: CallContext, screen_names: str) -> ApiListFollowedUsersResponseDTO:
+    """
+    Lists the CI Connect users that are followed by the specified users passed in the
+    parameter of the call. (Service call used by the CI Connect social trading platform.)
+    Note: this requires that the respective CI Connect user record in the CI Connect database
+    exists.
+    """
+    return ctx.invoke(LIST_FOLLOWED_SPEC, query={"screenNames": screen_names})
+
+
+async def alist_followed(ctx: CallContext, screen_names: str) -> ApiListFollowedUsersResponseDTO:
+    """
+    Lists the CI Connect users that are followed by the specified users passed in the
+    parameter of the call. (Service call used by the CI Connect social trading platform.)
+    Note: this requires that the respective CI Connect user record in the CI Connect database
+    exists.
+    """
+    return await ctx.ainvoke(LIST_FOLLOWED_SPEC, query={"screenNames": screen_names})
+
+
+LIST_FOLLOWERS_SPEC: EndpointSpec[ApiListFollowingUsersResponseDTO] = EndpointSpec(
+    name="ListFollowers",
+    method="GET",
+    path="/useraccount/followers",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiListFollowingUsersResponseDTO,
+    params=(Param(name="screenNames", location="query", python_name="screen_names"),),
+)
+
+
+def list_followers(ctx: CallContext, screen_names: str) -> ApiListFollowingUsersResponseDTO:
+    """
+    Lists the followers of the specified CI Connect users. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return ctx.invoke(LIST_FOLLOWERS_SPEC, query={"screenNames": screen_names})
+
+
+async def alist_followers(ctx: CallContext, screen_names: str) -> ApiListFollowingUsersResponseDTO:
+    """
+    Lists the followers of the specified CI Connect users. (Service call used by the CI
+    Connect social trading platform.) Note: this requires that the respective CI Connect user
+    record in the CI Connect database exists.
+    """
+    return await ctx.ainvoke(LIST_FOLLOWERS_SPEC, query={"screenNames": screen_names})
+
+
+LIST_TOPHOLDERS_FOR_MARKETS_SPEC: EndpointSpec[ApiListTopholdersForMarketsResponseDTO] = (
+    EndpointSpec(
+        name="ListTopholdersForMarkets",
+        method="GET",
+        path="/useraccount/gettopholdersformarkets",
+        idempotent=True,
+        auth_policy=AuthPolicy.SESSION,
+        rate_limit_bucket="user_account",
+        response_model=ApiListTopholdersForMarketsResponseDTO,
+        params=(Param(name="marketIDs", location="query", python_name="market_i_ds"),),
+    )
+)
+
+
+def list_topholders_for_markets(
+    ctx: CallContext, market_i_ds: int
+) -> ApiListTopholdersForMarketsResponseDTO:
+    """
+    Lists the top holders for the specified market IDs. (Service call used by the CI Connect
+    social trading platform.) Note: this requires that the respective CI Connect user record
+    in the CI Connect database exists. Only top holders who have registered with the CI
+    Connect service are returned.
+    """
+    return ctx.invoke(LIST_TOPHOLDERS_FOR_MARKETS_SPEC, query={"marketIDs": market_i_ds})
+
+
+async def alist_topholders_for_markets(
+    ctx: CallContext, market_i_ds: int
+) -> ApiListTopholdersForMarketsResponseDTO:
+    """
+    Lists the top holders for the specified market IDs. (Service call used by the CI Connect
+    social trading platform.) Note: this requires that the respective CI Connect user record
+    in the CI Connect database exists. Only top holders who have registered with the CI
+    Connect service are returned.
+    """
+    return await ctx.ainvoke(LIST_TOPHOLDERS_FOR_MARKETS_SPEC, query={"marketIDs": market_i_ds})
 
 
 SAVE_ACCOUNT_INFORMATION_SPEC: EndpointSpec[ApiAccountInformationSaveResponseDTO] = EndpointSpec(
@@ -77,11 +442,79 @@ async def asave_account_information(
     return await ctx.ainvoke(SAVE_ACCOUNT_INFORMATION_SPEC, body=request)
 
 
+SEARCH_SPEC: EndpointSpec[ApiTraderSearchResponseDTO] = EndpointSpec(
+    name="Search",
+    method="GET",
+    path="/useraccount/search",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="user_account",
+    response_model=ApiTraderSearchResponseDTO,
+    params=(Param(name="pageNumber", location="query", python_name="page_number"),),
+)
+
+
+def search(ctx: CallContext, page_number: int) -> ApiTraderSearchResponseDTO:
+    """
+    Performs a search of CI Connect users based on the user specified search criteria.
+    (Service call used by the CI Connect social trading platform.) Note: this requires that
+    the respective CI Connect user record in the CI Connect database exists. Only users
+    registered with CI Connect are searched.
+    """
+    return ctx.invoke(SEARCH_SPEC, query={"pageNumber": page_number})
+
+
+async def asearch(ctx: CallContext, page_number: int) -> ApiTraderSearchResponseDTO:
+    """
+    Performs a search of CI Connect users based on the user specified search criteria.
+    (Service call used by the CI Connect social trading platform.) Note: this requires that
+    the respective CI Connect user record in the CI Connect database exists. Only users
+    registered with CI Connect are searched.
+    """
+    return await ctx.ainvoke(SEARCH_SPEC, query={"pageNumber": page_number})
+
+
 __all__ = [
+    "GET_CHARTING_ENABLED_SPEC",
+    "get_charting_enabled",
+    "aget_charting_enabled",
     "GET_CLIENT_AND_TRADING_ACCOUNT_SPEC",
     "get_client_and_trading_account",
     "aget_client_and_trading_account",
+    "GET_MULTIPLE_USERS_DETAILS_BY_CLIENT_ACCOUNT_IDS_SPEC",
+    "get_multiple_users_details_by_client_account_ids",
+    "aget_multiple_users_details_by_client_account_ids",
+    "GET_MULTIPLE_USERS_DETAILS_BY_FACEBOOK_IDS_SPEC",
+    "get_multiple_users_details_by_facebook_ids",
+    "aget_multiple_users_details_by_facebook_ids",
+    "GET_MULTIPLE_USERS_DETAILS_BY_SCREEN_NAMES_SPEC",
+    "get_multiple_users_details_by_screen_names",
+    "aget_multiple_users_details_by_screen_names",
+    "GET_SOCIAL_ACTIONS_SPEC",
+    "get_social_actions",
+    "aget_social_actions",
+    "GET_USERNAME_SPEC",
+    "get_username",
+    "aget_username",
+    "GET_WALL_ITEMS_FOR_USERS_SPEC",
+    "get_wall_items_for_users",
+    "aget_wall_items_for_users",
+    "GET_WALL_SUB_ITEMS_SPEC",
+    "get_wall_sub_items",
+    "aget_wall_sub_items",
+    "LIST_FOLLOWED_SPEC",
+    "list_followed",
+    "alist_followed",
+    "LIST_FOLLOWERS_SPEC",
+    "list_followers",
+    "alist_followers",
+    "LIST_TOPHOLDERS_FOR_MARKETS_SPEC",
+    "list_topholders_for_markets",
+    "alist_topholders_for_markets",
     "SAVE_ACCOUNT_INFORMATION_SPEC",
     "save_account_information",
     "asave_account_information",
+    "SEARCH_SPEC",
+    "search",
+    "asearch",
 ]

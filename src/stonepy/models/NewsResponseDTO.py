@@ -3,19 +3,20 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING
 
 from pydantic import Field
 
 from stonepy._core.models import ResponseModel
 
-Unresolved = Any
+if TYPE_CHECKING:
+    from .NewsDTO import NewsDTO
 
 
 class NewsResponseDTO(ResponseModel):
     """The response containing the news story details from the GetNews request."""
 
-    news: Unresolved | None = Field(default=None, alias="News")
+    news: NewsDTO | None = Field(default=None, alias="News")
     """The details of the news story."""
 
 

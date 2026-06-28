@@ -9,10 +9,11 @@ from stonepy.models import (
     ApiClientApplicationMessageTranslationRequestDTO,
     ApiClientApplicationMessageTranslationResponseDTO,
     ApiClientCommunicationResponseDTO,
-    ApiClientCommunicationUpdateRequestDTO,
+    ApiClientCommunicationUpdateRequestDTOv2,
     ApiClientCommunicationUpdateResponseDTO,
     ApiLookupResponseDTO,
     GetMessagePopupResponseDTO,
+    SecureMessageCount,
 )
 
 CLIENT_COMMUNICATION_MESSAGE_UPDATE_SPEC: EndpointSpec[ApiClientCommunicationUpdateResponseDTO] = (
@@ -24,14 +25,14 @@ CLIENT_COMMUNICATION_MESSAGE_UPDATE_SPEC: EndpointSpec[ApiClientCommunicationUpd
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="message",
         response_model=ApiClientCommunicationUpdateResponseDTO,
-        request_model=ApiClientCommunicationUpdateRequestDTO,
+        request_model=ApiClientCommunicationUpdateRequestDTOv2,
         params=(Param(name="request", location="query", python_name="request"),),
     )
 )
 
 
 def client_communication_message_update(
-    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTO
+    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTOv2
 ) -> ApiClientCommunicationUpdateResponseDTO:
     """
     Request for responses from clients regarding the specified communication message. An
@@ -45,7 +46,7 @@ def client_communication_message_update(
 
 
 async def aclient_communication_message_update(
-    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTO
+    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTOv2
 ) -> ApiClientCommunicationUpdateResponseDTO:
     """
     Request for responses from clients regarding the specified communication message. An
@@ -219,6 +220,41 @@ async def aget_message_popup(
     )
 
 
+GET_SECURE_MESSAGES_SPEC: EndpointSpec[SecureMessageCount] = EndpointSpec(
+    name="GetSecureMessages v2",
+    method="GET",
+    path="/message/v2/message/SecureMessages?clientAccountId={clientAccountId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="message",
+    response_model=SecureMessageCount,
+    params=(
+        Param(name="LegalPartyId", location="query", python_name="legal_party_id"),
+        Param(name="clientAccountId", location="query", python_name="client_account_id"),
+    ),
+)
+
+
+def get_secure_messages(
+    ctx: CallContext, legal_party_id: int, client_account_id: str
+) -> SecureMessageCount:
+    """Returns the information about client's communication secure messages."""
+    return ctx.invoke(
+        GET_SECURE_MESSAGES_SPEC,
+        query={"LegalPartyId": legal_party_id, "clientAccountId": client_account_id},
+    )
+
+
+async def aget_secure_messages(
+    ctx: CallContext, legal_party_id: int, client_account_id: str
+) -> SecureMessageCount:
+    """Returns the information about client's communication secure messages."""
+    return await ctx.ainvoke(
+        GET_SECURE_MESSAGES_SPEC,
+        query={"LegalPartyId": legal_party_id, "clientAccountId": client_account_id},
+    )
+
+
 GET_SYSTEM_LOOKUP_SPEC: EndpointSpec[ApiLookupResponseDTO] = EndpointSpec(
     name="GetSystemLookup",
     method="GET",
@@ -274,7 +310,7 @@ SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC: EndpointSpec[
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="message",
     response_model=ApiClientCommunicationUpdateResponseDTO,
-    request_model=ApiClientCommunicationUpdateRequestDTO,
+    request_model=ApiClientCommunicationUpdateRequestDTOv2,
     params=(
         Param(
             name="ApiClientCommunicationUpdateRequestDTO",
@@ -286,14 +322,14 @@ SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC: EndpointSpec[
 
 
 def save_client_communication_message_response(
-    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTO
+    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTOv2
 ) -> ApiClientCommunicationUpdateResponseDTO:
     """Saves changes to the client's communication message response."""
     return ctx.invoke(SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC, body=request)
 
 
 async def asave_client_communication_message_response(
-    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTO
+    ctx: CallContext, request: ApiClientCommunicationUpdateRequestDTOv2
 ) -> ApiClientCommunicationUpdateResponseDTO:
     """Saves changes to the client's communication message response."""
     return await ctx.ainvoke(SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC, body=request)
@@ -315,6 +351,9 @@ __all__ = [
     "GET_MESSAGE_POPUP_SPEC",
     "get_message_popup",
     "aget_message_popup",
+    "GET_SECURE_MESSAGES_SPEC",
+    "get_secure_messages",
+    "aget_secure_messages",
     "GET_SYSTEM_LOOKUP_SPEC",
     "get_system_lookup",
     "aget_system_lookup",

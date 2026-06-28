@@ -3,14 +3,16 @@
 
 from __future__ import annotations
 
-from typing import TypeAlias
-
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
-from stonepy._core.models import PassthroughResponseModel
 from stonepy._core.pipeline import CallContext
-from stonepy.models import NewsResponseDTO, StoryResponseDTO
-
-NewsHeadlinesResponseDTO: TypeAlias = PassthroughResponseModel
+from stonepy.models import (
+    GetNewsDetailResponseDTO,
+    ListNewsHeadlinesRequestDTO,
+    ListNewsHeadlinesResponseDTO,
+    NewsHeadlinesResponseDTO,
+    NewsResponseDTO,
+    StoryResponseDTO,
+)
 
 GET_MARKET_REPORTS_SPEC: EndpointSpec[NewsResponseDTO] = EndpointSpec(
     name="GetMarketReports",
@@ -81,6 +83,41 @@ async def aget_market_report_headlines(
     return await ctx.ainvoke(
         GET_MARKET_REPORT_HEADLINES_SPEC,
         query={"marketID": market_id, "cultureID": culture_id, "maxResults": max_results},
+    )
+
+
+GET_NEWS_DETAIL_SPEC: EndpointSpec[GetNewsDetailResponseDTO] = EndpointSpec(
+    name="GetNewsDetail",
+    method="GET",
+    path="/news/{source}/{storyId}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="news",
+    response_model=GetNewsDetailResponseDTO,
+    params=(
+        Param(name="source", location="path", python_name="source"),
+        Param(name="storyId", location="path", python_name="story_id"),
+    ),
+)
+
+
+def get_news_detail(ctx: CallContext, source: str, story_id: int) -> GetNewsDetailResponseDTO:
+    """
+    Get the specific market news story matching the news headline ID in the parameter. The
+    news headlines and headline IDs are returned from a ListNewsHeadlines call.
+    """
+    return ctx.invoke(GET_NEWS_DETAIL_SPEC, path_params={"source": source, "storyId": story_id})
+
+
+async def aget_news_detail(
+    ctx: CallContext, source: str, story_id: int
+) -> GetNewsDetailResponseDTO:
+    """
+    Get the specific market news story matching the news headline ID in the parameter. The
+    news headlines and headline IDs are returned from a ListNewsHeadlines call.
+    """
+    return await ctx.ainvoke(
+        GET_NEWS_DETAIL_SPEC, path_params={"source": source, "storyId": story_id}
     )
 
 
@@ -174,6 +211,83 @@ def get_story(ctx: CallContext, story_id: int) -> StoryResponseDTO:
 async def aget_story(ctx: CallContext, story_id: int) -> StoryResponseDTO:
     """Get the detail for the specific news story matching the story ID in the parameter."""
     return await ctx.ainvoke(GET_STORY_SPEC, query={"storyID": story_id})
+
+
+LIST_NEWS_HEADLINES_SPEC: EndpointSpec[ListNewsHeadlinesResponseDTO] = EndpointSpec(
+    name="ListNewsHeadlines",
+    method="POST",
+    path="/news/headlines",
+    idempotent=False,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="news",
+    response_model=ListNewsHeadlinesResponseDTO,
+    request_model=ListNewsHeadlinesRequestDTO,
+    params=(Param(name="request", location="query", python_name="request"),),
+)
+
+
+def list_news_headlines(
+    ctx: CallContext, request: ListNewsHeadlinesRequestDTO
+) -> ListNewsHeadlinesResponseDTO:
+    """
+    Get a list of current news headlines matching the request parameters. The list of news
+    headlines can be filtered by various criteria such as market, or geographic region.
+    """
+    return ctx.invoke(
+        LIST_NEWS_HEADLINES_SPEC,
+        query=request.model_dump(by_alias=True, exclude_unset=True, mode="python"),
+    )
+
+
+async def alist_news_headlines(
+    ctx: CallContext, request: ListNewsHeadlinesRequestDTO
+) -> ListNewsHeadlinesResponseDTO:
+    """
+    Get a list of current news headlines matching the request parameters. The list of news
+    headlines can be filtered by various criteria such as market, or geographic region.
+    """
+    return await ctx.ainvoke(
+        LIST_NEWS_HEADLINES_SPEC,
+        query=request.model_dump(by_alias=True, exclude_unset=True, mode="python"),
+    )
+
+
+LIST_NEWS_HEADLINES_WITH_SOURCE_SPEC: EndpointSpec[ListNewsHeadlinesResponseDTO] = EndpointSpec(
+    name="ListNewsHeadlinesWithSource",
+    method="GET",
+    path="/news/{source}/{category}",
+    idempotent=True,
+    auth_policy=AuthPolicy.SESSION,
+    rate_limit_bucket="news",
+    response_model=ListNewsHeadlinesResponseDTO,
+    params=(
+        Param(name="source", location="path", python_name="source"),
+        Param(name="category", location="path", python_name="category"),
+        Param(name="maxResults", location="query", python_name="max_results"),
+    ),
+)
+
+
+def list_news_headlines_with_source(
+    ctx: CallContext, source: str, category: str, *, max_results: int | None = 25
+) -> ListNewsHeadlinesResponseDTO:
+    """Get a list of current news headlines for the specified source and category."""
+    return ctx.invoke(
+        LIST_NEWS_HEADLINES_WITH_SOURCE_SPEC,
+        path_params={"source": source, "category": category},
+        query={"maxResults": max_results},
+    )
+
+
+async def alist_news_headlines_with_source(
+    ctx: CallContext, source: str, category: str, *, max_results: int | None = 25
+) -> ListNewsHeadlinesResponseDTO:
+    """Get a list of current news headlines for the specified source and category."""
+    return await ctx.ainvoke(
+        LIST_NEWS_HEADLINES_WITH_SOURCE_SPEC,
+        path_params={"source": source, "category": category},
+        query={"maxResults": max_results},
+    )
 
 
 SEARCH_MARKET_REPORTS_SPEC: EndpointSpec[NewsResponseDTO] = EndpointSpec(
@@ -317,6 +431,9 @@ __all__ = [
     "GET_MARKET_REPORT_HEADLINES_SPEC",
     "get_market_report_headlines",
     "aget_market_report_headlines",
+    "GET_NEWS_DETAIL_SPEC",
+    "get_news_detail",
+    "aget_news_detail",
     "GET_NEWS_HEADLINES_SPEC",
     "get_news_headlines",
     "aget_news_headlines",
@@ -326,6 +443,12 @@ __all__ = [
     "GET_STORY_SPEC",
     "get_story",
     "aget_story",
+    "LIST_NEWS_HEADLINES_SPEC",
+    "list_news_headlines",
+    "alist_news_headlines",
+    "LIST_NEWS_HEADLINES_WITH_SOURCE_SPEC",
+    "list_news_headlines_with_source",
+    "alist_news_headlines_with_source",
     "SEARCH_MARKET_REPORTS_SPEC",
     "search_market_reports",
     "asearch_market_reports",
