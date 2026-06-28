@@ -1,0 +1,15 @@
+"""Resource method: GetOrdersByReference v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import order as _ep
+from stonepy.models import GetOrdersResponseDTOv2
+
+
+class _GetOrdersByReferenceMixin(BaseResource):
+    async def get_orders_by_reference(
+        self, reference: str, client_account_id: int
+    ) -> GetOrdersResponseDTOv2:
+        """Queries for an order by a specific order reference."""
+        return await _ep.aget_orders_by_reference(self._ctx, reference, client_account_id)

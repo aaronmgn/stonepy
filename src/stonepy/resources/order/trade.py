@@ -1,0 +1,19 @@
+"""Resource method: Trade."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import order as _ep
+from stonepy.models import ApiTradeOrderResponseDTO, NewTradeOrderRequestDTO
+
+
+class _TradeMixin(BaseResource):
+    async def trade(self, request: NewTradeOrderRequestDTO) -> ApiTradeOrderResponseDTO:
+        """
+        This service is used for two functions: Place an opening trade on a particular
+        market. Do not set any order ID fields when requesting a new trade, the platform
+        will generate them. The trade request may contain conditional if/done attached
+        stop loss and limit closing orders. Place a trade to close an open position. In
+        this case, set the Close property with the Order ID of the opening trade.
+        """
+        return await _ep.atrade(self._ctx, request)

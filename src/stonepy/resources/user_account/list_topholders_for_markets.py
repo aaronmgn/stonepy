@@ -1,0 +1,20 @@
+"""Resource method: ListTopholdersForMarkets."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import user_account as _ep
+from stonepy.models import ApiListTopholdersForMarketsResponseDTO
+
+
+class _ListTopholdersForMarketsMixin(BaseResource):
+    async def list_topholders_for_markets(
+        self, market_i_ds: int
+    ) -> ApiListTopholdersForMarketsResponseDTO:
+        """
+        Lists the top holders for the specified market IDs. (Service call used by the CI
+        Connect social trading platform.) Note: this requires that the respective CI
+        Connect user record in the CI Connect database exists. Only top holders who have
+        registered with the CI Connect service are returned.
+        """
+        return await _ep.alist_topholders_for_markets(self._ctx, market_i_ds)

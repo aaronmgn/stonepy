@@ -4,47 +4,62 @@
 from __future__ import annotations
 
 from .cfd import AsyncCfdResource, CfdResource
+from .client_preference import AsyncClientPreferenceResource, ClientPreferenceResource
 from .clientapplication import AsyncClientapplicationResource, ClientapplicationResource
 from .clientpreference import AsyncClientpreferenceResource, ClientpreferenceResource
+from .fixedmargin import AsyncFixedmarginResource, FixedmarginResource
 from .margin import AsyncMarginResource, MarginResource
 from .market import AsyncMarketResource, MarketResource
 from .message import AsyncMessageResource, MessageResource
 from .news import AsyncNewsResource, NewsResource
 from .order import AsyncOrderResource, OrderResource
+from .order_including_closed import AsyncOrderIncludingClosedResource, OrderIncludingClosedResource
+from .pm import AsyncPmResource, PmResource
 from .preference import AsyncPreferenceResource, PreferenceResource
 from .price_alert import AsyncPriceAlertResource, PriceAlertResource
 from .session import AsyncSessionResource, SessionResource
 from .spread import AsyncSpreadResource, SpreadResource
+from .tradingadvisor import AsyncTradingadvisorResource, TradingadvisorResource
 from .user_account import AsyncUserAccountResource, UserAccountResource
 from .watchlist import AsyncWatchlistResource, WatchlistResource
 
 __all__ = [
     "AsyncCfdResource",
+    "AsyncClientPreferenceResource",
     "AsyncClientapplicationResource",
     "AsyncClientpreferenceResource",
+    "AsyncFixedmarginResource",
     "AsyncMarginResource",
     "AsyncMarketResource",
     "AsyncMessageResource",
     "AsyncNewsResource",
+    "AsyncOrderIncludingClosedResource",
     "AsyncOrderResource",
+    "AsyncPmResource",
     "AsyncPreferenceResource",
     "AsyncPriceAlertResource",
     "AsyncSessionResource",
     "AsyncSpreadResource",
+    "AsyncTradingadvisorResource",
     "AsyncUserAccountResource",
     "AsyncWatchlistResource",
     "CfdResource",
+    "ClientPreferenceResource",
     "ClientapplicationResource",
     "ClientpreferenceResource",
+    "FixedmarginResource",
     "MarginResource",
     "MarketResource",
     "MessageResource",
     "NewsResource",
+    "OrderIncludingClosedResource",
     "OrderResource",
+    "PmResource",
     "PreferenceResource",
     "PriceAlertResource",
     "SessionResource",
     "SpreadResource",
+    "TradingadvisorResource",
     "UserAccountResource",
     "WatchlistResource",
 ]

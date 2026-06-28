@@ -1,0 +1,21 @@
+"""Resource method: GetSocialActions."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import user_account as _ep
+from stonepy.models import ApiGetCommunityActionsResponseDTO
+
+
+class _GetSocialActionsMixin(BaseResource):
+    async def get_social_actions(
+        self,
+    ) -> ApiGetCommunityActionsResponseDTO:
+        """
+        Fetches the community actions or community news from the database whenever the CI
+        Connect user follows another user, newly joins the CI Connect community, or
+        updates their profile. (Service call used by the CI Connect social trading
+        platform.) Note: this requires that the respective CI Connect user record in the
+        CI Connect database exists.
+        """
+        return await _ep.aget_social_actions(self._ctx)

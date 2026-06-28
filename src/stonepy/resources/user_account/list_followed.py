@@ -1,0 +1,18 @@
+"""Resource method: ListFollowed."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import user_account as _ep
+from stonepy.models import ApiListFollowedUsersResponseDTO
+
+
+class _ListFollowedMixin(BaseResource):
+    async def list_followed(self, screen_names: str) -> ApiListFollowedUsersResponseDTO:
+        """
+        Lists the CI Connect users that are followed by the specified users passed in the
+        parameter of the call. (Service call used by the CI Connect social trading
+        platform.) Note: this requires that the respective CI Connect user record in the
+        CI Connect database exists.
+        """
+        return await _ep.alist_followed(self._ctx, screen_names)

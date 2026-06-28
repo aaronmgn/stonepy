@@ -1,0 +1,16 @@
+"""Resource method: TagLookup v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import market as _ep
+from stonepy.models import MarketInformationTagLookupResponseDTO
+
+
+class _TagLookupMixin(BaseResource):
+    async def tag_lookup(self, client_account_id: str) -> MarketInformationTagLookupResponseDTO:
+        """
+        Gets all of the tags that the requesting user is allowed to see. Tags are returned
+        in a primary / secondary hierarchy.
+        """
+        return await _ep.atag_lookup(self._ctx, client_account_id)

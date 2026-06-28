@@ -1,0 +1,15 @@
+"""Resource method: ListAllocationProfiles."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import tradingadvisor as _ep
+from stonepy.models import ListAllocationProfilesResponseDTO
+
+
+class _ListAllocationProfilesMixin(BaseResource):
+    async def list_allocation_profiles(
+        self, trading_account_id: int
+    ) -> ListAllocationProfilesResponseDTO:
+        """List the allocation profiles associated with a Trading Advisor's trading account."""
+        return await _ep.alist_allocation_profiles(self._ctx, trading_account_id)

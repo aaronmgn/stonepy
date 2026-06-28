@@ -9,8 +9,18 @@ from ._sync.cancel_order import _CancelOrderMixin as _SyncCancelOrderMixin
 from ._sync.get_active_stop_limit_order import (
     _GetActiveStopLimitOrderMixin as _SyncGetActiveStopLimitOrderMixin,
 )
+from ._sync.get_all_trades_wall import _GetAllTradesWallMixin as _SyncGetAllTradesWallMixin
+from ._sync.get_changed_orders import _GetChangedOrdersMixin as _SyncGetChangedOrdersMixin
+from ._sync.get_markets_trades_wall import (
+    _GetMarketsTradesWallMixin as _SyncGetMarketsTradesWallMixin,
+)
 from ._sync.get_open_position import _GetOpenPositionMixin as _SyncGetOpenPositionMixin
 from ._sync.get_order import _GetOrderMixin as _SyncGetOrderMixin
+from ._sync.get_order_history import _GetOrderHistoryMixin as _SyncGetOrderHistoryMixin
+from ._sync.get_orders import _GetOrdersMixin as _SyncGetOrdersMixin
+from ._sync.get_orders_by_reference import (
+    _GetOrdersByReferenceMixin as _SyncGetOrdersByReferenceMixin,
+)
 from ._sync.list_active_orders import _ListActiveOrdersMixin as _SyncListActiveOrdersMixin
 from ._sync.list_active_stop_limit_orders import (
     _ListActiveStopLimitOrdersMixin as _SyncListActiveStopLimitOrdersMixin,
@@ -22,13 +32,27 @@ from ._sync.list_stop_limit_order_history import (
 from ._sync.list_trade_history import _ListTradeHistoryMixin as _SyncListTradeHistoryMixin
 from ._sync.order import _OrderMixin as _SyncOrderMixin
 from ._sync.place_order import _PlaceOrderMixin as _SyncPlaceOrderMixin
+from ._sync.save_order import _SaveOrderMixin as _SyncSaveOrderMixin
+from ._sync.simulate_cancel_order import _SimulateCancelOrderMixin as _SyncSimulateCancelOrderMixin
+from ._sync.simulate_order import _SimulateOrderMixin as _SyncSimulateOrderMixin
 from ._sync.simulate_trade import _SimulateTradeMixin as _SyncSimulateTradeMixin
+from ._sync.simulate_update_order import _SimulateUpdateOrderMixin as _SyncSimulateUpdateOrderMixin
+from ._sync.simulate_update_trade import _SimulateUpdateTradeMixin as _SyncSimulateUpdateTradeMixin
+from ._sync.trade import _TradeMixin as _SyncTradeMixin
+from ._sync.update_order import _UpdateOrderMixin as _SyncUpdateOrderMixin
+from ._sync.update_trade import _UpdateTradeMixin as _SyncUpdateTradeMixin
 from .cancel_order import _CancelOrderMixin as _AsyncCancelOrderMixin
 from .get_active_stop_limit_order import (
     _GetActiveStopLimitOrderMixin as _AsyncGetActiveStopLimitOrderMixin,
 )
+from .get_all_trades_wall import _GetAllTradesWallMixin as _AsyncGetAllTradesWallMixin
+from .get_changed_orders import _GetChangedOrdersMixin as _AsyncGetChangedOrdersMixin
+from .get_markets_trades_wall import _GetMarketsTradesWallMixin as _AsyncGetMarketsTradesWallMixin
 from .get_open_position import _GetOpenPositionMixin as _AsyncGetOpenPositionMixin
 from .get_order import _GetOrderMixin as _AsyncGetOrderMixin
+from .get_order_history import _GetOrderHistoryMixin as _AsyncGetOrderHistoryMixin
+from .get_orders import _GetOrdersMixin as _AsyncGetOrdersMixin
+from .get_orders_by_reference import _GetOrdersByReferenceMixin as _AsyncGetOrdersByReferenceMixin
 from .list_active_orders import _ListActiveOrdersMixin as _AsyncListActiveOrdersMixin
 from .list_active_stop_limit_orders import (
     _ListActiveStopLimitOrdersMixin as _AsyncListActiveStopLimitOrdersMixin,
@@ -40,14 +64,28 @@ from .list_stop_limit_order_history import (
 from .list_trade_history import _ListTradeHistoryMixin as _AsyncListTradeHistoryMixin
 from .order import _OrderMixin as _AsyncOrderMixin
 from .place_order import _PlaceOrderMixin as _AsyncPlaceOrderMixin
+from .save_order import _SaveOrderMixin as _AsyncSaveOrderMixin
+from .simulate_cancel_order import _SimulateCancelOrderMixin as _AsyncSimulateCancelOrderMixin
+from .simulate_order import _SimulateOrderMixin as _AsyncSimulateOrderMixin
 from .simulate_trade import _SimulateTradeMixin as _AsyncSimulateTradeMixin
+from .simulate_update_order import _SimulateUpdateOrderMixin as _AsyncSimulateUpdateOrderMixin
+from .simulate_update_trade import _SimulateUpdateTradeMixin as _AsyncSimulateUpdateTradeMixin
+from .trade import _TradeMixin as _AsyncTradeMixin
+from .update_order import _UpdateOrderMixin as _AsyncUpdateOrderMixin
+from .update_trade import _UpdateTradeMixin as _AsyncUpdateTradeMixin
 
 
 class OrderResource(
     _SyncCancelOrderMixin,
     _SyncGetActiveStopLimitOrderMixin,
+    _SyncGetAllTradesWallMixin,
+    _SyncGetChangedOrdersMixin,
+    _SyncGetMarketsTradesWallMixin,
     _SyncGetOpenPositionMixin,
     _SyncGetOrderMixin,
+    _SyncGetOrderHistoryMixin,
+    _SyncGetOrdersMixin,
+    _SyncGetOrdersByReferenceMixin,
     _SyncListActiveOrdersMixin,
     _SyncListActiveStopLimitOrdersMixin,
     _SyncListOpenPositionsMixin,
@@ -55,7 +93,15 @@ class OrderResource(
     _SyncListTradeHistoryMixin,
     _SyncOrderMixin,
     _SyncPlaceOrderMixin,
+    _SyncSaveOrderMixin,
+    _SyncSimulateCancelOrderMixin,
+    _SyncSimulateOrderMixin,
     _SyncSimulateTradeMixin,
+    _SyncSimulateUpdateOrderMixin,
+    _SyncSimulateUpdateTradeMixin,
+    _SyncTradeMixin,
+    _SyncUpdateOrderMixin,
+    _SyncUpdateTradeMixin,
     BaseResource,
 ):
     """
@@ -67,8 +113,14 @@ class OrderResource(
 class AsyncOrderResource(
     _AsyncCancelOrderMixin,
     _AsyncGetActiveStopLimitOrderMixin,
+    _AsyncGetAllTradesWallMixin,
+    _AsyncGetChangedOrdersMixin,
+    _AsyncGetMarketsTradesWallMixin,
     _AsyncGetOpenPositionMixin,
     _AsyncGetOrderMixin,
+    _AsyncGetOrderHistoryMixin,
+    _AsyncGetOrdersMixin,
+    _AsyncGetOrdersByReferenceMixin,
     _AsyncListActiveOrdersMixin,
     _AsyncListActiveStopLimitOrdersMixin,
     _AsyncListOpenPositionsMixin,
@@ -76,7 +128,15 @@ class AsyncOrderResource(
     _AsyncListTradeHistoryMixin,
     _AsyncOrderMixin,
     _AsyncPlaceOrderMixin,
+    _AsyncSaveOrderMixin,
+    _AsyncSimulateCancelOrderMixin,
+    _AsyncSimulateOrderMixin,
     _AsyncSimulateTradeMixin,
+    _AsyncSimulateUpdateOrderMixin,
+    _AsyncSimulateUpdateTradeMixin,
+    _AsyncTradeMixin,
+    _AsyncUpdateOrderMixin,
+    _AsyncUpdateTradeMixin,
     BaseResource,
 ):
     """

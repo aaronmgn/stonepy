@@ -1,0 +1,18 @@
+"""Resource method: GetOrderIncludingClosed v2."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import order_including_closed as _ep
+from stonepy.models import SingleActiveStopLimitOrderResponseDTO
+
+
+class _GetOrderIncludingClosedMixin(BaseResource):
+    async def get_order_including_closed(
+        self, order_id: int, client_account_id: int
+    ) -> SingleActiveStopLimitOrderResponseDTO:
+        """
+        Queries for an order by a specific order id. Returns both active and closed
+        orders.
+        """
+        return await _ep.aget_order_including_closed(self._ctx, order_id, client_account_id)

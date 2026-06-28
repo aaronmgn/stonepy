@@ -1,0 +1,18 @@
+"""Resource method: SaveAllocationProfile."""
+
+from __future__ import annotations
+
+from stonepy._core.resource import BaseResource
+from stonepy._endpoints import tradingadvisor as _ep
+from stonepy.models import SaveAllocationProfileRequestDTO, SaveAllocationProfileResponseDTO
+
+
+class _SaveAllocationProfileMixin(BaseResource):
+    async def save_allocation_profile(
+        self, request: SaveAllocationProfileRequestDTO
+    ) -> SaveAllocationProfileResponseDTO:
+        """
+        Create or update a Trading Advisor allocation profile. Do not set any ID fields
+        when creating a new allocation profile, the platform will generate them.
+        """
+        return await _ep.asave_allocation_profile(self._ctx, request)
