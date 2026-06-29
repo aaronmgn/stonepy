@@ -1,0 +1,26 @@
+name: live
+# Contract tests against the real CIAPI demo account. Runs nightly and on demand only - never on
+# pull requests, so the paper-account secrets are never exposed to fork PR workflows. A failure
+# here means an endpoint drifted from the client; xfailed model mismatches are tracked in #24.
+on:
+  schedule:
+    - cron: "0 6 * * *" # 06:00 UTC daily
+  workflow_dispatch:
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    env:
+      STONEX_USERNAME: ${{ secrets.STONEX_USERNAME }}
+      STONEX_PASSWORD: ${{ secrets.STONEX_PASSWORD }}
+      STONEX_APP_KEY: ${{ secrets.STONEX_APP_KEY }}
+      STONEX_BASE_URL: ${{ vars.STONEX_BASE_URL }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.13"
+      - run: uv python install 3.13
+      - run: uv sync --frozen --extra dev --python 3.13
+      - run: uv run pytest tests/live -m live -p no:cov -rxX

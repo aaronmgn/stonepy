@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- A live contract-test suite (`tests/live/`) that exercises the generated client against the real
+  CIAPI demo account, run nightly and on demand by a new `live` GitHub Actions workflow. It is
+  skipped unless `STONEX_*` credentials are configured, so the normal test run is unaffected. It
+  caught the two response-parsing fixes below and a set of model mismatches tracked in
+  [#24](https://github.com/aaronmgn/stonepy/issues/24).
+
+### Fixed
+
+- Response models now parse CIAPI's v2 camelCase JSON. The generated models alias fields with the
+  catalog's PascalCase, but the v2 endpoints return camelCase, so with `extra="ignore"` the typed
+  client silently dropped the body to all-`None` (for example `watchlist.get_watchlists` and the
+  `client_preference` lookups returned empty). `ResponseModel` now matches response keys to field
+  aliases case-insensitively, at every nesting level.
+- Datetime fields now parse the ISO 8601 values v2 endpoints return (for example
+  `2026-06-29T21:05:00Z`), in addition to the v1 WCF `/Date(ms)/` format.
+
 ## [0.2.2] - 2026-06-28
 
 ### Fixed

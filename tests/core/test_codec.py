@@ -64,6 +64,18 @@ def test_parse_none_passthrough() -> None:
     assert codec.parse_wcf_date(None) is None
 
 
+def test_parse_iso8601_v2_date() -> None:
+    # CIAPI v2 endpoints return ISO 8601 (with a trailing Z) rather than the v1 WCF format.
+    assert codec.parse_wcf_date("2026-06-29T21:05:00Z") == datetime(
+        2026, 6, 29, 21, 5, 0, tzinfo=UTC
+    )
+
+
+def test_parse_unrecognized_string_raises() -> None:
+    with pytest.raises(ValueError, match="not a WCF date"):
+        codec.parse_wcf_date("definitely not a date")
+
+
 @pytest.mark.parametrize("raw", [False, True])
 def test_parse_bool_rejected(raw: bool) -> None:
     with pytest.raises(ValueError):

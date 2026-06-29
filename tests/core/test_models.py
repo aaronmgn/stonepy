@@ -35,6 +35,22 @@ def test_response_ignores_unknown_fields() -> None:
     assert resp.order_id == 5
 
 
+def test_response_matches_keys_case_insensitively() -> None:
+    # CIAPI v2 returns camelCase while the models alias PascalCase; all three forms must populate.
+    assert _Resp.model_validate({"OrderId": 1}).order_id == 1
+    assert _Resp.model_validate({"orderId": 2}).order_id == 2
+    assert _Resp.model_validate({"order_id": 3}).order_id == 3
+
+
+def test_response_case_insensitive_match_is_recursive() -> None:
+    class _Nested(ResponseModel):
+        inner: _Resp | None = Field(default=None, alias="Inner")
+
+    parsed = _Nested.model_validate({"inner": {"orderId": 9}})
+    assert parsed.inner is not None
+    assert parsed.inner.order_id == 9
+
+
 def test_passthrough_response_preserves_unknown_fields() -> None:
     resp = PassthroughResponseModel.model_validate({"Headline": "x", "StoryId": 10})
 

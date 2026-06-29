@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, model_validator
 
 from stonepy._core.codec import StoneXDateTime
 
@@ -42,9 +44,33 @@ class ResponseModel(StoneXModel):
 
     Ignoring extras lets the client tolerate new or undocumented fields the API adds without
     raising, so responses keep parsing across upstream changes.
+
+    Response keys are matched to field aliases case-insensitively: CIAPI's v2 endpoints return
+    camelCase JSON (for example ``clientAccountWatchlists``) while the generated models alias
+    fields with the catalog's PascalCase (``ClientAccountWatchlists``). Without this, an
+    exact-case match would miss every camelCase key and ``extra="ignore"`` would silently drop
+    the data, leaving the parsed model empty. The remap runs at every nesting level because each
+    nested model is itself a ``ResponseModel``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _match_keys_case_insensitively(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        canonical: dict[str, str] = {}
+        for name, field in cls.model_fields.items():
+            target = field.alias or name
+            canonical.setdefault(name.lower(), target)
+            if field.alias:
+                canonical.setdefault(field.alias.lower(), target)
+        remapped: dict[str, Any] = {}
+        for key, value in data.items():
+            target = canonical.get(key.lower(), key) if isinstance(key, str) else key
+            remapped.setdefault(target, value)
+        return remapped
 
 
 class PassthroughResponseModel(StoneXModel):
