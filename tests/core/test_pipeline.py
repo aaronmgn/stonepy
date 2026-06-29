@@ -25,7 +25,7 @@ from stonepy._core.errors import (
     StoneXAPIError,
     TransportError,
 )
-from stonepy._core.models import RequestModel, ResponseModel
+from stonepy._core.models import ListResponse, RequestModel, ResponseModel
 from stonepy._core.pipeline import (
     BusinessStatus,
     CallContext,
@@ -435,6 +435,54 @@ def test_parse_response_wraps_success_body_parse_failures(
     assert exc.method == "GET"
     assert exc.path == "/order/{OrderId}"
     assert exc.raw_body == response.content
+
+
+def _list_spec() -> EndpointSpec[ListResponse[_Resp]]:
+    return EndpointSpec(
+        name="ListOrders",
+        method="GET",
+        path="/orders",
+        idempotent=True,
+        auth_policy=AuthPolicy.NONE,
+        rate_limit_bucket="default",
+        response_model=ListResponse[_Resp],
+    )
+
+
+def test_parse_response_validates_bare_array_into_list() -> None:
+    out = parse_response(_list_spec(), httpx.Response(200, json=[{"OrderId": 1}, {"OrderId": 2}]))
+    assert [item.order_id for item in out.root] == [1, 2]
+
+
+def test_parse_response_list_empty_body_yields_empty_list() -> None:
+    # An empty body must decode to [] for a list endpoint, not raise against the "{}" default.
+    out = parse_response(_list_spec(), httpx.Response(200, content=b""))
+    assert out.root == []
+
+
+def test_parse_response_list_rejects_non_array_body() -> None:
+    with pytest.raises(ResponseParseError) as excinfo:
+        parse_response(_list_spec(), httpx.Response(200, json={"OrderId": 1}))
+    assert "validate" in str(excinfo.value).lower()
+
+
+def test_invoke_list_endpoint_skips_business_status_check() -> None:
+    # A list response is a RootModel, not a mapping; the business-status check must be skipped so it
+    # does not call .items() on a list. The default status decoder is active here.
+    t = FakeTransport([httpx.Response(200, json=[{"OrderId": 1}])])
+    clk = FakeClock()
+    ctx = CallContext(
+        config=ClientConfig(base_url="https://api.example"),
+        transport=t,
+        session=cast(SessionManager, _ExplodingSession()),
+        clock=clk,
+        limiter=SlidingWindowLimiter(500, 5.0, clk),
+        retry=RetryPolicy(3),
+        logon=lambda: "NEW",
+        jitter=_one_jitter,
+    )
+    out = ctx.invoke(_list_spec())
+    assert [item.order_id for item in out.root] == [1]
 
 
 def test_auth_none_invoke_does_not_touch_session() -> None:

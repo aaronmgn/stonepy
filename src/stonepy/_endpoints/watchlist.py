@@ -21,8 +21,8 @@ DELETE_WATCHLIST_SPEC: EndpointSpec[DeleteWatchlistResponseDTO] = EndpointSpec(
     rate_limit_bucket="watchlist",
     response_model=DeleteWatchlistResponseDTO,
     params=(
-        Param(name="ClientAccountId", location="body", python_name="client_account_id"),
-        Param(name="WatchlistId", location="body", python_name="watchlist_id"),
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
+        Param(name="WatchlistId", location="query", python_name="watchlist_id"),
     ),
 )
 
@@ -33,7 +33,7 @@ def delete_watchlist(
     """Delete watchlist v2."""
     return ctx.invoke(
         DELETE_WATCHLIST_SPEC,
-        body={"ClientAccountId": client_account_id, "WatchlistId": watchlist_id},
+        query={"ClientAccountId": client_account_id, "WatchlistId": watchlist_id},
     )
 
 
@@ -43,7 +43,7 @@ async def adelete_watchlist(
     """Delete watchlist v2."""
     return await ctx.ainvoke(
         DELETE_WATCHLIST_SPEC,
-        body={"ClientAccountId": client_account_id, "WatchlistId": watchlist_id},
+        query={"ClientAccountId": client_account_id, "WatchlistId": watchlist_id},
     )
 
 

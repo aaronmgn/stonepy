@@ -15,7 +15,7 @@ _RESPONSE_BODY = '{"MarketId":1,"MarketName":"x","DirectionId":"x","OriginalQuan
 @respx.mock
 def test_get_order_history_returns_response() -> None:
     route = respx.get("https://api.example/v2/orderhistory").mock(
-        return_value=httpx.Response(200, content=_RESPONSE_BODY)
+        return_value=httpx.Response(200, content="[" + _RESPONSE_BODY + "]")
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
@@ -28,7 +28,9 @@ def test_get_order_history_returns_response() -> None:
             page_size=1,
             page=1,
         )
-        assert isinstance(resp, OrderHistoryDTO)
+        assert isinstance(resp, list)
+        assert isinstance(resp[0], OrderHistoryDTO)
+        assert resp[0].order_id == 1
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/v2/orderhistory"
@@ -40,7 +42,7 @@ def test_get_order_history_returns_response() -> None:
 def test_get_order_history_async() -> None:
     async def run() -> None:
         route = respx.get("https://api.example/v2/orderhistory").mock(
-            return_value=httpx.Response(200, content=_RESPONSE_BODY)
+            return_value=httpx.Response(200, content="[" + _RESPONSE_BODY + "]")
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
@@ -53,7 +55,9 @@ def test_get_order_history_async() -> None:
                 page_size=1,
                 page=1,
             )
-            assert isinstance(resp, OrderHistoryDTO)
+            assert isinstance(resp, list)
+            assert isinstance(resp[0], OrderHistoryDTO)
+            assert resp[0].order_id == 1
             assert route.called
             assert route.calls[0].request.method == "GET"
         finally:

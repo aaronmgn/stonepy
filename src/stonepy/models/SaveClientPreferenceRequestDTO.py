@@ -16,9 +16,7 @@ if TYPE_CHECKING:
 class SaveClientPreferenceRequestDTO(RequestModel):
     """Save client preferences."""
 
-    client_preference: list[ClientPreferenceKeyDTO] | None = Field(
-        default=None, alias="ClientPreference"
-    )
+    client_preference: ClientPreferenceKeyDTO | None = Field(default=None, alias="ClientPreference")
     """The list of client preferences key value pairs to be saved."""
 
 

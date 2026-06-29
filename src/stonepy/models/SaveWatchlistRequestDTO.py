@@ -18,7 +18,7 @@ class SaveWatchlistRequestDTO(RequestModel):
 
     client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    watchlist: list[ApiClientAccountWatchlistDTO] = Field(alias="Watchlist")
+    watchlist: ApiClientAccountWatchlistDTO = Field(alias="Watchlist")
     """Watchlist to save"""
 
 

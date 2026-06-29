@@ -7,6 +7,7 @@ import re
 import shutil
 from collections.abc import Collection, Mapping
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
@@ -65,6 +66,28 @@ _RESPONSE_MODEL_OVERRIDES: dict[tuple[str, str], str] = {
     # tradingAccounts, legalParties, ...), not wrapped under an "AccountResult" key as the declared
     # AccountInformationResponseDTO v2 expects, so the wrapper always parsed to all-None.
     ("user_account", "GetClientAndTradingAccount v2"): "AccountResult",
+}
+
+# Endpoints whose success body is a bare top-level JSON array of `response_model` items (verified
+# live: GetOrders / GetOrderHistory return e.g. `[]`, not an object). For these the generator wraps
+# the response model in `ListResponse[...]`, the pipeline validates each element, and the wrapper
+# returns a `list[...]`. Keyed by (target_module, endpoint name), like the other override tables.
+_LIST_RESPONSE_OVERRIDES: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("order", "GetOrders v2"),
+        ("order", "GetOrderHistory v2"),
+    }
+)
+
+# Per-endpoint parameter-location corrections where the catalog declares the wrong location. Keyed
+# by (target_module, endpoint name) -> {wire param name: location}. Verified live.
+_PARAM_LOCATION_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
+    # The catalog marks both delete params as body, but the live API only honors them as query
+    # params (a body request 400s with "The ClientAccountId field is required").
+    ("watchlist", "DeleteWatchlist v2"): {
+        "ClientAccountId": "query",
+        "WatchlistId": "query",
+    },
 }
 
 # Per-endpoint path corrections for catalog gaps the systematic v2 de-doubling in resolved_path()
@@ -251,6 +274,7 @@ class _Binding:
         response_model: str,
         request_annotation: str | None,
         response_annotation: str,
+        response_is_list: bool,
         unresolved_response_model: str | None,
         uses_mapping: bool,
         model_imports: set[str],
@@ -271,6 +295,7 @@ class _Binding:
         self.response_model = response_model
         self.request_annotation = request_annotation
         self.response_annotation = response_annotation
+        self.response_is_list = response_is_list
         self.unresolved_response_model = unresolved_response_model
         self.uses_mapping = uses_mapping
         self.model_imports = model_imports
@@ -290,15 +315,18 @@ def _binding(
     )
     response_model = _response_model_type(response_type_name, known_models)
     unresolved_response_model = _unresolved_response_model(response_type_name, known_models)
+    response_is_list = (target_module(rec.target), rec.name) in _LIST_RESPONSE_OVERRIDES
     optional_overrides = _OPTIONAL_PARAM_OVERRIDES.get(
         (target_module(rec.target), rec.name), frozenset()
     )
+    location_overrides = _PARAM_LOCATION_OVERRIDES.get((target_module(rec.target), rec.name), {})
     path = resolved_path(rec)
     params = _params(
         rec.parameters,
         known_models,
         path=path,
         optional_overrides=optional_overrides,
+        location_overrides=location_overrides,
     )
     if request_model is None:
         request_model = _inferred_request_model(params, known_models)
@@ -338,12 +366,14 @@ def _binding(
         response_model=response_model,
         request_annotation=request_annotation,
         response_annotation=response_model,
+        response_is_list=response_is_list,
         unresolved_response_model=unresolved_response_model,
         uses_mapping=uses_mapping,
         model_imports=model_imports,
         core_model_imports=_core_model_imports(
             response_model,
             unresolved_response_model=unresolved_response_model,
+            response_is_list=response_is_list,
         ),
     )
 
@@ -432,8 +462,13 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
 
 
 def _binding_lines(binding: _Binding) -> list[str]:
+    spec_type = (
+        f"ListResponse[{binding.response_model}]"
+        if binding.response_is_list
+        else binding.response_annotation
+    )
     lines = [
-        f"{binding.spec_name}: EndpointSpec[{binding.response_annotation}] = EndpointSpec(\n",
+        f"{binding.spec_name}: EndpointSpec[{spec_type}] = EndpointSpec(\n",
         f"    name={_string_literal(binding.rec.name)},\n",
         f"    method={_string_literal(binding.method)},\n",
         f"    path={_string_literal(binding.path)},\n",
@@ -444,7 +479,7 @@ def _binding_lines(binding: _Binding) -> list[str]:
         f"    idempotent={binding.idempotent},\n",
         f"    auth_policy=AuthPolicy.{binding.auth_policy},\n",
         f"    rate_limit_bucket={_string_literal(binding.rate_limit_bucket)},\n",
-        f"    response_model={binding.response_model},\n",
+        f"    response_model={spec_type},\n",
     ]
     if binding.request_model is not None:
         lines.append(f"    request_model={binding.request_model},\n")
@@ -487,22 +522,32 @@ def _wrapper_lines(binding: _Binding, *, is_async: bool) -> list[str]:
     if optional_params:
         signature_params.append("*")
         signature_params.extend(optional_params)
+    return_annotation = (
+        f"list[{binding.response_model}]"
+        if binding.response_is_list
+        else binding.response_annotation
+    )
     lines = [
         f"{prefix} {function_name}(",
         ", ".join(signature_params),
-        f") -> {binding.response_annotation}:\n",
+        f") -> {return_annotation}:\n",
         render_docstring(endpoint_summary(binding.rec), indent=4),
     ]
 
     call = "ctx.ainvoke" if is_async else "ctx.invoke"
     await_prefix = "await " if is_async else ""
     invocation_args = _invocation_args(binding)
-    if not invocation_args:
-        lines.append(f"    return {await_prefix}{call}({binding.spec_name})\n")
+    spec_args = (
+        binding.spec_name
+        if not invocation_args
+        else f"{binding.spec_name}, {', '.join(invocation_args)}"
+    )
+    invocation = f"{await_prefix}{call}({spec_args})"
+    # List endpoints carry a `ListResponse[...]` model; unwrap `.root` so the wrapper yields a list.
+    if binding.response_is_list:
+        lines.append(f"    return ({invocation}).root\n")
     else:
-        lines.append(
-            f"    return {await_prefix}{call}({binding.spec_name}, {', '.join(invocation_args)})\n"
-        )
+        lines.append(f"    return {invocation}\n")
     return lines
 
 
@@ -610,6 +655,7 @@ def _params(
     *,
     path: str,
     optional_overrides: frozenset[str] = frozenset(),
+    location_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> list[_Param]:
     rendered: list[_Param] = []
     used_names: set[str] = set()
@@ -619,11 +665,14 @@ def _params(
         raw_name = raw_param.get("name")
         if not isinstance(raw_name, str):
             continue
-        location = _param_location(
-            raw_param,
-            raw_name=raw_name,
-            path_placeholders=path_placeholders,
-            query_placeholders=query_placeholders,
+        location = location_overrides.get(
+            raw_name,
+            _param_location(
+                raw_param,
+                raw_name=raw_name,
+                path_placeholders=path_placeholders,
+                query_placeholders=query_placeholders,
+            ),
         )
         if location not in {"path", "query", "body"}:
             continue
@@ -763,12 +812,15 @@ def _core_model_imports(
     response_model: str,
     *,
     unresolved_response_model: str | None,
+    response_is_list: bool = False,
 ) -> set[str]:
     imports: set[str] = set()
     if response_model == "ResponseModel":
         imports.add("ResponseModel")
     if unresolved_response_model is not None:
         imports.add("PassthroughResponseModel")
+    if response_is_list:
+        imports.add("ListResponse")
     return imports
 
 

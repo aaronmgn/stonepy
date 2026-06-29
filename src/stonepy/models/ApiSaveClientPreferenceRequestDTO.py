@@ -18,9 +18,7 @@ class ApiSaveClientPreferenceRequestDTO(RequestModel):
 
     client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    client_preference: list[ClientPreferenceKeyDTO] | None = Field(
-        default=None, alias="ClientPreference"
-    )
+    client_preference: ClientPreferenceKeyDTO | None = Field(default=None, alias="ClientPreference")
     """The list of client preferences key value pairs to be saved"""
 
 

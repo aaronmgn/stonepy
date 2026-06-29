@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- First-class support for endpoints whose success body is a bare top-level JSON array, via a
+  `ListResponse[Item]` response wrapper. The pipeline validates each element and the wrapper returns
+  a plain `list[Item]`.
+- Live write round-trips (`save` + read-back + delete) for client preferences and watchlists, now
+  that their request models are correct.
+
+### Fixed
+
+- `order.get_orders` and `order.get_order_history` now return `list[EnrichedOrderDTO]` /
+  `list[OrderHistoryDTO]`. The API returns a bare JSON array, but they were typed as single objects,
+  so every call raised a response-parse error (a return-type change)
+  ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
+- `client_preference.save_client_preference` and `watchlist.save_watchlist` now succeed. Their
+  request bodies wrap a single object (`ClientPreference`, `Watchlist`), but the models typed them
+  as lists, so the API rejected every call with HTTP 400
+  ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
+- `watchlist.delete_watchlist` now sends its `ClientAccountId` / `WatchlistId` as query parameters
+  rather than in the body, which the live API requires (a body request 400s)
+  ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
+
 ## [0.2.3] - 2026-06-28
 
 ### Added

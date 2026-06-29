@@ -17,7 +17,7 @@ class _GetOrderHistoryMixin(BaseResource):
         end_date_time: int | None = None,
         page_size: int | None = None,
         page: int | None = None,
-    ) -> OrderHistoryDTO:
+    ) -> list[OrderHistoryDTO]:
         """Queries for an order history."""
         return _ep.get_order_history(
             self._ctx,

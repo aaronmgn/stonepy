@@ -16,9 +16,14 @@ from stonepy._generator.catalog import (
     is_enum_record,
     python_name,
 )
+from stonepy._generator.emit_endpoints import (
+    _PARAM_LOCATION_OVERRIDES,
+    endpoint_spec_name,
+    resolved_path,
+    target_module,
+)
 from stonepy._generator.emit_endpoints import _is_idempotent as _endpoint_is_idempotent
 from stonepy._generator.emit_endpoints import _params as _endpoint_params
-from stonepy._generator.emit_endpoints import endpoint_spec_name, resolved_path, target_module
 from stonepy._generator.emit_models import _cyclic_ref_fields, _lookup_enum_records
 from stonepy._generator.render import BANNER, field_name, format_python, resolved_field_annotation
 
@@ -651,8 +656,11 @@ def _request_model_name(rec: EndpointRecord, catalog: Catalog) -> str | None:
 
 
 def _param_fields(rec: EndpointRecord) -> tuple[tuple[str, str, str], ...]:
-    # Reuse the endpoint generator's parameter resolution so the contract expectation always
-    # matches the emitted ``EndpointSpec.params`` (including params synthesized from URI
-    # templates the catalog's parameter list omits).
-    params = _endpoint_params(rec.parameters, None, path=resolved_path(rec))
+    # Reuse the endpoint generator's parameter resolution (including its location overrides) so the
+    # contract expectation always matches the emitted ``EndpointSpec.params`` (including params
+    # synthesized from URI templates the catalog's parameter list omits).
+    location_overrides = _PARAM_LOCATION_OVERRIDES.get((target_module(rec.target), rec.name), {})
+    params = _endpoint_params(
+        rec.parameters, None, path=resolved_path(rec), location_overrides=location_overrides
+    )
     return tuple((param.name, param.location, param.python_name) for param in params)

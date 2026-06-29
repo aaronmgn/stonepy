@@ -1826,8 +1826,8 @@ ENDPOINT_CASES = [
         "watchlist",
         None,
         (
-            ("ClientAccountId", "body", "client_account_id"),
-            ("WatchlistId", "body", "watchlist_id"),
+            ("ClientAccountId", "query", "client_account_id"),
+            ("WatchlistId", "query", "watchlist_id"),
         ),
         id="DeleteWatchlist v2",
     ),

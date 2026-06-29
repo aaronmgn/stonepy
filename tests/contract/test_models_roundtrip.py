@@ -1724,7 +1724,7 @@ MODEL_CASES = [
     ),
     pytest.param(
         ApiSaveClientPreferenceRequestDTO,
-        {"ClientAccountId": 1, "ClientPreference": []},
+        {"ClientAccountId": 1, "ClientPreference": {"Key": "x", "Value": "x"}},
         id="ApiSaveClientPreferenceRequestDTO",
     ),
     pytest.param(ApiSaveMarketInformationResponseDTO, {}, id="ApiSaveMarketInformationResponseDTO"),
@@ -3088,7 +3088,7 @@ MODEL_CASES = [
     pytest.param(SaveAllocationProfileResponseDTO, {}, id="SaveAllocationProfileResponseDTO"),
     pytest.param(
         SaveClientPreferenceRequestDTO,
-        {"ClientPreference": []},
+        {"ClientPreference": {"Key": "x", "Value": "x"}},
         id="SaveClientPreferenceRequestDTO",
     ),
     pytest.param(
@@ -3098,7 +3098,15 @@ MODEL_CASES = [
     ),
     pytest.param(
         SaveWatchlistRequestDTO,
-        {"ClientAccountId": 1, "Watchlist": []},
+        {
+            "ClientAccountId": 1,
+            "Watchlist": {
+                "DisplayOrder": 1,
+                "Items": [],
+                "WatchlistDescription": "x",
+                "WatchlistId": 1,
+            },
+        },
         id="SaveWatchlistRequestDTO",
     ),
     pytest.param(SaveWatchlistResponseDTO, {"WatchlistId": 1}, id="SaveWatchlistResponseDTO"),
