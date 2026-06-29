@@ -236,6 +236,41 @@ class _RenderedField:
         self.doc = doc
 
 
+# Field-type corrections for catalog data-type errors confirmed against the live API. The frozen
+# catalog mistypes these response fields; each value is the real wire type observed live by the
+# contract suite (optionality is applied separately, so give the base type). Keyed by
+# (catalog type name, property name). See https://github.com/aaronmgn/stonepy/issues/24.
+_FIELD_TYPE_OVERRIDES: dict[tuple[str, str], str] = {
+    # News story ids are Reuters URN strings (e.g. "urn:newsml:reuters.com:..."), not ints.
+    ("NewsHeadlineDTO", "StoryId"): "str",
+    # The news payload is an array of stories, not a single one.
+    ("NewsResponseDTO", "News"): "list[NewsDTO]",
+    # A market carries a list of spreads (by time), not a single spread. Both the full market-info
+    # DTO and the search-result DTO embed the same field.
+    ("ApiMarketInformationDTOv2", "MarketSpreads"): "list[ApiMarketSpreadDTO]",
+    ("MarketSearchResultDTO", "MarketSpreads"): "list[ApiMarketSpreadDTO]",
+    # Market state is a single enum value, not a list.
+    ("MarketPricesDTO", "MarketState"): "MarketState",
+}
+
+
+def resolved_field_annotation(
+    type_name: str, prop: Mapping[str, Any], known_names: set[str]
+) -> str:
+    """Return a field's base annotation, applying confirmed catalog field-type corrections.
+
+    Shared by model rendering and contract-test sample generation so the corrected models and the
+    samples that exercise them agree on the field type.
+    """
+
+    raw_name = prop.get("name")
+    if isinstance(raw_name, str):
+        override = _FIELD_TYPE_OVERRIDES.get((type_name, raw_name))
+        if override is not None:
+            return override
+    return python_type(prop, known_names)
+
+
 def _model_fields(
     rec: TypeRecord,
     known_names: set[str],
@@ -254,7 +289,7 @@ def _model_fields(
             continue
 
         name = _unique_field_name(name, used_names)
-        annotation = python_type(prop, known_names)
+        annotation = resolved_field_annotation(rec.name, prop, known_names)
         optional = (
             all_optional
             or _is_optional_property(prop)

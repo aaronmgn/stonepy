@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class NewsResponseDTO(ResponseModel):
     """The response containing the news story details from the GetNews request."""
 
-    news: NewsDTO | None = Field(default=None, alias="News")
+    news: list[NewsDTO] | None = Field(default=None, alias="News")
     """The details of the news story."""
 
 

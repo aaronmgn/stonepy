@@ -11,7 +11,7 @@ from stonepy._core.models import ResponseModel, StoneXDateTime
 class NewsHeadlineDTO(ResponseModel):
     """A headline for a News story."""
 
-    story_id: int | None = Field(default=None, alias="StoryId")
+    story_id: str | None = Field(default=None, alias="StoryId")
     """The unique identifier for a news story."""
     headline: str | None = Field(default=None, alias="Headline")
     """The news story headline."""

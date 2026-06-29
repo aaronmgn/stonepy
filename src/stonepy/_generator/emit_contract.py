@@ -15,13 +15,12 @@ from stonepy._generator.catalog import (
     TypeRecord,
     is_enum_record,
     python_name,
-    python_type,
 )
 from stonepy._generator.emit_endpoints import _is_idempotent as _endpoint_is_idempotent
 from stonepy._generator.emit_endpoints import _params as _endpoint_params
 from stonepy._generator.emit_endpoints import endpoint_spec_name, resolved_path, target_module
 from stonepy._generator.emit_models import _cyclic_ref_fields, _lookup_enum_records
-from stonepy._generator.render import BANNER, field_name, format_python
+from stonepy._generator.render import BANNER, field_name, format_python, resolved_field_annotation
 
 __all__ = ["emit_contract_tests"]
 
@@ -418,7 +417,7 @@ def _model_payload(
         if _is_optional_property(prop) or raw_name in optional_here:
             continue
 
-        annotation = python_type(prop, known_names)
+        annotation = resolved_field_annotation(rec.name, prop, known_names)
         sample = _sample_value(
             annotation,
             enum_samples=enum_samples,
@@ -450,7 +449,7 @@ def _construct_payload(
         if name is None or _is_optional_property(prop) or raw_name in optional_here:
             continue
 
-        annotation = python_type(prop, known_names)
+        annotation = resolved_field_annotation(rec.name, prop, known_names)
         payload[name] = _construct_sample_value(
             annotation,
             enum_samples=enum_samples,

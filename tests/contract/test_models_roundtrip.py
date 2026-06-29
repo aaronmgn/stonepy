@@ -674,11 +674,7 @@ MODEL_CASES = [
                 "MarketSettingsType": "x",
                 "MarketSettingsTypeId": 1,
                 "MarketSizesCurrencyCode": "x",
-                "MarketSpreads": {
-                    "Spread": Decimal("1.23"),
-                    "SpreadTimeUtc": datetime(2020, 1, 1, tzinfo=UTC),
-                    "SpreadUnits": 1,
-                },
+                "MarketSpreads": [],
                 "MarketTimeZoneOffsetMinutes": 1,
                 "MarketType": "x",
                 "MarketTypeId": 1,
@@ -708,7 +704,7 @@ MODEL_CASES = [
                 "PriceToleranceUnits": Decimal("1.23"),
                 "Prices": {
                     "BidPrice": Decimal("1.23"),
-                    "MarketState": [],
+                    "MarketState": 0,
                     "OfferPrice": Decimal("1.23"),
                 },
                 "QuantityConversionFactor": Decimal("1.23"),
@@ -1423,11 +1419,7 @@ MODEL_CASES = [
             "MarketSettingsType": "x",
             "MarketSettingsTypeId": 1,
             "MarketSizesCurrencyCode": "x",
-            "MarketSpreads": {
-                "Spread": Decimal("1.23"),
-                "SpreadTimeUtc": datetime(2020, 1, 1, tzinfo=UTC),
-                "SpreadUnits": 1,
-            },
+            "MarketSpreads": [],
             "MarketTimeZoneOffsetMinutes": 1,
             "MarketType": "x",
             "MarketTypeId": 1,
@@ -1457,7 +1449,7 @@ MODEL_CASES = [
             "PriceToleranceUnits": Decimal("1.23"),
             "Prices": {
                 "BidPrice": Decimal("1.23"),
-                "MarketState": [],
+                "MarketState": 0,
                 "OfferPrice": Decimal("1.23"),
             },
             "QuantityConversionFactor": Decimal("1.23"),
@@ -2373,11 +2365,7 @@ MODEL_CASES = [
                 "MarketSettingsType": "x",
                 "MarketSettingsTypeId": 1,
                 "MarketSizesCurrencyCode": "x",
-                "MarketSpreads": {
-                    "Spread": Decimal("1.23"),
-                    "SpreadTimeUtc": datetime(2020, 1, 1, tzinfo=UTC),
-                    "SpreadUnits": 1,
-                },
+                "MarketSpreads": [],
                 "MarketTimeZoneOffsetMinutes": 1,
                 "MarketType": "x",
                 "MarketTypeId": 1,
@@ -2407,7 +2395,7 @@ MODEL_CASES = [
                 "PriceToleranceUnits": Decimal("1.23"),
                 "Prices": {
                     "BidPrice": Decimal("1.23"),
-                    "MarketState": [],
+                    "MarketState": 0,
                     "OfferPrice": Decimal("1.23"),
                 },
                 "QuantityConversionFactor": Decimal("1.23"),
@@ -2738,7 +2726,7 @@ MODEL_CASES = [
     ),
     pytest.param(
         MarketPricesDTO,
-        {"BidPrice": Decimal("1.23"), "MarketState": [], "OfferPrice": Decimal("1.23")},
+        {"BidPrice": Decimal("1.23"), "MarketState": 0, "OfferPrice": Decimal("1.23")},
         id="MarketPricesDTO",
     ),
     pytest.param(
@@ -2781,11 +2769,7 @@ MODEL_CASES = [
             "MarketSettingsType": "x",
             "MarketSettingsTypeId": 1,
             "MarketSizesCurrencyCode": "x",
-            "MarketSpreads": {
-                "Spread": Decimal("1.23"),
-                "SpreadTimeUtc": datetime(2020, 1, 1, tzinfo=UTC),
-                "SpreadUnits": 1,
-            },
+            "MarketSpreads": [],
             "MarketTimeZoneOffsetMinutes": 1,
             "MarketType": "x",
             "MarketTypeId": 1,
@@ -2906,13 +2890,11 @@ MODEL_CASES = [
     pytest.param(NewsDetailDTO, {"Story": "x"}, id="NewsDetailDTO"),
     pytest.param(
         NewsHeadlineDTO,
-        {"Headline": "x", "PublishDate": datetime(2020, 1, 1, tzinfo=UTC), "StoryId": 1},
+        {"Headline": "x", "PublishDate": datetime(2020, 1, 1, tzinfo=UTC), "StoryId": "x"},
         id="NewsHeadlineDTO",
     ),
     pytest.param(NewsHeadlinesResponseDTO, {"Headlines": []}, id="NewsHeadlinesResponseDTO"),
-    pytest.param(
-        NewsResponseDTO, {"News": {"Story": "x", "StoryInHtml": "x"}}, id="NewsResponseDTO"
-    ),
+    pytest.param(NewsResponseDTO, {"News": []}, id="NewsResponseDTO"),
     pytest.param(OpenOrderDTO, {"MarketId": 1}, id="OpenOrderDTO"),
     pytest.param(OpenOrdersResponseDTO, {"OpenOrders": []}, id="OpenOrdersResponseDTO"),
     pytest.param(
