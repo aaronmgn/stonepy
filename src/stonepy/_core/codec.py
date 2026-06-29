@@ -43,9 +43,16 @@ def parse_wcf_date(value: Any) -> datetime | None:
         ms = value
     elif isinstance(value, str):
         m = _WCF_RE.fullmatch(value)
-        if not m:
-            raise ValueError(f"not a WCF date: {value!r}")
-        ms = int(m.group(1))
+        if m:
+            ms = int(m.group(1))
+        else:
+            # CIAPI v2 endpoints return ISO 8601 (e.g. "2026-06-29T21:05:00Z") rather than the
+            # v1 WCF "/Date(ms)/" format; accept both so one codec serves both API versions.
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError:
+                raise ValueError(f"not a WCF date: {value!r}") from None
+            return _ensure_timezone_aware(parsed)
     else:
         raise ValueError(f"not a WCF date: {value!r}")
     if ms == WCF_MINVALUE_MS:
