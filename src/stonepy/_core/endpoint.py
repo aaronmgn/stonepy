@@ -56,6 +56,9 @@ class EndpointSpec(Generic[ResponseT]):
         response_model: The Pydantic model the response body is validated against.
         request_model: The Pydantic model for the request body, if any.
         params: The ordered path, query, and body parameter bindings.
+        host_rooted: Whether ``path`` is resolved against the server host root rather than the
+            configured base URL. CIAPI serves its v2 session and account endpoints from
+            ``/v2`` at the host root, not under the ``/TradingAPI`` base.
     """
 
     name: str
@@ -67,3 +70,4 @@ class EndpointSpec(Generic[ResponseT]):
     response_model: type[ResponseT]
     request_model: type | None = None
     params: tuple[Param, ...] = field(default_factory=tuple)
+    host_rooted: bool = False

@@ -225,7 +225,7 @@ def build_request(
     if extra_path_params:
         raise ValueError(f"Unexpected path params: {', '.join(sorted(extra_path_params))}")
 
-    url = base_url.rstrip("/") + path
+    url = _endpoint_root(base_url, spec).rstrip("/") + path
     headers = {"User-Agent": user_agent, **auth_headers}
     params.update(
         {
@@ -239,6 +239,19 @@ def build_request(
         headers["Content-Type"] = "application/json"
         content = codec.dumps(body_dict).encode("utf-8")
     return Request(spec.method, url, headers, params, content)
+
+
+def _endpoint_root(base_url: str, spec: EndpointSpec[Any]) -> str:
+    """Return the URL root for *spec*: the host root for host-rooted specs, else *base_url*.
+
+    CIAPI serves its v2 session and account endpoints from ``/v2`` at the host root rather than
+    under the configured ``/TradingAPI`` base, so a host-rooted spec drops the base path while
+    preserving the scheme and host (including any non-default port).
+    """
+    if not spec.host_rooted:
+        return base_url
+    parsed = urlsplit(base_url)
+    return urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
 
 
 def _assert_supported_param_locations(spec: EndpointSpec[Any]) -> None:

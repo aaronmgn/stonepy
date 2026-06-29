@@ -33,8 +33,10 @@ This matters for testing in two ways:
   any `stonepy` internals.
 - `respx` matches on the **full absolute URL**. The URL `stonepy` sends is your
   `base_url` joined with each endpoint's path (for example
-  `https://ciapi.cityindex.com/TradingAPI` + `/session/v2/Session`). Register your
-  mock routes against that full URL.
+  `https://ciapi.cityindex.com/TradingAPI` + `/order/openpositions`). A few v2
+  endpoints (such as `log_on`) are served from the host root instead, so their
+  URL drops the base path (`https://ciapi.cityindex.com` + `/v2/session`).
+  Register your mock routes against that full URL.
 
 !!! tip
     Pick a `base_url` in your tests and reuse it for every mocked route. Any
@@ -60,7 +62,8 @@ DTOs. Save it as `test_stonepy_mock.py` and run it with `pytest`.
 
 A few things to know before reading it:
 
-- `log_on` issues a `POST` to `{base_url}/session/v2/Session` and returns an
+- `log_on` issues a `POST` to `{host}/v2/session` (the host root, not under the
+  `base_url` path) and returns an
   `ApiLogOnResponseDTOv2`. On success `stonepy` stores the returned session token
   and automatically attaches it as a `Session` header on every later request, so
   your data-call assertions can check for it.
@@ -110,7 +113,7 @@ MARKET_BODY = {
 
 @respx.mock
 def test_sync_flow() -> None:
-    logon_route = respx.post(f"{BASE_URL}/session/v2/Session").mock(
+    logon_route = respx.post("https://ciapi.cityindex.com/v2/session").mock(
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
     market_route = respx.get(
@@ -155,7 +158,7 @@ with `asyncio.run` (the `stonepy` suite uses this style; if you prefer, install
 ```python
 @respx.mock
 def test_async_flow() -> None:
-    respx.post(f"{BASE_URL}/session/v2/Session").mock(
+    respx.post("https://ciapi.cityindex.com/v2/session").mock(
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
     market_route = respx.get(
@@ -229,7 +232,7 @@ BASE_URL = "https://ciapi.cityindex.com/TradingAPI"
 
 @respx.mock
 def test_logon_failure_raises() -> None:
-    respx.post(f"{BASE_URL}/session/v2/Session").mock(
+    respx.post("https://ciapi.cityindex.com/v2/session").mock(
         return_value=httpx.Response(
             401,
             json={"ErrorCode": 4011, "ErrorMessage": "bad credentials", "HttpStatus": 401},

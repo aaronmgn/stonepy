@@ -1556,7 +1556,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_session.LOG_ON_SPEC,
         "POST",
-        "/session/v2/Session",
+        "/v2/session",
         True,
         False,
         "NONE",

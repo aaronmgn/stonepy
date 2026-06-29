@@ -42,7 +42,9 @@ def test_list_active_orders_spec_matches_docs_and_is_retry_safe() -> None:
 
 def test_log_on_spec_matches_docs_and_skips_session_auth() -> None:
     assert LOG_ON_SPEC.method == "POST"
-    assert LOG_ON_SPEC.path == "/session/v2/Session"
+    # CIAPI serves logon from the host root (/v2/session), not under the /TradingAPI base.
+    assert LOG_ON_SPEC.path == "/v2/session"
+    assert LOG_ON_SPEC.host_rooted is True
     assert LOG_ON_SPEC.auth_policy is AuthPolicy.NONE
     assert LOG_ON_SPEC.idempotent is False
     assert LOG_ON_SPEC.request_model is ApiLogOnRequestDTO

@@ -54,6 +54,59 @@ def _catalog_spec(path: str) -> EndpointSpec[_Resp]:
     )
 
 
+def _host_rooted_spec() -> EndpointSpec[_Resp]:
+    return EndpointSpec(
+        name="LogOn v2",
+        method="POST",
+        path="/v2/session",
+        idempotent=False,
+        auth_policy=AuthPolicy.NONE,
+        rate_limit_bucket="session",
+        response_model=_Resp,
+        host_rooted=True,
+        params=(),
+    )
+
+
+def test_build_request_host_rooted_drops_base_path() -> None:
+    req = build_request(
+        "https://ciapi.cityindex.com/TradingAPI",
+        _host_rooted_spec(),
+        path_params={},
+        query={},
+        body_dict=None,
+        auth_headers={},
+        user_agent="stonepy/0.1",
+    )
+    assert req.url == "https://ciapi.cityindex.com/v2/session"
+
+
+def test_build_request_host_rooted_preserves_scheme_host_and_port() -> None:
+    req = build_request(
+        "https://ciapipreprod.cityindextest9.co.uk:8443/TradingApi/",
+        _host_rooted_spec(),
+        path_params={},
+        query={},
+        body_dict=None,
+        auth_headers={},
+        user_agent="stonepy/0.1",
+    )
+    assert req.url == "https://ciapipreprod.cityindextest9.co.uk:8443/v2/session"
+
+
+def test_build_request_base_rooted_keeps_base_path() -> None:
+    req = build_request(
+        "https://ciapi.cityindex.com/TradingAPI",
+        _catalog_spec("/margin/ClientAccountMargin"),
+        path_params={},
+        query={},
+        body_dict=None,
+        auth_headers={},
+        user_agent="stonepy/0.1",
+    )
+    assert req.url == "https://ciapi.cityindex.com/TradingAPI/margin/ClientAccountMargin"
+
+
 def test_build_request_path_and_json_body_with_decimal_number() -> None:
     spec = _order_spec()
     req = build_request(

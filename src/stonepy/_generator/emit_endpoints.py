@@ -12,7 +12,14 @@ from typing import Any
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
-__all__ = ["emit_all", "endpoint_spec_name", "render_binding", "resolved_path", "target_module"]
+__all__ = [
+    "emit_all",
+    "endpoint_spec_name",
+    "is_host_rooted",
+    "render_binding",
+    "resolved_path",
+    "target_module",
+]
 
 _VERSION_SUFFIX_RE = re.compile(r"\s+v\d+\s*$", re.IGNORECASE)
 _DEFAULT_VALUE_RE = re.compile(r"\bdefault\s+([^\s,;]+)", re.IGNORECASE)
@@ -62,7 +69,20 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
         "order",
         "GetActiveStopLimitOrder v2",
     ): "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+    # CIAPI serves logon from the host root at "/v2/session" (see _HOST_ROOTED_ENDPOINTS), not the
+    # catalog's best-effort "/session/v2/Session", which doubles the target segment and 401s.
+    # Confirmed against the reference pygcapi client (BASE_URL_V2 = "https://host/v2").
+    ("session", "LogOn v2"): "/v2/session",
 }
+
+# CIAPI serves a few v2 endpoints from the host root ("https://host/v2/...") rather than under the
+# configured "/TradingAPI" base; their path is resolved against the host root (see
+# transport.build_request). Keyed by (target_module, endpoint name).
+_HOST_ROOTED_ENDPOINTS: frozenset[tuple[str, str]] = frozenset(
+    {
+        ("session", "LogOn v2"),
+    }
+)
 
 
 def endpoint_summary(rec: EndpointRecord) -> str:
@@ -86,6 +106,12 @@ def resolved_path(rec: EndpointRecord) -> str:
     return _PATH_OVERRIDES.get(
         (target_module(rec.target), rec.name), rec.path or rec.uri_template or ""
     )
+
+
+def is_host_rooted(rec: EndpointRecord) -> bool:
+    """Return whether *rec* is served from the host root rather than the configured base URL."""
+
+    return (target_module(rec.target), rec.name) in _HOST_ROOTED_ENDPOINTS
 
 
 def target_module(name: str | None) -> str:
@@ -181,6 +207,7 @@ class _Binding:
         spec_name: str,
         method: str,
         path: str,
+        host_rooted: bool,
         rate_limit_bucket: str,
         auth_policy: str,
         idempotent: bool,
@@ -200,6 +227,7 @@ class _Binding:
         self.spec_name = spec_name
         self.method = method
         self.path = path
+        self.host_rooted = host_rooted
         self.rate_limit_bucket = rate_limit_bucket
         self.auth_policy = auth_policy
         self.idempotent = idempotent
@@ -263,6 +291,7 @@ def _binding(
         spec_name=endpoint_spec_name(rec),
         method=method,
         path=path,
+        host_rooted=is_host_rooted(rec),
         rate_limit_bucket=target_module(rec.target),
         auth_policy=_auth_policy(rec),
         idempotent=_is_idempotent(rec, method),
@@ -370,6 +399,10 @@ def _binding_lines(binding: _Binding) -> list[str]:
         f"    name={_string_literal(binding.rec.name)},\n",
         f"    method={_string_literal(binding.method)},\n",
         f"    path={_string_literal(binding.path)},\n",
+    ]
+    if binding.host_rooted:
+        lines.append("    host_rooted=True,\n")
+    lines += [
         f"    idempotent={binding.idempotent},\n",
         f"    auth_policy=AuthPolicy.{binding.auth_policy},\n",
         f"    rate_limit_bucket={_string_literal(binding.rate_limit_bucket)},\n",

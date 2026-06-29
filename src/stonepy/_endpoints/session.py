@@ -76,7 +76,8 @@ async def adelete_session(ctx: CallContext, user_name: str, session: str) -> Api
 LOG_ON_SPEC: EndpointSpec[ApiLogOnResponseDTOv2] = EndpointSpec(
     name="LogOn v2",
     method="POST",
-    path="/session/v2/Session",
+    path="/v2/session",
+    host_rooted=True,
     idempotent=False,
     auth_policy=AuthPolicy.NONE,
     rate_limit_bucket="session",
