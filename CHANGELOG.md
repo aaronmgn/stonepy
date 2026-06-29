@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-06-28
+
 ### Added
 
 - A live contract-test suite (`tests/live/`) that exercises the generated client against the real
@@ -195,7 +197,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.3
 [0.2.2]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.2
 [0.2.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.1
 [0.2.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.0
