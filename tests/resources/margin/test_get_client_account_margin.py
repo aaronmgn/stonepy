@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"Cash":"1.23","Margin":"1.23","MarginIndicator":"1.23","NetEq
 
 @respx.mock
 def test_get_client_account_margin_returns_response() -> None:
-    route = respx.get("https://api.example/margin/v2/margin/clientAccountMargin").mock(
+    route = respx.get("https://api.example/margin/ClientAccountMargin").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_get_client_account_margin_returns_response() -> None:
         assert isinstance(resp, ClientAccountMarginResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/margin/v2/margin/clientAccountMargin"
+        assert route.calls[0].request.url.path == "/margin/ClientAccountMargin"
     finally:
         client.close()
 
@@ -33,7 +33,7 @@ def test_get_client_account_margin_returns_response() -> None:
 @respx.mock
 def test_get_client_account_margin_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/margin/v2/margin/clientAccountMargin").mock(
+        route = respx.get("https://api.example/margin/ClientAccountMargin").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

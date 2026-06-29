@@ -290,7 +290,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_margin.GET_CLIENT_ACCOUNT_MARGIN_SPEC,
         "GET",
-        "/margin/v2/margin/clientAccountMargin?clientAccountId={clientAccountId}",
+        "/margin/ClientAccountMargin",
         True,
         True,
         "SESSION",

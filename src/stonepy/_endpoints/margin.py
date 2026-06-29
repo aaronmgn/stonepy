@@ -10,7 +10,7 @@ from stonepy.models import ApiManagedClientAccountsMarginResponseDTO, ClientAcco
 GET_CLIENT_ACCOUNT_MARGIN_SPEC: EndpointSpec[ClientAccountMarginResponseDTO] = EndpointSpec(
     name="GetClientAccountMargin v2",
     method="GET",
-    path="/margin/v2/margin/clientAccountMargin?clientAccountId={clientAccountId}",
+    path="/margin/ClientAccountMargin",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="margin",
