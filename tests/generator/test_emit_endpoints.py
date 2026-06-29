@@ -680,3 +680,20 @@ def test_default_endpoint_is_not_host_rooted() -> None:
 
     assert is_host_rooted(rec) is False
     assert "host_rooted" not in render_binding(rec, known_model_names={"OrderResponseDTO"})
+
+
+def test_client_and_trading_account_path_override_is_host_rooted() -> None:
+    rec = _endpoint(
+        name="GetClientAndTradingAccount v2",
+        logical_name="GetClientAndTradingAccount",
+        method="GET",
+        target="userAccount",
+        path="/userAccount/v2/userAccount/ClientAndTradingAccount",
+        response_type="AccountInformationResponseDTOv2",
+    )
+
+    assert resolved_path(rec) == "/v2/UserAccount/ClientAndTradingAccount"
+    assert is_host_rooted(rec) is True
+    assert "host_rooted=True" in render_binding(
+        rec, known_model_names={"AccountInformationResponseDTOv2"}
+    )

@@ -1660,7 +1660,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_user_account.GET_CLIENT_AND_TRADING_ACCOUNT_SPEC,
         "GET",
-        "/userAccount/v2/userAccount/ClientAndTradingAccount",
+        "/v2/UserAccount/ClientAndTradingAccount",
         True,
         True,
         "SESSION",
