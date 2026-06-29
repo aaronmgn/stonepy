@@ -9023,6 +9023,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -9038,7 +9055,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9099,7 +9116,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9149,7 +9166,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9313,6 +9330,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Unreleased">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fixed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fixed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -9328,7 +9362,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#fixed" class="md-nav__link">
+  <a href="#fixed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9389,7 +9423,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_1" class="md-nav__link">
+  <a href="#fixed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9439,7 +9473,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#fixed_2" class="md-nav__link">
+  <a href="#fixed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Fixed
@@ -9585,8 +9619,33 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.2.1...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
-<h2 id="021-2026-06-28"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.2.1">0.2.1</a> - 2026-06-28<a class="headerlink" href="#021-2026-06-28" title="Permanent link">&para;</a></h2>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Correct the request path for the v2 endpoints across the <code>market</code>, <code>message</code>,
+  <code>client_preference</code>, <code>order</code>, <code>preference</code>, <code>watchlist</code>, <code>session</code>, <code>price_alert</code>, and
+  <code>user_account</code> resource groups. The frozen catalog composed each path as <code>/{target}{uri_template}</code>,
+  doubling the resource segment the v2 <code>uri_template</code> already carries (for example
+  <code>/market/v2/market/...</code>), so every one returned <code>404</code>. The generator now emits the documented
+  <code>/v2/...</code> template for v2 endpoints, served under the existing <code>/TradingAPI</code> base. Routes were
+  verified against the live CIAPI demo
+  (<a href="https://github.com/aaronmgn/stonepy/issues/15">#15</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/16">#16</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/17">#17</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/18">#18</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/19">#19</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/20">#20</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/21">#21</a>).</li>
+<li>Correct three v2 order/preference routes whose upstream <code>uri_template</code> is itself wrong:
+  <code>order.get_active_stop_limit_order</code> now calls the v1-style
+  <code>/order/{orderId}/activeStopLimitOrder</code> (the 0.2.0 <code>/order/v2/...</code> override also 404s),
+  <code>order.get_open_position</code> calls <code>/v2/order/{orderId}/openPosition</code>, <code>order.save_order</code> posts to
+  <code>/v2/order</code>, and <code>user_preference.get_user_preference</code> calls the singular <code>/v2/Preference</code>
+  (the catalog pluralised it to <code>/v2/Preferences</code>)
+  (<a href="https://github.com/aaronmgn/stonepy/issues/18">#18</a>,
+  <a href="https://github.com/aaronmgn/stonepy/issues/19">#19</a>).</li>
+</ul>
+<h2 id="021-2026-06-28"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.2.1">0.2.1</a> - 2026-06-28<a class="headerlink" href="#021-2026-06-28" title="Permanent link">&para;</a></h2>
+<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>session.log_on</code> now calls the host-root <code>/v2/session</code> endpoint that CIAPI actually serves,
   instead of the unreachable <code>/session/v2/Session</code> that returned <code>401</code> against the documented
@@ -9644,7 +9703,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>ApiSaveWatchlistRequestDTO</code> became <code>…v2</code>), and <code>get_order</code>, <code>get_open_position</code>, and
   <code>get_active_stop_limit_order</code> now take the v2 <code>client_account_id</code> parameter.</li>
 </ul>
-<h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Generator robustness against the larger catalog: alias the lowercase <code>bool</code> type to the
   catalog's <code>boolean</code>, omit the unused <code>Param</code> import from parameter-free endpoint modules,
@@ -9674,7 +9733,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>mkdocstrings now renders inherited members, so the resource-group reference pages list their
   methods.</li>
 </ul>
-<h3 id="fixed_2">Fixed<a class="headerlink" href="#fixed_2" title="Permanent link">&para;</a></h3>
+<h3 id="fixed_3">Fixed<a class="headerlink" href="#fixed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Corrected the <code>list_market_search_paginated</code> call in the quickstart, and made the README and
   error-handling examples self-contained and runnable.</li>
