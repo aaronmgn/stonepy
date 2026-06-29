@@ -9320,7 +9320,7 @@ If zero or more than one filter is used simultaneously, then an exception is thr
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.source" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">source</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;Source&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">source</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;Source&#39;</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9346,7 +9346,7 @@ source. Valid options are: dj | mni | ci .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.category" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">category</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;Category&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">category</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s2">&quot;Category&quot;</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9372,7 +9372,9 @@ used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.market_id" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">market_id</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;MarketId&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">market_id</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s2">&quot;MarketId&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9397,7 +9399,9 @@ used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.market_name" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">market_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;MarketName&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">market_name</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s2">&quot;MarketName&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9422,7 +9426,7 @@ used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.ric_code" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ric_code</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;RicCode&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">ric_code</span><span class="p">:</span> <span class="n"><span title="str">str</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;RicCode&#39;</span><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9447,7 +9451,9 @@ used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.max_results" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">max_results</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;MaxResults&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">max_results</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s2">&quot;MaxResults&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
@@ -9472,7 +9478,9 @@ used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .</p>
   </span>
 
 <a href="#stonepy.models.ListNewsHeadlinesRequestDTO.ListNewsHeadlinesRequestDTO.culture_id" class="headerlink" title="Permanent link">&para;</a></h3>
-<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">culture_id</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span><span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s1">&#39;CultureId&#39;</span><span class="p">)</span>
+<div class="doc-signature highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">culture_id</span><span class="p">:</span> <span class="n"><span title="int">int</span></span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="n"><span title="pydantic.Field">Field</span></span><span class="p">(</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n"><span title="pydantic.Field(default)">default</span></span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n"><span title="pydantic.Field(alias)">alias</span></span><span class="o">=</span><span class="s2">&quot;CultureId&quot;</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="p">)</span>
 </code></pre></div>
 
     <div class="doc doc-contents ">
