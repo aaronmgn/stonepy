@@ -57,7 +57,7 @@ with StoneXClient(config) as client:
 | --- | --- | --- | --- |
 | `verify_tls` | `bool` | `True` | Whether to verify TLS certificates. |
 | `proxy` | `str \| None` | `None` | Optional proxy URL routed through for all requests. |
-| `user_agent` | `str` | `"stonepy/<version>"` | User-Agent header. Defaults to `stonepy/` plus the installed package version (falling back to `0.2.4` if the version cannot be resolved). |
+| `user_agent` | `str` | `"stonepy/<version>"` | User-Agent header. Defaults to `stonepy/` plus the installed package version (falling back to `0.2.5` if the version cannot be resolved). |
 
 !!! warning
     Setting `verify_tls=False` disables certificate verification and exposes the connection to interception. Only use it against trusted, isolated test endpoints.
