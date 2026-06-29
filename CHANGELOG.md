@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `news.get_market_report_headlines`, `market.get_market_information`, and
   `market.list_market_information_search`
   ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
+- `user_account.get_client_and_trading_account()` now returns the populated account data. The
+  endpoint returns the `AccountResult` fields flat at the top level, but the declared response
+  model wrapped them under an `account_result` key, so the typed client always parsed an all-`None`
+  result. The method now returns `AccountResult` directly (a return-type change)
+  ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
 
 ## [0.2.2] - 2026-06-28
 

@@ -32,6 +32,11 @@ def _ok(result: Any) -> bool:
 # (id, call, check)
 READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
     (
+        "user_account.get_client_and_trading_account",
+        lambda c, i: c.user_account.get_client_and_trading_account(),
+        _has_data,
+    ),
+    (
         "market.get_market_information",
         lambda c, i: c.market.get_market_information(
             market_id=str(i["mid"]), client_account_id=i["cid"]
