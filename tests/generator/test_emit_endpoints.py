@@ -697,3 +697,20 @@ def test_client_and_trading_account_path_override_is_host_rooted() -> None:
     assert "host_rooted=True" in render_binding(
         rec, known_model_names={"AccountInformationResponseDTOv2"}
     )
+
+
+def test_client_account_margin_uses_v1_path_and_stays_base_rooted() -> None:
+    rec = _endpoint(
+        name="GetClientAccountMargin v2",
+        logical_name="GetClientAccountMargin",
+        method="GET",
+        target="margin",
+        path="/margin/v2/margin/clientAccountMargin?clientAccountId={clientAccountId}",
+        response_type="ClientAccountMarginResponseDTO",
+    )
+
+    assert resolved_path(rec) == "/margin/ClientAccountMargin"
+    assert is_host_rooted(rec) is False
+    assert "host_rooted" not in render_binding(
+        rec, known_model_names={"ClientAccountMarginResponseDTO"}
+    )

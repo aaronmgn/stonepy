@@ -75,6 +75,10 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
     # "https://host/v2"): logon at "/v2/session", account at "/v2/UserAccount/...".
     ("session", "LogOn v2"): "/v2/session",
     ("user_account", "GetClientAndTradingAccount v2"): "/v2/UserAccount/ClientAndTradingAccount",
+    # CIAPI never shipped a working v2 margin route; account margin is served by the v1 endpoint
+    # "/margin/ClientAccountMargin" under the /TradingAPI base (the catalog's doubled
+    # "/margin/v2/margin/..." path 404s). Stays base-rooted, so no _HOST_ROOTED_ENDPOINTS entry.
+    ("margin", "GetClientAccountMargin v2"): "/margin/ClientAccountMargin",
 }
 
 # CIAPI serves a few v2 endpoints from the host root ("https://host/v2/...") rather than under the
