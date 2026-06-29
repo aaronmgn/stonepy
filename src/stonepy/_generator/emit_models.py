@@ -22,6 +22,21 @@ __all__ = ["emit_all", "render_enum", "render_model"]
 # "OrderActionTypeId", "Currency ID") — but not a plain word that merely ends in "id" ("Valid").
 _ID_COLUMN_RE = re.compile(r"(?:[a-z]|\s|^)(?:Id|ID)$")
 
+# Request models whose fields the catalog marks required, but the endpoint documents as a choice of
+# filters (supply exactly one). Forcing them optional makes the request constructible. Keyed by
+# model name -> the wire field names to default to None.
+_FORCE_OPTIONAL_FIELDS: dict[str, set[str]] = {
+    "ListNewsHeadlinesRequestDTO": {
+        "Source",
+        "Category",
+        "MarketId",
+        "MarketName",
+        "RicCode",
+        "MaxResults",
+        "CultureId",
+    },
+}
+
 
 def emit_all(catalog: Catalog, out_dir: Path) -> None:
     """Write generated model modules under *out_dir*/models."""
@@ -41,13 +56,16 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
     for rec in catalog.datatypes:
         if is_enum_record(rec):
             continue
+        force_optional = cyclic_fields.get(rec.name, set()) | _FORCE_OPTIONAL_FIELDS.get(
+            rec.name, set()
+        )
         (models_dir / f"{rec.name}.py").write_text(
             render_model(
                 rec,
                 known_names,
                 request_types=request_types,
                 enum_names=enum_names,
-                force_optional=cyclic_fields.get(rec.name),
+                force_optional=force_optional or None,
             ),
             encoding="utf-8",
         )

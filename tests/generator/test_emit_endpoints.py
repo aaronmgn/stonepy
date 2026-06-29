@@ -491,29 +491,31 @@ def test_path_template_placeholder_overrides_catalog_query_location() -> None:
 
 
 def test_emit_all_imports_known_model_query_parameter_annotations(tmp_path: Path) -> None:
+    # Synthetic endpoint name (not a real overridden endpoint like ListActiveOrders, which the
+    # generator forces to a body param): this exercises the generic known-model query-param path.
     catalog = Catalog(
         endpoints=[
             _endpoint(
-                name="ListActiveOrders",
-                logical_name="ListActiveOrders",
+                name="ListGizmos",
+                logical_name="ListGizmos",
                 method="POST",
-                target="order",
-                path="/order/activeorders",
+                target="gizmo",
+                path="/gizmo/list",
                 parameters=[
                     {
                         "name": "requestDTO",
-                        "type": "ListActiveOrdersRequestDTO",
-                        "ref": "ListActiveOrdersRequestDTO",
+                        "type": "ListGizmosRequestDTO",
+                        "ref": "ListGizmosRequestDTO",
                         "in": "query",
                     }
                 ],
                 request_type=None,
-                response_type="ListActiveOrdersResponseDTO",
+                response_type="ListGizmosResponseDTO",
             )
         ],
         datatypes=[
-            _datatype("ListActiveOrdersRequestDTO"),
-            _datatype("ListActiveOrdersResponseDTO"),
+            _datatype("ListGizmosRequestDTO"),
+            _datatype("ListGizmosResponseDTO"),
         ],
         lookups={},
         unresolved=set(),
@@ -521,22 +523,16 @@ def test_emit_all_imports_known_model_query_parameter_annotations(tmp_path: Path
 
     emit_all(catalog, tmp_path)
 
-    rendered = (tmp_path / "_endpoints" / "order.py").read_text(encoding="utf-8")
+    rendered = (tmp_path / "_endpoints" / "gizmo.py").read_text(encoding="utf-8")
     assert "from typing import cast" not in rendered
-    assert (
-        "from stonepy.models import ListActiveOrdersRequestDTO, ListActiveOrdersResponseDTO"
-        in rendered
-    )
-    assert "request_dto: ListActiveOrdersRequestDTO" in rendered
-    assert "request_model=ListActiveOrdersRequestDTO" in rendered
+    assert "from stonepy.models import ListGizmosRequestDTO, ListGizmosResponseDTO" in rendered
+    assert "request_dto: ListGizmosRequestDTO" in rendered
+    assert "request_model=ListGizmosRequestDTO" in rendered
     assert "return cast(" not in rendered
-    assert (
-        "LIST_ACTIVE_ORDERS_SPEC: EndpointSpec[ListActiveOrdersResponseDTO] = EndpointSpec("
-        in rendered
-    )
+    assert "LIST_GIZMOS_SPEC: EndpointSpec[ListGizmosResponseDTO] = EndpointSpec(" in rendered
     assert (
         "return ctx.invoke(\n"
-        "        LIST_ACTIVE_ORDERS_SPEC,\n"
+        "        LIST_GIZMOS_SPEC,\n"
         "        query=request_dto.model_dump("
         'by_alias=True, exclude_unset=True, mode="python"),\n'
         "    )" in rendered

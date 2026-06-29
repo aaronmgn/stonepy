@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- POST endpoints whose request DTO was mislabeled as a query parameter now send it as the JSON
+  body. As shipped they serialized the DTO into the query string with no body and the API rejected
+  them (HTTP 415 / 400 "content-type not supported"). Affects `order.list_active_orders`,
+  `news.list_news_headlines`, and `client_preference.save_client_preference_overridden_settings`
+  ([#33](https://github.com/aaronmgn/stonepy/issues/33)).
+- `preference.delete_user_preference` now sends its `Preferences` argument as a query parameter
+  (the live API rejects the body form), matching the earlier `watchlist.delete_watchlist` fix
+  ([#33](https://github.com/aaronmgn/stonepy/issues/33)).
+- `price_alert.delete_pa` now returns `bool`. The endpoint returns a bare scalar (`true`) but was
+  typed as `ResponseModel`, so it raised a response-parse error even though the delete succeeded
+  ([#33](https://github.com/aaronmgn/stonepy/issues/33)).
+- `ListNewsHeadlinesRequestDTO` filter fields are now optional, so the request can be constructed
+  with a single filter as the endpoint documents (previously all fields were required, making it
+  impossible to build) ([#33](https://github.com/aaronmgn/stonepy/issues/33)).
+
 ## [0.2.5] - 2026-06-29
 
 ### Added

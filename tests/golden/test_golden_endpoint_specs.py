@@ -43,7 +43,7 @@ def test_list_active_orders_spec_matches_docs_and_is_retry_safe() -> None:
     assert LIST_ACTIVE_ORDERS_SPEC.request_model is ListActiveOrdersRequestDTO
     assert LIST_ACTIVE_ORDERS_SPEC.response_model is ListActiveOrdersResponseDTO
     assert [(p.name, p.location, p.python_name) for p in LIST_ACTIVE_ORDERS_SPEC.params] == [
-        ("requestDTO", "query", "request_dto")
+        ("requestDTO", "body", "request_dto")
     ]
 
 

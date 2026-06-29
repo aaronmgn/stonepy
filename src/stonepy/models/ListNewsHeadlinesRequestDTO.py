@@ -21,25 +21,25 @@ class ListNewsHeadlinesRequestDTO(RequestModel):
     400 status error code is returned.
     """
 
-    source: str = Field(alias="Source")
+    source: str | None = Field(default=None, alias="Source")
     """
     The source for the news stories. Leave blank to use the default news provider as the
     source. Valid options are: dj | mni | ci .
     """
-    category: str = Field(alias="Category")
+    category: str | None = Field(default=None, alias="Category")
     """
     A news category that can be used to filter the news. Valid categories depend on the source
     used: for dj : uk | aus , for ci : SEMINARSCHINA , for mni : ALL .
     """
-    market_id: int = Field(alias="MarketId")
+    market_id: int | None = Field(default=None, alias="MarketId")
     """A market ID that can be used to filter the news."""
-    market_name: str = Field(alias="MarketName")
+    market_name: str | None = Field(default=None, alias="MarketName")
     """A market name that can be used to filter the news."""
-    ric_code: str = Field(alias="RicCode")
+    ric_code: str | None = Field(default=None, alias="RicCode")
     """A Reuters Instrument Code (RIC) that can be used to filter the news."""
-    max_results: int = Field(alias="MaxResults")
+    max_results: int | None = Field(default=None, alias="MaxResults")
     """The maximum number of responses to return. Leave blank to return the top 25 results."""
-    culture_id: int = Field(alias="CultureId")
+    culture_id: int | None = Field(default=None, alias="CultureId")
     """
     The Culture ID used to filter results. Leave blank to use the culture of the requesting
     user.

@@ -222,7 +222,7 @@ LIST_NEWS_HEADLINES_SPEC: EndpointSpec[ListNewsHeadlinesResponseDTO] = EndpointS
     rate_limit_bucket="news",
     response_model=ListNewsHeadlinesResponseDTO,
     request_model=ListNewsHeadlinesRequestDTO,
-    params=(Param(name="request", location="query", python_name="request"),),
+    params=(Param(name="request", location="body", python_name="request"),),
 )
 
 
@@ -233,10 +233,7 @@ def list_news_headlines(
     Get a list of current news headlines matching the request parameters. The list of news
     headlines can be filtered by various criteria such as market, or geographic region.
     """
-    return ctx.invoke(
-        LIST_NEWS_HEADLINES_SPEC,
-        query=request.model_dump(by_alias=True, exclude_unset=True, mode="python"),
-    )
+    return ctx.invoke(LIST_NEWS_HEADLINES_SPEC, body=request)
 
 
 async def alist_news_headlines(
@@ -246,10 +243,7 @@ async def alist_news_headlines(
     Get a list of current news headlines matching the request parameters. The list of news
     headlines can be filtered by various criteria such as market, or geographic region.
     """
-    return await ctx.ainvoke(
-        LIST_NEWS_HEADLINES_SPEC,
-        query=request.model_dump(by_alias=True, exclude_unset=True, mode="python"),
-    )
+    return await ctx.ainvoke(LIST_NEWS_HEADLINES_SPEC, body=request)
 
 
 LIST_NEWS_HEADLINES_WITH_SOURCE_SPEC: EndpointSpec[ListNewsHeadlinesResponseDTO] = EndpointSpec(

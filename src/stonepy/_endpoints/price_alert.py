@@ -4,18 +4,18 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import ResponseModel, ScalarResponse
 from stonepy._core.pipeline import CallContext
 from stonepy.models import PriceAlertResponseDTO, SaveAlertRequestDTOv2, SaveAlertResponseDTOv2
 
-DELETE_PA_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+DELETE_PA_SPEC: EndpointSpec[ScalarResponse[bool]] = EndpointSpec(
     name="DeletePA",
     method="POST",
     path="/pricealert/delete/{alertId}",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="price_alert",
-    response_model=ResponseModel,
+    response_model=ScalarResponse[bool],
     params=(
         Param(name="alertId", location="path", python_name="alert_id"),
         Param(name="ClientAccountId", location="body", python_name="client_account_id"),
@@ -23,22 +23,26 @@ DELETE_PA_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
 )
 
 
-def delete_pa(ctx: CallContext, alert_id: int, client_account_id: int) -> ResponseModel:
+def delete_pa(ctx: CallContext, alert_id: int, client_account_id: int) -> bool:
     """Remove the specified price alert from the client account."""
-    return ctx.invoke(
-        DELETE_PA_SPEC,
-        path_params={"alertId": alert_id},
-        body={"ClientAccountId": client_account_id},
-    )
+    return (
+        ctx.invoke(
+            DELETE_PA_SPEC,
+            path_params={"alertId": alert_id},
+            body={"ClientAccountId": client_account_id},
+        )
+    ).root
 
 
-async def adelete_pa(ctx: CallContext, alert_id: int, client_account_id: int) -> ResponseModel:
+async def adelete_pa(ctx: CallContext, alert_id: int, client_account_id: int) -> bool:
     """Remove the specified price alert from the client account."""
-    return await ctx.ainvoke(
-        DELETE_PA_SPEC,
-        path_params={"alertId": alert_id},
-        body={"ClientAccountId": client_account_id},
-    )
+    return (
+        await ctx.ainvoke(
+            DELETE_PA_SPEC,
+            path_params={"alertId": alert_id},
+            body={"ClientAccountId": client_account_id},
+        )
+    ).root
 
 
 GET_PA_SPEC: EndpointSpec[PriceAlertResponseDTO] = EndpointSpec(
