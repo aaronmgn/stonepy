@@ -9721,6 +9721,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>news.get_market_report_headlines</code>, <code>market.get_market_information</code>, and
   <code>market.list_market_information_search</code>
   (<a href="https://github.com/aaronmgn/stonepy/issues/24">#24</a>).</li>
+<li><code>user_account.get_client_and_trading_account()</code> now returns the populated account data. The
+  endpoint returns the <code>AccountResult</code> fields flat at the top level, but the declared response
+  model wrapped them under an <code>account_result</code> key, so the typed client always parsed an all-<code>None</code>
+  result. The method now returns <code>AccountResult</code> directly (a return-type change)
+  (<a href="https://github.com/aaronmgn/stonepy/issues/24">#24</a>).</li>
 </ul>
 <h2 id="022-2026-06-28"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.2.2">0.2.2</a> - 2026-06-28<a class="headerlink" href="#022-2026-06-28" title="Permanent link">&para;</a></h2>
 <h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
