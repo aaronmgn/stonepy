@@ -5,13 +5,13 @@ from __future__ import annotations
 
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import user_account as _ep
-from stonepy.models import AccountInformationResponseDTOv2
+from stonepy.models import AccountResult
 
 
 class _GetClientAndTradingAccountMixin(BaseResource):
     def get_client_and_trading_account(
         self,
-    ) -> AccountInformationResponseDTOv2:
+    ) -> AccountResult:
         """
         Returns the User's ClientAccountId and a list of their TradingAccounts. There are
         no parameters for this call.

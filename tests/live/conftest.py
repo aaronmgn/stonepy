@@ -13,15 +13,12 @@ from __future__ import annotations
 
 import os
 from collections.abc import Iterator
-from urllib.parse import urlsplit
 
-import httpx
 import pytest
 
 from stonepy import ClientConfig, StoneXClient
 
 _REQUIRED = ("STONEX_USERNAME", "STONEX_PASSWORD", "STONEX_APP_KEY")
-_DEFAULT_BASE = "https://ciapi.cityindex.com/TradingAPI"
 
 
 def _creds_present() -> bool:
@@ -48,44 +45,35 @@ def client() -> Iterator[StoneXClient]:
 
 
 @pytest.fixture(scope="session")
-def ids() -> dict[str, int]:
-    """Bootstrap the account/market identifiers the live tests need.
+def ids(client: StoneXClient) -> dict[str, int]:
+    """Bootstrap the account/market identifiers the live tests need, via the typed client.
 
-    Fetched with a raw request rather than the typed client because the v2 account endpoint's
-    response model wraps its body in ``account_result`` while the API returns the fields flat,
-    so the typed client cannot currently read the ids (tracked as a known response-model bug).
+    This exercises the account and CFD-market reads as a side effect: if either response model
+    regresses, every dependent live test fails at setup.
     """
 
-    base = os.environ.get("STONEX_BASE_URL", _DEFAULT_BASE)
-    parts = urlsplit(base)
-    host = f"{parts.scheme}://{parts.netloc}"
-    user = os.environ["STONEX_USERNAME"]
-    with httpx.Client(timeout=30.0) as http:
-        token = http.post(
-            f"{host}/v2/session",
-            json={
-                "UserName": user,
-                "Password": os.environ["STONEX_PASSWORD"],
-                "AppKey": os.environ["STONEX_APP_KEY"],
-            },
-        ).json()
-        token = token.get("session") or token.get("Session")
-        headers = {"UserName": user, "Session": token}
-        acct = http.get(f"{host}/v2/UserAccount/ClientAndTradingAccount", headers=headers).json()
-        client_account = acct["clientAccounts"][0]
-        cid = client_account["clientAccountId"]
-        markets = http.get(
-            f"{base}/cfd/markets",
-            headers=headers,
-            params={"MarketName": "", "MaxResults": 5, "ClientAccountId": cid},
-        ).json()
-        market_list = markets.get("Markets") or markets.get("markets") or []
-        market = market_list[0] if market_list else {}
+    account = client.user_account.get_client_and_trading_account()
+    assert account.client_accounts, "demo account returned no client accounts"
+    assert account.trading_accounts, "demo account returned no trading accounts"
+    client_account = account.client_accounts[0]
+    cid = client_account.client_account_id
+    tid = account.trading_accounts[0].trading_account_id
+    assert cid is not None and tid is not None, "demo account is missing required ids"
+
+    market_list = client.cfd.list_cfd_markets(client_account_id=cid, max_results=5).markets or []
+    assert market_list, "demo account returned no CFD markets"
+    mid = market_list[0].market_id
+    assert mid is not None, "CFD market is missing its id"
+
+    party = account.legal_parties[0].party_id if account.legal_parties else None
+    operator = (
+        account.account_operators[0].account_operator_id if account.account_operators else None
+    )
     return {
         "cid": cid,
-        "tid": acct["tradingAccounts"][0]["tradingAccountId"],
-        "culture": client_account.get("cultureId", 9),
-        "party": acct["legalParties"][0]["partyId"],
-        "operator": acct["accountOperators"][0]["accountOperatorId"],
-        "mid": market.get("MarketId") or market.get("marketId"),
+        "tid": tid,
+        "culture": client_account.culture_id or 9,
+        "party": party or 0,
+        "operator": operator or 0,
+        "mid": mid,
     }

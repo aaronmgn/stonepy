@@ -57,6 +57,16 @@ _OPTIONAL_PARAM_OVERRIDES: dict[tuple[str, str], frozenset[str]] = {
     ("cfd", "ListCfdMarkets"): frozenset({"marketName", "marketCode"}),
 }
 
+# Per-endpoint response-model corrections for catalog gaps where the declared response type does not
+# match the live wire shape. Verified against the live CIAPI demo. Keyed by (target_module, endpoint
+# name); the value is the catalog data-type the endpoint actually returns.
+_RESPONSE_MODEL_OVERRIDES: dict[tuple[str, str], str] = {
+    # The account lookup returns the AccountResult fields flat at the top level (clientAccounts,
+    # tradingAccounts, legalParties, ...), not wrapped under an "AccountResult" key as the declared
+    # AccountInformationResponseDTO v2 expects, so the wrapper always parsed to all-None.
+    ("user_account", "GetClientAndTradingAccount v2"): "AccountResult",
+}
+
 # Per-endpoint path corrections for catalog gaps the systematic v2 de-doubling in resolved_path()
 # cannot cover (the documented uri_template is itself wrong). Each value was verified against the
 # live CIAPI demo by matching the response to the endpoint's typed DTO shape. Keyed by
@@ -275,8 +285,11 @@ def _binding(
     function_name = _function_name(rec)
     known_models = set(known_model_names) if known_model_names is not None else None
     request_model = _known_type(rec.request_type, known_models)
-    response_model = _response_model_type(rec.response_type, known_models)
-    unresolved_response_model = _unresolved_response_model(rec.response_type, known_models)
+    response_type_name = _RESPONSE_MODEL_OVERRIDES.get(
+        (target_module(rec.target), rec.name), rec.response_type
+    )
+    response_model = _response_model_type(response_type_name, known_models)
+    unresolved_response_model = _unresolved_response_model(response_type_name, known_models)
     optional_overrides = _OPTIONAL_PARAM_OVERRIDES.get(
         (target_module(rec.target), rec.name), frozenset()
     )

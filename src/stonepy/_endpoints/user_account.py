@@ -7,7 +7,7 @@ from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.models import ResponseModel
 from stonepy._core.pipeline import CallContext
 from stonepy.models import (
-    AccountInformationResponseDTOv2,
+    AccountResult,
     ApiAccountInformationSaveRequestDTO,
     ApiAccountInformationSaveResponseDTO,
     ApiGetCommunityActionsResponseDTO,
@@ -43,7 +43,7 @@ async def aget_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
     return await ctx.ainvoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})
 
 
-GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountInformationResponseDTOv2] = EndpointSpec(
+GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountResult] = EndpointSpec(
     name="GetClientAndTradingAccount v2",
     method="GET",
     path="/v2/UserAccount/ClientAndTradingAccount",
@@ -51,11 +51,11 @@ GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountInformationResponseDTOv
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="user_account",
-    response_model=AccountInformationResponseDTOv2,
+    response_model=AccountResult,
 )
 
 
-def get_client_and_trading_account(ctx: CallContext) -> AccountInformationResponseDTOv2:
+def get_client_and_trading_account(ctx: CallContext) -> AccountResult:
     """
     Returns the User's ClientAccountId and a list of their TradingAccounts. There are no
     parameters for this call.
@@ -63,7 +63,7 @@ def get_client_and_trading_account(ctx: CallContext) -> AccountInformationRespon
     return ctx.invoke(GET_CLIENT_AND_TRADING_ACCOUNT_SPEC)
 
 
-async def aget_client_and_trading_account(ctx: CallContext) -> AccountInformationResponseDTOv2:
+async def aget_client_and_trading_account(ctx: CallContext) -> AccountResult:
     """
     Returns the User's ClientAccountId and a list of their TradingAccounts. There are no
     parameters for this call.
