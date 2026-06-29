@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-06-28
+
 ### Fixed
 
 - Correct the request path for the v2 endpoints across the `market`, `message`,
@@ -163,7 +165,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.2
 [0.2.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.1
 [0.2.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.0
 [0.1.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.3
