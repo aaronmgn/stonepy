@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import ScalarResponse
 from stonepy._core.pipeline import CallContext
 from stonepy.models import (
     AccountResult,
@@ -21,26 +21,26 @@ from stonepy.models import (
     ApiUsernameResponseDTO,
 )
 
-GET_CHARTING_ENABLED_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+GET_CHARTING_ENABLED_SPEC: EndpointSpec[ScalarResponse[bool]] = EndpointSpec(
     name="GetChartingEnabled",
     method="GET",
     path="/useraccount/{id}/ChartingEnabled",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="user_account",
-    response_model=ResponseModel,
+    response_model=ScalarResponse[bool],
     params=(Param(name="id", location="path", python_name="id"),),
 )
 
 
-def get_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
+def get_charting_enabled(ctx: CallContext, id: str) -> bool:
     """Checks whether the supplied user account is allowed to see charting data."""
-    return ctx.invoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})
+    return (ctx.invoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})).root
 
 
-async def aget_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
+async def aget_charting_enabled(ctx: CallContext, id: str) -> bool:
     """Checks whether the supplied user account is allowed to see charting data."""
-    return await ctx.ainvoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})
+    return (await ctx.ainvoke(GET_CHARTING_ENABLED_SPEC, path_params={"id": id})).root
 
 
 GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountResult] = EndpointSpec(

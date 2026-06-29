@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Support for endpoints whose success body is a bare top-level JSON scalar, via a `ScalarResponse[T]`
+  response wrapper (the generated wrapper returns the plain value).
+
+### Fixed
+
+- `user_account.get_charting_enabled` now returns `bool`. The endpoint returns a bare scalar
+  (`true`), but it was typed as a `ResponseModel`, so every call raised a response-parse error (a
+  return-type change) ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
+
 ## [0.2.4] - 2026-06-29
 
 ### Added

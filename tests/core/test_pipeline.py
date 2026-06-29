@@ -25,7 +25,7 @@ from stonepy._core.errors import (
     StoneXAPIError,
     TransportError,
 )
-from stonepy._core.models import ListResponse, RequestModel, ResponseModel
+from stonepy._core.models import ListResponse, RequestModel, ResponseModel, ScalarResponse
 from stonepy._core.pipeline import (
     BusinessStatus,
     CallContext,
@@ -483,6 +483,29 @@ def test_invoke_list_endpoint_skips_business_status_check() -> None:
     )
     out = ctx.invoke(_list_spec())
     assert [item.order_id for item in out.root] == [1]
+
+
+def _scalar_spec() -> EndpointSpec[ScalarResponse[bool]]:
+    return EndpointSpec(
+        name="ScalarBool",
+        method="GET",
+        path="/flag",
+        idempotent=True,
+        auth_policy=AuthPolicy.NONE,
+        rate_limit_bucket="default",
+        response_model=ScalarResponse[bool],
+    )
+
+
+def test_parse_response_validates_bare_scalar() -> None:
+    out = parse_response(_scalar_spec(), httpx.Response(200, content=b"true"))
+    assert out.root is True
+
+
+def test_parse_response_scalar_empty_body_is_a_parse_error() -> None:
+    # A scalar endpoint has no empty default; an empty body is malformed, not coerced to [].
+    with pytest.raises(ResponseParseError):
+        parse_response(_scalar_spec(), httpx.Response(200, content=b""))
 
 
 def test_auth_none_invoke_does_not_touch_session() -> None:

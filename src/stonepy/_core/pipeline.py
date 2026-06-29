@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from math import isfinite
-from typing import Any, Protocol, TypeVar, cast, runtime_checkable
+from typing import Any, Protocol, TypeVar, cast, get_origin, runtime_checkable
 
 import httpx
 from pydantic import BaseModel, Field, RootModel
@@ -446,8 +446,12 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
             satisfy the response model (``phase="validate"``).
     """
     model_type = spec.response_model
-    is_list = isinstance(model_type, type) and issubclass(model_type, RootModel)
-    raw_body = resp.content or (b"[]" if is_list else b"{}")
+    is_list_root = (
+        isinstance(model_type, type)
+        and issubclass(model_type, RootModel)
+        and get_origin(model_type.model_fields["root"].annotation) is list
+    )
+    raw_body = resp.content or (b"[]" if is_list_root else b"{}")
     try:
         payload = codec.loads(raw_body)
     except ValueError as exc:

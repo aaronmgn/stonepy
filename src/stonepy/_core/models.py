@@ -13,11 +13,13 @@ __all__ = [
     "PassthroughResponseModel",
     "RequestModel",
     "ResponseModel",
+    "ScalarResponse",
     "StoneXDateTime",
     "StoneXModel",
 ]
 
 ItemT = TypeVar("ItemT", bound=BaseModel)
+ScalarT = TypeVar("ScalarT")
 
 
 class StoneXModel(BaseModel):
@@ -84,6 +86,15 @@ class ListResponse(RootModel[list[ItemT]], Generic[ItemT]):
     ``response_model`` is set to ``ListResponse[Item]``; the pipeline validates each element as
     ``Item`` and the generated wrapper returns ``root`` (a ``list[Item]``), so callers receive a
     plain list. Each element is still a ``ResponseModel``, so case-insensitive key matching applies.
+    """
+
+
+class ScalarResponse(RootModel[ScalarT], Generic[ScalarT]):
+    """Response wrapper for endpoints whose success body is a bare top-level JSON scalar.
+
+    A few CIAPI endpoints (for example ``user_account.get_charting_enabled``) return a bare scalar
+    such as ``true`` rather than an object. Their ``response_model`` is set to ``ScalarResponse[T]``
+    and the generated wrapper returns ``root`` (a ``T``), so callers receive the plain value.
     """
 
 
