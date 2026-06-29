@@ -102,6 +102,39 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
         _has_data,
     ),
     (
+        "market.list_market_information_search",
+        lambda c, i: c.market.list_market_information_search(
+            search_by_market_code=False,
+            search_by_market_name=True,
+            spread_product_type=False,
+            cfd_product_type=True,
+            binary_product_type=False,
+            include_options=False,
+            query="EUR",
+            trading_account_id=i["tid"],
+            max_results=5,
+            client_account_id=i["cid"],
+        ),
+        _has_data,
+    ),
+    (
+        "news.get_news_headlines",
+        lambda c, i: c.news.get_news_headlines(region="UK", culture_id=i["culture"]),
+        _has_data,
+    ),
+    (
+        "news.get_news",
+        lambda c, i: c.news.get_news(region="UK", culture_id=i["culture"]),
+        _has_data,
+    ),
+    (
+        "news.get_market_report_headlines",
+        lambda c, i: c.news.get_market_report_headlines(
+            market_id=i["mid"], culture_id=i["culture"]
+        ),
+        _has_data,
+    ),
+    (
         "order.get_orders",
         lambda c, i: c.order.get_orders(client_account_id=str(i["cid"])),
         _ok,
@@ -139,10 +172,6 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
 # Endpoints whose generated model still mismatches the live wire format (tracked in #24). Marked
 # xfail (non-strict) so the suite stays green and flips to a visible xpass once each model is fixed.
 _XFAIL = {
-    "market.get_market_information": (
-        "MarketSpreads typed as object but API returns a list; Prices.MarketState typed as list "
-        "but API returns an int (#24)"
-    ),
     "order.get_orders": "typed as a single EnrichedOrderDTO but API returns a bare list (#24)",
     "order.get_order_history": "typed as a single object but API returns a bare list (#24)",
 }

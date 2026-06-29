@@ -136,7 +136,7 @@ class ApiMarketInformationDTOv2(ResponseModel):
         default=None, alias="MarketBreakTimes"
     )
     """Breaks throughout each trading day (Day is specified as 'DayOfWeek')"""
-    market_spreads: ApiMarketSpreadDTO | None = Field(default=None, alias="MarketSpreads")
+    market_spreads: list[ApiMarketSpreadDTO] | None = Field(default=None, alias="MarketSpreads")
     """Market spreads during each trading day"""
     guaranteed_order_premium: Decimal | None = Field(default=None, alias="GuaranteedOrderPremium")
     """The premium paid for a guaranteed order"""

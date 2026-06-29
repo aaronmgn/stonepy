@@ -19,7 +19,7 @@ class MarketPricesDTO(ResponseModel):
     """Bid price"""
     offer_price: Decimal | None = Field(default=None, alias="OfferPrice")
     """Offer price"""
-    market_state: list[MarketState] | None = Field(default=None, alias="MarketState")
+    market_state: MarketState | None = Field(default=None, alias="MarketState")
     """List of market states"""
 
 

@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   aliases case-insensitively, at every nesting level.
 - Datetime fields now parse the ISO 8601 values v2 endpoints return (for example
   `2026-06-29T21:05:00Z`), in addition to the v1 WCF `/Date(ms)/` format.
+- Correct four response field types the frozen catalog mistypes, verified against the live API, so
+  the affected endpoints parse instead of raising: news story ids are strings (Reuters URNs), a
+  news payload is a list of stories, a market carries a list of spreads, and market state is a
+  single enum. This fixes `news.get_news`, `news.get_news_headlines`,
+  `news.get_market_report_headlines`, `market.get_market_information`, and
+  `market.list_market_information_search`
+  ([#24](https://github.com/aaronmgn/stonepy/issues/24)).
 
 ## [0.2.2] - 2026-06-28
 
