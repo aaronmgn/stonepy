@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-06-29
+
 ### Fixed
 
 - POST endpoints whose request DTO was mislabeled as a query parameter now send it as the JSON
@@ -251,7 +253,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.6...HEAD
+[0.2.6]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.6
 [0.2.5]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.5
 [0.2.4]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.4
 [0.2.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.3
