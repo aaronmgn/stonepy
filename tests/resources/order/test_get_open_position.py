@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"OpenPosition":{"OrderId":1,"MarketId":1,"MarketName":"x","Di
 
 @respx.mock
 def test_get_open_position_returns_response() -> None:
-    route = respx.get("https://api.example/order/v2/x/openPosition").mock(
+    route = respx.get("https://api.example/v2/order/x/openPosition").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -26,7 +26,7 @@ def test_get_open_position_returns_response() -> None:
         assert isinstance(resp, GetOpenPositionResponseDTOv2)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/order/v2/x/openPosition"
+        assert route.calls[0].request.url.path == "/v2/order/x/openPosition"
         assert dict(route.calls[0].request.url.params) == {"clientAccountId": "1"}
     finally:
         client.close()
@@ -35,7 +35,7 @@ def test_get_open_position_returns_response() -> None:
 @respx.mock
 def test_get_open_position_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/order/v2/x/openPosition").mock(
+        route = respx.get("https://api.example/v2/order/x/openPosition").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

@@ -57,18 +57,11 @@ _OPTIONAL_PARAM_OVERRIDES: dict[tuple[str, str], frozenset[str]] = {
     ("cfd", "ListCfdMarkets"): frozenset({"marketName", "marketCode"}),
 }
 
-# Catalog gap: the upstream "GetActiveStopLimitOrder v2" doc page templates its URI as
-# "/v2{orderId}/activeStopLimitOrder" — missing the slash after "v2" that every sibling v2 order
-# endpoint carries (GetOpenPosition v2 = "/v2/{orderId}/openPosition", GetOrder v2 =
-# "/v2/order/{orderId}"). Verified against docs.labs.gaincapital.com as an upstream documentation
-# typo (the page's own example request is ".../order/123456/activeStopLimitOrder"), so without this
-# correction the generated client would request the non-existent "/order/v2{orderId}/..." path.
-# Keyed by (target_module, endpoint name); mirrors the other curated catalog-gap overrides.
+# Per-endpoint path corrections for catalog gaps the systematic v2 de-doubling in resolved_path()
+# cannot cover (the documented uri_template is itself wrong). Each value was verified against the
+# live CIAPI demo by matching the response to the endpoint's typed DTO shape. Keyed by
+# (target_module, endpoint name).
 _PATH_OVERRIDES: dict[tuple[str, str], str] = {
-    (
-        "order",
-        "GetActiveStopLimitOrder v2",
-    ): "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
     # CIAPI serves logon and account lookup from the host root ("https://host/v2/...", see
     # _HOST_ROOTED_ENDPOINTS), not the catalog's best-effort "/{target}/v2/..." which doubles the
     # target segment and 401s. Confirmed against the reference pygcapi client (BASE_URL_V2 =
@@ -79,6 +72,24 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
     # "/margin/ClientAccountMargin" under the /TradingAPI base (the catalog's doubled
     # "/margin/v2/margin/..." path 404s). Stays base-rooted, so no _HOST_ROOTED_ENDPOINTS entry.
     ("margin", "GetClientAccountMargin v2"): "/margin/ClientAccountMargin",
+    # The active-stop-limit query is a v1-style route "/order/{orderId}/activeStopLimitOrder" (it
+    # returns the typed ActiveStopLimitOrder DTO live; matches the doc page's own
+    # ".../order/123456/activeStopLimitOrder" example). The catalog's "/v2{orderId}/..." template
+    # and any "/v2/..."/"/order/v2/..." variant 404.
+    ("order", "GetActiveStopLimitOrder v2"): (
+        "/order/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}"
+    ),
+    # Open-position query needs the "order" segment after "/v2/" that the catalog template omits
+    # ("/v2/{orderId}/openPosition" 404s; "/v2/order/{orderId}/openPosition" returns the DTO live).
+    ("order", "GetOpenPosition v2"): (
+        "/v2/order/{orderId}/openPosition?clientAccountId={clientAccountId}"
+    ),
+    # SaveOrder posts to "/v2/order" (live: validates ClientAccountId); the catalog's bare
+    # "/v2/save" 404s.
+    ("order", "SaveOrder v2"): "/v2/order",
+    # The user-preference route is the singular "/v2/Preference"; the catalog pluralises it to
+    # "/v2/Preferences", which 404s.
+    ("preference", "GetUserPreference v2"): "/v2/Preference",
 }
 
 # CIAPI serves a few v2 endpoints from the host root ("https://host/v2/...") rather than under the
@@ -103,16 +114,23 @@ def endpoint_summary(rec: EndpointRecord) -> str:
 
 
 def resolved_path(rec: EndpointRecord) -> str:
-    """Return the endpoint path, applying curated catalog path-typo corrections.
+    """Return the endpoint path, applying curated catalog path corrections.
 
-    The catalog's ``path``/``uri_template`` is authoritative except for the declared upstream
-    doc typos in ``_PATH_OVERRIDES``; this single resolver keeps the generated endpoint spec and
-    the generated contract test in agreement on the corrected value.
+    Resolution order: an explicit ``_PATH_OVERRIDES`` entry wins; otherwise a v2 endpoint
+    (``uri_template`` beginning ``/v2/``) uses that template directly, because the catalog
+    composes ``path`` as ``/{target}{uri_template}`` and so doubles the resource segment the v2
+    template already carries (e.g. ``/market/v2/market/...``), which 404s on the live API. All
+    other endpoints keep the catalog ``path``. This single resolver keeps the generated endpoint
+    spec and the generated contract test in agreement on the corrected value.
     """
 
-    return _PATH_OVERRIDES.get(
-        (target_module(rec.target), rec.name), rec.path or rec.uri_template or ""
-    )
+    override = _PATH_OVERRIDES.get((target_module(rec.target), rec.name))
+    if override is not None:
+        return override
+    uri = rec.uri_template or ""
+    if uri.startswith("/v2/"):
+        return uri
+    return rec.path or uri or ""
 
 
 def is_host_rooted(rec: EndpointRecord) -> bool:

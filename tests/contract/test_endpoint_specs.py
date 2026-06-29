@@ -52,7 +52,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.DELETE_CLIENT_PREFERENCE_SPEC,
         "DELETE",
-        "/clientPreference/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
+        "/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
         True,
         True,
         "SESSION",
@@ -67,7 +67,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.GET_CLIENT_PREFERENCES_KEY_LIST_SPEC,
         "GET",
-        "/clientPreference/v2/clientPreference/keyList?clientAccountId={clientAccountId}",
+        "/v2/clientPreference/keyList?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -79,7 +79,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.GET_CLIENT_PREFERENCES_LIST_SPEC,
         "GET",
-        "/clientPreference/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",
+        "/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -95,7 +95,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.GET_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC,
         "GET",
-        "/clientPreference/v2/clientPreference/overriddenSettings?clientAccountId={clientAccountId}",
+        "/v2/clientPreference/overriddenSettings?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -107,7 +107,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.GET_CLIENT_PREFERENCE_SPEC,
         "GET",
-        "/clientPreference/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
+        "/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
         True,
         True,
         "SESSION",
@@ -122,7 +122,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC,
         "POST",
-        "/clientPreference/v2/clientPreference/overriddenSettings/save",
+        "/v2/clientPreference/overriddenSettings/save",
         True,
         False,
         "SESSION",
@@ -140,7 +140,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.SAVE_CLIENT_PREFERENCE_SPEC,
         "POST",
-        "/clientPreference/v2/clientPreference/Save",
+        "/v2/clientPreference/Save",
         True,
         False,
         "SESSION",
@@ -338,7 +338,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.GET_FULL_SEARCH_WITH_TAGS_SPEC,
         "GET",
-        "/market/v2/market/fullSearchWithTags",
+        "/v2/market/fullSearchWithTags",
         True,
         True,
         "SESSION",
@@ -397,7 +397,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.GET_MARKET_INFORMATION_EXTENDED_SPEC,
         "GET",
-        "/market/v2/market/{marketId}/informationExtended?clientAccountId={clientAccountId}",
+        "/v2/market/{marketId}/informationExtended?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -412,7 +412,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.GET_MARKET_INFORMATION_SPEC,
         "GET",
-        "/market/v2/market/{marketId}/information?clientAccountId={clientAccountId}",
+        "/v2/market/{marketId}/information?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -427,7 +427,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.GET_MARKET_SPREAD_SPEC,
         "GET",
-        "/market/v2/market/spread?clientAccountId={clientAccountId}&marketId={marketId}",
+        "/v2/market/spread?clientAccountId={clientAccountId}&marketId={marketId}",
         True,
         True,
         "SESSION",
@@ -591,7 +591,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.LIST_MARKET_INFORMATION_SPEC,
         "POST",
-        "/market/v2/market/information",
+        "/v2/market/information",
         True,
         True,
         "SESSION",
@@ -672,7 +672,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.SAVE_PRODUCT_INFORMATION_SPEC,
         "POST",
-        "/market/v2/market/productInformation",
+        "/v2/market/productInformation",
         True,
         False,
         "SESSION",
@@ -709,7 +709,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_market.TAG_LOOKUP_SPEC,
         "GET",
-        "/market/v2/market/tagLookup?clientAccountId={clientAccountId}",
+        "/v2/market/tagLookup?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -767,7 +767,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_message.GET_CLIENT_COMMUNICATION_MESSAGES_SPEC,
         "GET",
-        "/message/v2/message/clientCommunicationMessages?clientAccountId={clientAccountId}",
+        "/v2/message/clientCommunicationMessages?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -797,7 +797,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_message.GET_SECURE_MESSAGES_SPEC,
         "GET",
-        "/message/v2/message/SecureMessages?clientAccountId={clientAccountId}",
+        "/v2/message/SecureMessages?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -827,7 +827,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_message.SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC,
         "POST",
-        "/message/v2/message/clientCommunicationMessageResponse",
+        "/v2/message/clientCommunicationMessageResponse",
         True,
         False,
         "SESSION",
@@ -1014,7 +1014,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
         "GET",
-        "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+        "/order/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1074,7 +1074,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_OPEN_POSITION_SPEC,
         "GET",
-        "/order/v2/{orderId}/openPosition?clientAccountId={clientAccountId}",
+        "/v2/order/{orderId}/openPosition?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1089,7 +1089,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ORDERS_BY_REFERENCE_SPEC,
         "GET",
-        "/order/v2/order/orders/{reference}?clientAccountId={clientAccountId}",
+        "/v2/order/orders/{reference}?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1104,7 +1104,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ORDERS_SPEC,
         "GET",
-        "/order/v2/orders?clientAccountId={clientAccountId}",
+        "/v2/orders?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1119,7 +1119,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ORDER_HISTORY_SPEC,
         "GET",
-        "/order/v2/orderhistory?clientAccountId={clientAccountId}",
+        "/v2/orderhistory?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1137,7 +1137,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.GET_ORDER_SPEC,
         "GET",
-        "/order/v2/order/{orderId}?clientAccountId={clientAccountId}",
+        "/v2/order/{orderId}?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1232,7 +1232,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order.SAVE_ORDER_SPEC,
         "POST",
-        "/order/v2/save",
+        "/v2/order",
         True,
         False,
         "SESSION",
@@ -1340,7 +1340,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_order_including_closed.GET_ORDER_INCLUDING_CLOSED_SPEC,
         "GET",
-        "/orderIncludingClosed/v2/orderIncludingClosed/{orderId}?clientAccountId={clientAccountId}",
+        "/v2/orderIncludingClosed/{orderId}?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1439,7 +1439,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_preference.DELETE_USER_PREFERENCE_SPEC,
         "DELETE",
-        "/preference/v2/Preference",
+        "/v2/Preference",
         False,
         True,
         "SESSION",
@@ -1451,7 +1451,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_preference.GET_USER_PREFERENCE_SPEC,
         "GET",
-        "/preference/v2/Preferences",
+        "/v2/Preference",
         True,
         True,
         "SESSION",
@@ -1463,7 +1463,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_preference.SAVE_USER_PREFERENCE_SPEC,
         "POST",
-        "/preference/v2/Preference/save",
+        "/v2/Preference/save",
         False,
         False,
         "SESSION",
@@ -1517,7 +1517,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_price_alert.SAVE_PRICE_ALERT_SPEC,
         "POST",
-        "/priceAlert/v2/priceAlert/save",
+        "/v2/priceAlert/save",
         True,
         False,
         "SESSION",
@@ -1568,7 +1568,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_session.VALIDATE_SESSION_SPEC,
         "POST",
-        "/session/v2/Session/validate",
+        "/v2/Session/validate",
         True,
         False,
         "SESSION",
@@ -1795,7 +1795,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_user_account.SAVE_ACCOUNT_INFORMATION_SPEC,
         "POST",
-        "/useraccount/v2/userAccount/Save",
+        "/v2/userAccount/Save",
         True,
         False,
         "SESSION",
@@ -1819,7 +1819,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_watchlist.DELETE_WATCHLIST_SPEC,
         "DELETE",
-        "/watchlist/v2/watchlists",
+        "/v2/watchlists",
         True,
         True,
         "SESSION",
@@ -1834,7 +1834,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_watchlist.GET_WATCHLISTS_LIST_SPEC,
         "GET",
-        "/watchlist/v2/watchlists/list?clientAccountId={clientAccountId}&ids={ids}",
+        "/v2/watchlists/list?clientAccountId={clientAccountId}&ids={ids}",
         True,
         True,
         "SESSION",
@@ -1851,7 +1851,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_watchlist.GET_WATCHLISTS_SPEC,
         "GET",
-        "/watchlists/v2/watchlists?clientAccountId={clientAccountId}",
+        "/v2/watchlists?clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -1863,7 +1863,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_watchlist.SAVE_WATCHLIST_SPEC,
         "POST",
-        "/watchlist/v2/watchlists/save",
+        "/v2/watchlists/save",
         True,
         False,
         "SESSION",

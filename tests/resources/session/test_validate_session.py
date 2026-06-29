@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"IsAuthenticated":false}'
 
 @respx.mock
 def test_validate_session_returns_response() -> None:
-    route = respx.post("https://api.example/session/v2/Session/validate").mock(
+    route = respx.post("https://api.example/v2/Session/validate").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_validate_session_returns_response() -> None:
         assert isinstance(resp, ApiValidateSessionResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
-        assert route.calls[0].request.url.path == "/session/v2/Session/validate"
+        assert route.calls[0].request.url.path == "/v2/Session/validate"
     finally:
         client.close()
 
@@ -33,7 +33,7 @@ def test_validate_session_returns_response() -> None:
 @respx.mock
 def test_validate_session_async() -> None:
     async def run() -> None:
-        route = respx.post("https://api.example/session/v2/Session/validate").mock(
+        route = respx.post("https://api.example/v2/Session/validate").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

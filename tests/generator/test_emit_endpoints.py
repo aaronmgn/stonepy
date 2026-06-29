@@ -63,9 +63,10 @@ def _datatype(name: str) -> TypeRecord:
     )
 
 
-def test_resolved_path_corrects_documented_catalog_typo() -> None:
-    # The upstream "GetActiveStopLimitOrder v2" page drops the slash after "v2"; resolved_path
-    # restores it so the emitted spec and the generated contract test agree on the real path.
+def test_resolved_path_applies_active_stop_limit_order_override() -> None:
+    # The active-stop-limit query is a v1-style "/order/{orderId}/activeStopLimitOrder" route
+    # (verified live); the catalog's "/v2{orderId}/..." template 404s, so an override supplies the
+    # real path that the emitted spec and the generated contract test must agree on.
     typo = _endpoint(
         name="GetActiveStopLimitOrder v2",
         logical_name="GetActiveStopLimitOrder",
@@ -74,10 +75,52 @@ def test_resolved_path_corrects_documented_catalog_typo() -> None:
     )
     assert (
         resolved_path(typo)
-        == "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}"
+        == "/order/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}"
     )
     # An endpoint without a declared override keeps its catalog path verbatim.
     assert resolved_path(_endpoint(path="/order/{OrderId}")) == "/order/{OrderId}"
+
+
+def test_resolved_path_dedoubles_v2_endpoints() -> None:
+    # The catalog composes a v2 path as "/{target}{uri_template}", doubling the resource segment
+    # the uri_template already carries; resolved_path returns the uri_template (the real route).
+    doubled = EndpointRecord(
+        name="GetMarketSpread v2",
+        logical_name="GetMarketSpread",
+        version="v2",
+        description=None,
+        method="GET",
+        target="market",
+        uri_template="/v2/market/spread?clientAccountId={clientAccountId}",
+        path="/market/v2/market/spread?clientAccountId={clientAccountId}",
+        content_type="application/json",
+        envelope="JSON",
+        parameters=[],
+        request_type=None,
+        response_type="GetMarketInformationResponseDTO",
+        source_url=None,
+        source_file=None,
+        last_updated=None,
+        raw={"name": "GetMarketSpread v2"},
+    )
+    assert resolved_path(doubled) == "/v2/market/spread?clientAccountId={clientAccountId}"
+
+
+def test_resolved_path_applies_v2_route_overrides() -> None:
+    # Endpoints whose documented uri_template is itself wrong get a verified path override.
+    save_order = _endpoint(name="SaveOrder v2", target="order", path="/v2/save")
+    assert resolved_path(save_order) == "/v2/order"
+    open_position = _endpoint(
+        name="GetOpenPosition v2",
+        target="order",
+        path="/v2/{orderId}/openPosition?clientAccountId={clientAccountId}",
+    )
+    assert (
+        resolved_path(open_position)
+        == "/v2/order/{orderId}/openPosition?clientAccountId={clientAccountId}"
+    )
+    user_pref = _endpoint(name="GetUserPreference v2", target="preference", path="/v2/Preferences")
+    assert resolved_path(user_pref) == "/v2/Preference"
 
 
 def test_render_binding_emits_wrapper_docstring_from_description() -> None:

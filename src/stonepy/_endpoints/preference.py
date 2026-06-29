@@ -11,7 +11,7 @@ from stonepy.models import ApiGetPreferencesResponseDTO, ApiSavePreferencesReque
 DELETE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
     name="DeleteUserPreference v2",
     method="DELETE",
-    path="/preference/v2/Preference",
+    path="/v2/Preference",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",
@@ -37,7 +37,7 @@ async def adelete_user_preference(
 GET_USER_PREFERENCE_SPEC: EndpointSpec[ApiGetPreferencesResponseDTO] = EndpointSpec(
     name="GetUserPreference v2",
     method="GET",
-    path="/preference/v2/Preferences",
+    path="/v2/Preference",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",
@@ -63,7 +63,7 @@ async def aget_user_preference(
 SAVE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
     name="SaveUserPreference v2",
     method="POST",
-    path="/preference/v2/Preference/save",
+    path="/v2/Preference/save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",

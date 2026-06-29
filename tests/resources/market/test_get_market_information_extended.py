@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"MarketInformation":{"PriceRuleSpecId":1,"PriceSourceId":1,"M
 
 @respx.mock
 def test_get_market_information_extended_returns_response() -> None:
-    route = respx.get("https://api.example/market/v2/market/1/informationExtended").mock(
+    route = respx.get("https://api.example/v2/market/1/informationExtended").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -26,7 +26,7 @@ def test_get_market_information_extended_returns_response() -> None:
         assert isinstance(resp, ApiGetMarketInformationExtendedResponseDTOv2)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/market/v2/market/1/informationExtended"
+        assert route.calls[0].request.url.path == "/v2/market/1/informationExtended"
     finally:
         client.close()
 
@@ -34,7 +34,7 @@ def test_get_market_information_extended_returns_response() -> None:
 @respx.mock
 def test_get_market_information_extended_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/market/v2/market/1/informationExtended").mock(
+        route = respx.get("https://api.example/v2/market/1/informationExtended").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

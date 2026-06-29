@@ -20,7 +20,7 @@ DELETE_CLIENT_PREFERENCE_SPEC: EndpointSpec[ApiUpdateDeleteClientPreferenceRespo
     EndpointSpec(
         name="DeleteClientPreference v2",
         method="DELETE",
-        path="/clientPreference/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
+        path="/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
         idempotent=True,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="client_preference",
@@ -55,7 +55,7 @@ GET_CLIENT_PREFERENCES_KEY_LIST_SPEC: EndpointSpec[ApiGetKeyListClientPreference
     EndpointSpec(
         name="GetClientPreferencesKeyList v2",
         method="GET",
-        path="/clientPreference/v2/clientPreference/keyList?clientAccountId={clientAccountId}",
+        path="/v2/clientPreference/keyList?clientAccountId={clientAccountId}",
         idempotent=True,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="client_preference",
@@ -86,7 +86,7 @@ async def aget_client_preferences_key_list(
 GET_CLIENT_PREFERENCES_LIST_SPEC: EndpointSpec[ApiGetClientPreferencesResponseDTO] = EndpointSpec(
     name="GetClientPreferencesList v2",
     method="GET",
-    path="/clientPreference/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",  # noqa: E501
+    path="/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="client_preference",
@@ -124,7 +124,7 @@ GET_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC: EndpointSpec[
 ] = EndpointSpec(
     name="GetClientPreferenceOverriddenSettings v2",
     method="GET",
-    path="/clientPreference/v2/clientPreference/overriddenSettings?clientAccountId={clientAccountId}",  # noqa: E501
+    path="/v2/clientPreference/overriddenSettings?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="client_preference",
@@ -154,7 +154,7 @@ async def aget_client_preference_overridden_settings(
 GET_CLIENT_PREFERENCE_SPEC: EndpointSpec[ApiGetClientPreferenceResponseDTO] = EndpointSpec(
     name="GetClientPreference v2",
     method="GET",
-    path="/clientPreference/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
+    path="/v2/clientPreference?clientAccountId={clientAccountId}&key={key}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="client_preference",
@@ -189,7 +189,7 @@ SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC: EndpointSpec[
 ] = EndpointSpec(
     name="SaveClientPreferenceOverriddenSettings v2",
     method="POST",
-    path="/clientPreference/v2/clientPreference/overriddenSettings/save",
+    path="/v2/clientPreference/overriddenSettings/save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="client_preference",
@@ -235,7 +235,7 @@ SAVE_CLIENT_PREFERENCE_SPEC: EndpointSpec[ApiUpdateDeleteClientPreferenceRespons
     EndpointSpec(
         name="SaveClientPreference v2",
         method="POST",
-        path="/clientPreference/v2/clientPreference/Save",
+        path="/v2/clientPreference/Save",
         idempotent=False,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="client_preference",

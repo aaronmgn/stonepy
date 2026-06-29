@@ -112,7 +112,7 @@ async def asave_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> Response
 SAVE_PRICE_ALERT_SPEC: EndpointSpec[SaveAlertResponseDTOv2] = EndpointSpec(
     name="SavePriceAlert v2",
     method="POST",
-    path="/priceAlert/v2/priceAlert/save",
+    path="/v2/priceAlert/save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="price_alert",

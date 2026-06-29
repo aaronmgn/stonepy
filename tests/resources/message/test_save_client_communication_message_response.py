@@ -17,9 +17,9 @@ _RESPONSE_BODY = '{"Success":false}'
 
 @respx.mock
 def test_save_client_communication_message_response_returns_response() -> None:
-    route = respx.post(
-        "https://api.example/message/v2/message/clientCommunicationMessageResponse"
-    ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+    route = respx.post("https://api.example/v2/message/clientCommunicationMessageResponse").mock(
+        return_value=httpx.Response(200, content=_RESPONSE_BODY)
+    )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
@@ -28,10 +28,7 @@ def test_save_client_communication_message_response_returns_response() -> None:
         assert isinstance(resp, ApiClientCommunicationUpdateResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
-        assert (
-            route.calls[0].request.url.path
-            == "/message/v2/message/clientCommunicationMessageResponse"
-        )
+        assert route.calls[0].request.url.path == "/v2/message/clientCommunicationMessageResponse"
     finally:
         client.close()
 
@@ -40,7 +37,7 @@ def test_save_client_communication_message_response_returns_response() -> None:
 def test_save_client_communication_message_response_async() -> None:
     async def run() -> None:
         route = respx.post(
-            "https://api.example/message/v2/message/clientCommunicationMessageResponse"
+            "https://api.example/v2/message/clientCommunicationMessageResponse"
         ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:

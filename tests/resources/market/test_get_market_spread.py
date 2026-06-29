@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"MarketId":1,"OutOfHours":"1.23","InHours":"1.23","MarkUp":"1
 
 @respx.mock
 def test_get_market_spread_returns_response() -> None:
-    route = respx.get("https://api.example/market/v2/market/spread").mock(
+    route = respx.get("https://api.example/v2/market/spread").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -26,7 +26,7 @@ def test_get_market_spread_returns_response() -> None:
         assert isinstance(resp, MarketSpreadData)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/market/v2/market/spread"
+        assert route.calls[0].request.url.path == "/v2/market/spread"
         assert dict(route.calls[0].request.url.params) == {
             "clientAccountId": "x",
             "marketId": "x",
@@ -38,7 +38,7 @@ def test_get_market_spread_returns_response() -> None:
 @respx.mock
 def test_get_market_spread_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/market/v2/market/spread").mock(
+        route = respx.get("https://api.example/v2/market/spread").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

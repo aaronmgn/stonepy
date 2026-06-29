@@ -100,7 +100,7 @@ async def alog_on(ctx: CallContext, request: ApiLogOnRequestDTO) -> ApiLogOnResp
 VALIDATE_SESSION_SPEC: EndpointSpec[ApiValidateSessionResponseDTO] = EndpointSpec(
     name="ValidateSession v2",
     method="POST",
-    path="/session/v2/Session/validate",
+    path="/v2/Session/validate",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="session",

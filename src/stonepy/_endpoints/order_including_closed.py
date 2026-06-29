@@ -10,7 +10,7 @@ from stonepy.models import SingleActiveStopLimitOrderResponseDTO
 GET_ORDER_INCLUDING_CLOSED_SPEC: EndpointSpec[SingleActiveStopLimitOrderResponseDTO] = EndpointSpec(
     name="GetOrderIncludingClosed v2",
     method="GET",
-    path="/orderIncludingClosed/v2/orderIncludingClosed/{orderId}?clientAccountId={clientAccountId}",  # noqa: E501
+    path="/v2/orderIncludingClosed/{orderId}?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order_including_closed",

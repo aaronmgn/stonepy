@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"ClientPreferences":[{"Key":"x","Value":"x"}]}'
 
 @respx.mock
 def test_get_client_preferences_list_returns_response() -> None:
-    route = respx.get("https://api.example/clientPreference/v2/clientPreference/list").mock(
+    route = respx.get("https://api.example/v2/clientPreference/list").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -27,7 +27,7 @@ def test_get_client_preferences_list_returns_response() -> None:
         assert isinstance(resp, ApiGetClientPreferencesResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/clientPreference/v2/clientPreference/list"
+        assert route.calls[0].request.url.path == "/v2/clientPreference/list"
     finally:
         client.close()
 
@@ -35,7 +35,7 @@ def test_get_client_preferences_list_returns_response() -> None:
 @respx.mock
 def test_get_client_preferences_list_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/clientPreference/v2/clientPreference/list").mock(
+        route = respx.get("https://api.example/v2/clientPreference/list").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

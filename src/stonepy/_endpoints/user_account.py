@@ -407,7 +407,7 @@ async def alist_topholders_for_markets(
 SAVE_ACCOUNT_INFORMATION_SPEC: EndpointSpec[ApiAccountInformationSaveResponseDTO] = EndpointSpec(
     name="SaveAccountInformation v2",
     method="POST",
-    path="/useraccount/v2/userAccount/Save",
+    path="/v2/userAccount/Save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="user_account",

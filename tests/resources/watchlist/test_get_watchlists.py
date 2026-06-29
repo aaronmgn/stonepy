@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"ClientAccountId":1,"ClientAccountWatchlists":[]}'
 
 @respx.mock
 def test_get_watchlists_returns_response() -> None:
-    route = respx.get("https://api.example/watchlists/v2/watchlists").mock(
+    route = respx.get("https://api.example/v2/watchlists").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_get_watchlists_returns_response() -> None:
         assert isinstance(resp, ListWatchlistResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/watchlists/v2/watchlists"
+        assert route.calls[0].request.url.path == "/v2/watchlists"
     finally:
         client.close()
 
@@ -33,7 +33,7 @@ def test_get_watchlists_returns_response() -> None:
 @respx.mock
 def test_get_watchlists_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/watchlists/v2/watchlists").mock(
+        route = respx.get("https://api.example/v2/watchlists").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
