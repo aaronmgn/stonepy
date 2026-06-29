@@ -198,7 +198,7 @@ SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC: EndpointSpec[
     params=(
         Param(
             name="ApiClientPreferencesOverriddenSettingsSaveRequestDTO",
-            location="query",
+            location="body",
             python_name="api_client_preferences_overridden_settings_save_request_dto",
         ),
     ),
@@ -206,29 +206,17 @@ SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC: EndpointSpec[
 
 
 def save_client_preference_overridden_settings(
-    ctx: CallContext,
-    api_client_preferences_overridden_settings_save_request_dto: ApiClientPreferencesOverriddenSettingsSaveRequestDTO,  # noqa: E501
+    ctx: CallContext, request: ApiClientPreferencesOverriddenSettingsSaveRequestDTO
 ) -> ApiClientPreferencesOverriddenSettingsSaveResponseDTO:
     """Saves the client's preference overridden settings."""
-    return ctx.invoke(
-        SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC,
-        query=api_client_preferences_overridden_settings_save_request_dto.model_dump(
-            by_alias=True, exclude_unset=True, mode="python"
-        ),
-    )
+    return ctx.invoke(SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC, body=request)
 
 
 async def asave_client_preference_overridden_settings(
-    ctx: CallContext,
-    api_client_preferences_overridden_settings_save_request_dto: ApiClientPreferencesOverriddenSettingsSaveRequestDTO,  # noqa: E501
+    ctx: CallContext, request: ApiClientPreferencesOverriddenSettingsSaveRequestDTO
 ) -> ApiClientPreferencesOverriddenSettingsSaveResponseDTO:
     """Saves the client's preference overridden settings."""
-    return await ctx.ainvoke(
-        SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC,
-        query=api_client_preferences_overridden_settings_save_request_dto.model_dump(
-            by_alias=True, exclude_unset=True, mode="python"
-        ),
-    )
+    return await ctx.ainvoke(SAVE_CLIENT_PREFERENCE_OVERRIDDEN_SETTINGS_SPEC, body=request)
 
 
 SAVE_CLIENT_PREFERENCE_SPEC: EndpointSpec[ApiUpdateDeleteClientPreferenceResponseDTO] = (

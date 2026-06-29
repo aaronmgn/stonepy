@@ -84,6 +84,8 @@ _LIST_RESPONSE_OVERRIDES: frozenset[tuple[str, str]] = frozenset(
 # wrapper returns the bare value. Keyed by (target_module, endpoint name) -> Python scalar type.
 _SCALAR_RESPONSE_OVERRIDES: dict[tuple[str, str], str] = {
     ("user_account", "GetChartingEnabled"): "bool",
+    # DeletePA returns a bare scalar `true` on success, not an object (HTTP 200 body `true`).
+    ("price_alert", "DeletePA"): "bool",
 }
 
 # Per-endpoint parameter-location corrections where the catalog declares the wrong location. Keyed
@@ -94,6 +96,18 @@ _PARAM_LOCATION_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
     ("watchlist", "DeleteWatchlist v2"): {
         "ClientAccountId": "query",
         "WatchlistId": "query",
+    },
+    # Same class as DeleteWatchlist: the catalog marks Preferences as a body param, but the live
+    # API only honors it as a query param (a body request 400s; `?Preferences=<key>` returns 200).
+    ("preference", "DeleteUserPreference v2"): {"Preferences": "query"},
+    # These POST endpoints take a request DTO the catalog mislabels as a query param, so the
+    # client serializes it into the query string with no JSON body and the API rejects it (HTTP
+    # 415 / 400 "content-type not supported"). The DTO must be sent as the JSON body. Verified
+    # live for ListActiveOrders (body -> HTTP 200); the other two share the identical signature.
+    ("order", "ListActiveOrders"): {"requestDTO": "body"},
+    ("news", "ListNewsHeadlines"): {"request": "body"},
+    ("client_preference", "SaveClientPreferenceOverriddenSettings v2"): {
+        "ApiClientPreferencesOverriddenSettingsSaveRequestDTO": "body",
     },
 }
 

@@ -14,6 +14,7 @@ from typing import Any
 
 import pytest
 
+import stonepy.models as M
 from stonepy import StoneXClient
 
 pytestmark = pytest.mark.live
@@ -163,6 +164,15 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
             market_id=i["mid"], culture_id=i["culture"]
         ),
         _has_data,
+    ),
+    (
+        "order.list_active_orders",
+        lambda c, i: c.order.list_active_orders(
+            M.ListActiveOrdersRequestDTO.model_validate(
+                {"TradingAccountId": i["tid"], "MaxResults": 5}
+            )
+        ),
+        _ok,
     ),
     (
         "order.get_orders",

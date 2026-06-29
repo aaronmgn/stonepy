@@ -26,6 +26,10 @@ def test_list_active_orders_returns_response() -> None:
         assert route.called
         assert route.calls[0].request.method == "POST"
         assert route.calls[0].request.url.path == "/order/activeorders"
+        # The request DTO must travel in the JSON body, not the query string (a query-string POST
+        # with no body is rejected by the live API with HTTP 415 / "content-type not supported").
+        assert route.calls[0].request.url.query == b""
+        assert route.calls[0].request.headers["content-type"].startswith("application/json")
     finally:
         client.close()
 

@@ -16,7 +16,7 @@ DELETE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",
     response_model=ResponseModel,
-    params=(Param(name="Preferences", location="body", python_name="preferences"),),
+    params=(Param(name="Preferences", location="query", python_name="preferences"),),
 )
 
 
@@ -24,14 +24,14 @@ def delete_user_preference(
     ctx: CallContext, *, preferences: list[str] | None = None
 ) -> ResponseModel:
     """Deletes user preferences."""
-    return ctx.invoke(DELETE_USER_PREFERENCE_SPEC, body={"Preferences": preferences})
+    return ctx.invoke(DELETE_USER_PREFERENCE_SPEC, query={"Preferences": preferences})
 
 
 async def adelete_user_preference(
     ctx: CallContext, *, preferences: list[str] | None = None
 ) -> ResponseModel:
     """Deletes user preferences."""
-    return await ctx.ainvoke(DELETE_USER_PREFERENCE_SPEC, body={"Preferences": preferences})
+    return await ctx.ainvoke(DELETE_USER_PREFERENCE_SPEC, query={"Preferences": preferences})
 
 
 GET_USER_PREFERENCE_SPEC: EndpointSpec[ApiGetPreferencesResponseDTO] = EndpointSpec(

@@ -487,12 +487,12 @@ LIST_ACTIVE_ORDERS_SPEC: EndpointSpec[ListActiveOrdersResponseDTO] = EndpointSpe
     rate_limit_bucket="order",
     response_model=ListActiveOrdersResponseDTO,
     request_model=ListActiveOrdersRequestDTO,
-    params=(Param(name="requestDTO", location="query", python_name="request_dto"),),
+    params=(Param(name="requestDTO", location="body", python_name="request_dto"),),
 )
 
 
 def list_active_orders(
-    ctx: CallContext, request_dto: ListActiveOrdersRequestDTO
+    ctx: CallContext, request: ListActiveOrdersRequestDTO
 ) -> ListActiveOrdersResponseDTO:
     """
     Queries the specified trading account for all active orders. This URI returns the set of
@@ -501,14 +501,11 @@ def list_active_orders(
     stop/limit order or a trade. Use the TypeId member on ApiActiveOrderDTO to determine
     whether it is a stop/limit order or a trade.
     """
-    return ctx.invoke(
-        LIST_ACTIVE_ORDERS_SPEC,
-        query=request_dto.model_dump(by_alias=True, exclude_unset=True, mode="python"),
-    )
+    return ctx.invoke(LIST_ACTIVE_ORDERS_SPEC, body=request)
 
 
 async def alist_active_orders(
-    ctx: CallContext, request_dto: ListActiveOrdersRequestDTO
+    ctx: CallContext, request: ListActiveOrdersRequestDTO
 ) -> ListActiveOrdersResponseDTO:
     """
     Queries the specified trading account for all active orders. This URI returns the set of
@@ -517,10 +514,7 @@ async def alist_active_orders(
     stop/limit order or a trade. Use the TypeId member on ApiActiveOrderDTO to determine
     whether it is a stop/limit order or a trade.
     """
-    return await ctx.ainvoke(
-        LIST_ACTIVE_ORDERS_SPEC,
-        query=request_dto.model_dump(by_alias=True, exclude_unset=True, mode="python"),
-    )
+    return await ctx.ainvoke(LIST_ACTIVE_ORDERS_SPEC, body=request)
 
 
 LIST_ACTIVE_STOP_LIMIT_ORDERS_SPEC: EndpointSpec[ListActiveStopLimitOrderResponseDTO] = (

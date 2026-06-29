@@ -131,7 +131,7 @@ ENDPOINT_CASES = [
         (
             (
                 "ApiClientPreferencesOverriddenSettingsSaveRequestDTO",
-                "query",
+                "body",
                 "api_client_preferences_overridden_settings_save_request_dto",
             ),
         ),
@@ -942,7 +942,7 @@ ENDPOINT_CASES = [
         "SESSION",
         "news",
         "ListNewsHeadlinesRequestDTO",
-        (("request", "query", "request"),),
+        (("request", "body", "request"),),
         id="ListNewsHeadlines",
     ),
     pytest.param(
@@ -1158,7 +1158,7 @@ ENDPOINT_CASES = [
         "SESSION",
         "order",
         "ListActiveOrdersRequestDTO",
-        (("requestDTO", "query", "request_dto"),),
+        (("requestDTO", "body", "request_dto"),),
         id="ListActiveOrders",
     ),
     pytest.param(
@@ -1445,7 +1445,7 @@ ENDPOINT_CASES = [
         "SESSION",
         "preference",
         None,
-        (("Preferences", "body", "preferences"),),
+        (("Preferences", "query", "preferences"),),
         id="DeleteUserPreference v2",
     ),
     pytest.param(

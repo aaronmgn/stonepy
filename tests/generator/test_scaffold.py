@@ -198,11 +198,13 @@ def test_cli_scaffold_writes_files_from_catalog_root(tmp_path: Path) -> None:
 def test_scaffold_imports_core_response_models(tmp_path: Path) -> None:
     catalog = _catalog(
         endpoints=[
+            # Synthetic endpoint name (not the real DeletePA, which the generator maps to a scalar
+            # bool response): this exercises the generic response_type=None -> ResponseModel path.
             _endpoint(
-                name="DeletePA",
-                logical_name="DeletePA",
-                target="priceAlert",
-                path="/pricealert/delete",
+                name="DeleteThing",
+                logical_name="DeleteThing",
+                target="thing",
+                path="/thing/delete",
                 parameters=[],
                 request_type=None,
                 response_type=None,
@@ -223,14 +225,12 @@ def test_scaffold_imports_core_response_models(tmp_path: Path) -> None:
     package_root = tmp_path / "stonepy"
     project_root = tmp_path / "project"
 
-    scaffold(
-        catalog, "price_alert", "DeletePA", package_dir=package_root, project_root=project_root
-    )
+    scaffold(catalog, "thing", "DeleteThing", package_dir=package_root, project_root=project_root)
     scaffold(
         catalog, "news", "GetNewsHeadlines", package_dir=package_root, project_root=project_root
     )
 
-    delete_text = (package_root / "resources" / "price_alert" / "delete_pa.py").read_text(
+    delete_text = (package_root / "resources" / "thing" / "delete_thing.py").read_text(
         encoding="utf-8"
     )
     news_text = (package_root / "resources" / "news" / "get_news_headlines.py").read_text(
