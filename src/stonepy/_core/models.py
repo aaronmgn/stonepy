@@ -2,19 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, RootModel, model_validator
 
 from stonepy._core.codec import StoneXDateTime
 
 __all__ = [
+    "ListResponse",
     "PassthroughResponseModel",
     "RequestModel",
     "ResponseModel",
     "StoneXDateTime",
     "StoneXModel",
 ]
+
+ItemT = TypeVar("ItemT", bound=BaseModel)
 
 
 class StoneXModel(BaseModel):
@@ -71,6 +74,17 @@ class ResponseModel(StoneXModel):
             target = canonical.get(key.lower(), key) if isinstance(key, str) else key
             remapped.setdefault(target, value)
         return remapped
+
+
+class ListResponse(RootModel[list[ItemT]], Generic[ItemT]):
+    """Response wrapper for endpoints whose success body is a bare top-level JSON array.
+
+    CIAPI's order-query endpoints (for example ``order.get_orders``) return a top-level JSON array
+    rather than an object, which an ordinary ``ResponseModel`` cannot validate. Their
+    ``response_model`` is set to ``ListResponse[Item]``; the pipeline validates each element as
+    ``Item`` and the generated wrapper returns ``root`` (a ``list[Item]``), so callers receive a
+    plain list. Each element is still a ``ResponseModel``, so case-insensitive key matching applies.
+    """
 
 
 class PassthroughResponseModel(StoneXModel):

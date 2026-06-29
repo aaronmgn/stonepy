@@ -11,7 +11,7 @@ from math import isfinite
 from typing import Any, Protocol, TypeVar, cast, runtime_checkable
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, RootModel
 from pydantic import ValidationError as PydanticValidationError
 
 from stonepy._core import codec
@@ -417,8 +417,10 @@ class CallContext:
 
     def _parse_success(self, spec: EndpointSpec[ResponseT], resp: httpx.Response) -> ResponseT:
         model = parse_response(spec, resp)
-        if self.config.status_decoder is not None and _should_check_business_status(
-            spec, self.config.status_decoder
+        if (
+            not isinstance(model, RootModel)
+            and self.config.status_decoder is not None
+            and _should_check_business_status(spec, self.config.status_decoder)
         ):
             check_business_status(
                 model,
@@ -443,7 +445,9 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
         ResponseParseError: If the body is not valid JSON (``phase="decode"``) or does not
             satisfy the response model (``phase="validate"``).
     """
-    raw_body = resp.content or b"{}"
+    model_type = spec.response_model
+    is_list = isinstance(model_type, type) and issubclass(model_type, RootModel)
+    raw_body = resp.content or (b"[]" if is_list else b"{}")
     try:
         payload = codec.loads(raw_body)
     except ValueError as exc:
@@ -455,7 +459,6 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
             raw_body=raw_body,
             message=str(exc),
         ) from exc
-    model_type = spec.response_model
     try:
         return model_type.model_validate(payload)
     except PydanticValidationError as exc:

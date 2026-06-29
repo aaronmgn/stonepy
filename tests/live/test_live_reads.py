@@ -37,6 +37,11 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
         _has_data,
     ),
     (
+        "user_account.get_charting_enabled",
+        lambda c, i: c.user_account.get_charting_enabled(id=str(i["cid"])),
+        _ok,
+    ),
+    (
         "market.get_market_information",
         lambda c, i: c.market.get_market_information(
             market_id=str(i["mid"]), client_account_id=i["cid"]
@@ -176,9 +181,11 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
 
 # Endpoints whose generated model still mismatches the live wire format (tracked in #24). Marked
 # xfail (non-strict) so the suite stays green and flips to a visible xpass once each model is fixed.
-_XFAIL = {
-    "order.get_orders": "typed as a single EnrichedOrderDTO but API returns a bare list (#24)",
-    "order.get_order_history": "typed as a single object but API returns a bare list (#24)",
+_XFAIL: dict[str, str] = {
+    "user_account.get_charting_enabled": (
+        "returns a bare scalar boolean, but is typed as ResponseModel, so it raises until "
+        "scalar-response support lands (#24)"
+    ),
 }
 
 

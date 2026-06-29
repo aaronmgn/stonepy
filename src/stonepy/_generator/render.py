@@ -237,8 +237,8 @@ class _RenderedField:
 
 
 # Field-type corrections for catalog data-type errors confirmed against the live API. The frozen
-# catalog mistypes these response fields; each value is the real wire type observed live by the
-# contract suite (optionality is applied separately, so give the base type). Keyed by
+# catalog mistypes these response and request fields; each value is the real wire type observed
+# live by the contract suite (optionality is applied separately, so give the base type). Keyed by
 # (catalog type name, property name). See https://github.com/aaronmgn/stonepy/issues/24.
 _FIELD_TYPE_OVERRIDES: dict[tuple[str, str], str] = {
     # News story ids are Reuters URN strings (e.g. "urn:newsml:reuters.com:..."), not ints.
@@ -251,6 +251,11 @@ _FIELD_TYPE_OVERRIDES: dict[tuple[str, str], str] = {
     ("MarketSearchResultDTO", "MarketSpreads"): "list[ApiMarketSpreadDTO]",
     # Market state is a single enum value, not a list.
     ("MarketPricesDTO", "MarketState"): "MarketState",
+    # The Save* request bodies wrap a single object, not a list: the live API rejects an array with
+    # HTTP 400 ("The JSON value could not be converted to ... ClientPreferenceKeyDTO / Watchlist").
+    ("ApiSaveClientPreferenceRequestDTO", "ClientPreference"): "ClientPreferenceKeyDTO",
+    ("SaveClientPreferenceRequestDTO", "ClientPreference"): "ClientPreferenceKeyDTO",
+    ("SaveWatchlistRequestDTO", "Watchlist"): "ApiClientAccountWatchlistDTO",
 }
 
 

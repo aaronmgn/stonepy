@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
+from stonepy._core.models import ListResponse
 from stonepy._core.pipeline import CallContext
 from stonepy.models import (
     ApiSimulateTradeOrderResponseDTO,
@@ -333,14 +334,14 @@ async def aget_orders_by_reference(
     )
 
 
-GET_ORDERS_SPEC: EndpointSpec[EnrichedOrderDTO] = EndpointSpec(
+GET_ORDERS_SPEC: EndpointSpec[ListResponse[EnrichedOrderDTO]] = EndpointSpec(
     name="GetOrders v2",
     method="GET",
     path="/v2/orders?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
-    response_model=EnrichedOrderDTO,
+    response_model=ListResponse[EnrichedOrderDTO],
     params=(
         Param(name="Limit", location="query", python_name="limit"),
         Param(name="clientAccountId", location="query", python_name="client_account_id"),
@@ -350,28 +351,32 @@ GET_ORDERS_SPEC: EndpointSpec[EnrichedOrderDTO] = EndpointSpec(
 
 def get_orders(
     ctx: CallContext, client_account_id: str, *, limit: int | None = None
-) -> EnrichedOrderDTO:
+) -> list[EnrichedOrderDTO]:
     """Query for orders by a specific client account id."""
-    return ctx.invoke(GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id})
+    return (
+        ctx.invoke(GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id})
+    ).root
 
 
 async def aget_orders(
     ctx: CallContext, client_account_id: str, *, limit: int | None = None
-) -> EnrichedOrderDTO:
+) -> list[EnrichedOrderDTO]:
     """Query for orders by a specific client account id."""
-    return await ctx.ainvoke(
-        GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id}
-    )
+    return (
+        await ctx.ainvoke(
+            GET_ORDERS_SPEC, query={"Limit": limit, "clientAccountId": client_account_id}
+        )
+    ).root
 
 
-GET_ORDER_HISTORY_SPEC: EndpointSpec[OrderHistoryDTO] = EndpointSpec(
+GET_ORDER_HISTORY_SPEC: EndpointSpec[ListResponse[OrderHistoryDTO]] = EndpointSpec(
     name="GetOrderHistory v2",
     method="GET",
     path="/v2/orderhistory?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
-    response_model=OrderHistoryDTO,
+    response_model=ListResponse[OrderHistoryDTO],
     params=(
         Param(name="ClientAccountId", location="query", python_name="client_account_id"),
         Param(name="StartDateTime", location="query", python_name="start_date_time"),
@@ -390,18 +395,20 @@ def get_order_history(
     end_date_time: int | None = None,
     page_size: int | None = None,
     page: int | None = None,
-) -> OrderHistoryDTO:
+) -> list[OrderHistoryDTO]:
     """Queries for an order history."""
-    return ctx.invoke(
-        GET_ORDER_HISTORY_SPEC,
-        query={
-            "ClientAccountId": client_account_id,
-            "StartDateTime": start_date_time,
-            "EndDateTime": end_date_time,
-            "PageSize": page_size,
-            "Page": page,
-        },
-    )
+    return (
+        ctx.invoke(
+            GET_ORDER_HISTORY_SPEC,
+            query={
+                "ClientAccountId": client_account_id,
+                "StartDateTime": start_date_time,
+                "EndDateTime": end_date_time,
+                "PageSize": page_size,
+                "Page": page,
+            },
+        )
+    ).root
 
 
 async def aget_order_history(
@@ -412,18 +419,20 @@ async def aget_order_history(
     end_date_time: int | None = None,
     page_size: int | None = None,
     page: int | None = None,
-) -> OrderHistoryDTO:
+) -> list[OrderHistoryDTO]:
     """Queries for an order history."""
-    return await ctx.ainvoke(
-        GET_ORDER_HISTORY_SPEC,
-        query={
-            "ClientAccountId": client_account_id,
-            "StartDateTime": start_date_time,
-            "EndDateTime": end_date_time,
-            "PageSize": page_size,
-            "Page": page,
-        },
-    )
+    return (
+        await ctx.ainvoke(
+            GET_ORDER_HISTORY_SPEC,
+            query={
+                "ClientAccountId": client_account_id,
+                "StartDateTime": start_date_time,
+                "EndDateTime": end_date_time,
+                "PageSize": page_size,
+                "Page": page,
+            },
+        )
+    ).root
 
 
 GET_ORDER_SPEC: EndpointSpec[GetOrderResponseDTOv2] = EndpointSpec(
