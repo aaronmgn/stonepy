@@ -9714,6 +9714,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   aliases case-insensitively, at every nesting level.</li>
 <li>Datetime fields now parse the ISO 8601 values v2 endpoints return (for example
   <code>2026-06-29T21:05:00Z</code>), in addition to the v1 WCF <code>/Date(ms)/</code> format.</li>
+<li>Correct four response field types the frozen catalog mistypes, verified against the live API, so
+  the affected endpoints parse instead of raising: news story ids are strings (Reuters URNs), a
+  news payload is a list of stories, a market carries a list of spreads, and market state is a
+  single enum. This fixes <code>news.get_news</code>, <code>news.get_news_headlines</code>,
+  <code>news.get_market_report_headlines</code>, <code>market.get_market_information</code>, and
+  <code>market.list_market_information_search</code>
+  (<a href="https://github.com/aaronmgn/stonepy/issues/24">#24</a>).</li>
 </ul>
 <h2 id="022-2026-06-28"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.2.2">0.2.2</a> - 2026-06-28<a class="headerlink" href="#022-2026-06-28" title="Permanent link">&para;</a></h2>
 <h3 id="fixed_1">Fixed<a class="headerlink" href="#fixed_1" title="Permanent link">&para;</a></h3>
