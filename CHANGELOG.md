@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-06-28
+
+### Fixed
+
+- `session.log_on` now calls the host-root `/v2/session` endpoint that CIAPI actually serves,
+  instead of the unreachable `/session/v2/Session` that returned `401` against the documented
+  base URL ([#8](https://github.com/aaronmgn/stonepy/issues/8)).
+- `user_account.get_client_and_trading_account` now calls the host-root
+  `/v2/UserAccount/ClientAndTradingAccount` endpoint instead of the doubled
+  `/userAccount/v2/userAccount/ClientAndTradingAccount` path
+  ([#9](https://github.com/aaronmgn/stonepy/issues/9)).
+- `margin.get_client_account_margin` now calls the v1 `/margin/ClientAccountMargin` endpoint
+  (under the `/TradingAPI` base) that CIAPI serves, instead of the `/margin/v2/margin/...` path
+  that 404s ([#10](https://github.com/aaronmgn/stonepy/issues/10)).
+
+### Added
+
+- `EndpointSpec.host_rooted`: endpoints flagged host-rooted resolve their path against the server
+  host root (scheme and host of `base_url`) rather than the configured base path, so CIAPI's
+  `/v2` session and account endpoints can be reached from the same `base_url` as the `/TradingAPI`
+  resources.
+
 ## [0.2.0] - 2026-06-27
 
 ### Added
@@ -116,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.1
 [0.2.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.0
 [0.1.3]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.3
 [0.1.2]: https://github.com/aaronmgn/stonepy/releases/tag/v0.1.2
