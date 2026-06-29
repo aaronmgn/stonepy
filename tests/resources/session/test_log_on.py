@@ -30,7 +30,7 @@ _PROTECTED_SPEC = EndpointSpec(
 
 @respx.mock
 def test_log_on_returns_session() -> None:
-    route = respx.post("https://api.example/session/v2/Session").mock(
+    route = respx.post("https://api.example/v2/session").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -78,7 +78,7 @@ def test_log_on_returns_session() -> None:
 
 @respx.mock
 def test_log_on_installs_refresh_callback_for_later_401() -> None:
-    respx.post("https://api.example/session/v2/Session").mock(
+    respx.post("https://api.example/v2/session").mock(
         side_effect=[
             httpx.Response(
                 200,
@@ -139,7 +139,7 @@ def test_log_on_installs_refresh_callback_for_later_401() -> None:
 
 @respx.mock
 def test_config_credentials_refresh_replays_with_username() -> None:
-    logon = respx.post("https://api.example/session/v2/Session").mock(
+    logon = respx.post("https://api.example/v2/session").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -190,7 +190,7 @@ def test_config_credentials_refresh_replays_with_username() -> None:
 
 @respx.mock
 def test_async_log_on_returns_and_stores_session() -> None:
-    respx.post("https://api.example/session/v2/Session").mock(
+    respx.post("https://api.example/v2/session").mock(
         return_value=httpx.Response(
             200,
             json={
@@ -231,7 +231,7 @@ def test_async_log_on_returns_and_stores_session() -> None:
 
 @respx.mock
 def test_async_config_credentials_refresh_replays_with_username() -> None:
-    respx.post("https://api.example/session/v2/Session").mock(
+    respx.post("https://api.example/v2/session").mock(
         return_value=httpx.Response(
             200,
             json={

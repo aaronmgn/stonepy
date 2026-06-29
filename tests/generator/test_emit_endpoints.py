@@ -8,6 +8,7 @@ from stonepy._generator.__main__ import main
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord
 from stonepy._generator.emit_endpoints import (
     emit_all,
+    is_host_rooted,
     render_binding,
     resolved_path,
     target_module,
@@ -654,3 +655,28 @@ def test_cli_rejects_scaffold_only_args_for_non_scaffold_command(tmp_path: Path)
 
     with pytest.raises(SystemExit):
         main(["models", "--force", "--catalog-root", str(FIX), "--out-dir", str(tmp_path)])
+
+
+def test_log_on_path_override_is_host_rooted() -> None:
+    rec = _endpoint(
+        name="LogOn v2",
+        logical_name="LogOn",
+        method="POST",
+        target="session",
+        path="/session/v2/Session",
+        response_type="ApiLogOnResponseDTOv2",
+    )
+
+    assert resolved_path(rec) == "/v2/session"
+    assert is_host_rooted(rec) is True
+
+    rendered = render_binding(rec, known_model_names={"ApiLogOnResponseDTOv2"})
+    assert 'path="/v2/session"' in rendered
+    assert "host_rooted=True" in rendered
+
+
+def test_default_endpoint_is_not_host_rooted() -> None:
+    rec = _endpoint()
+
+    assert is_host_rooted(rec) is False
+    assert "host_rooted" not in render_binding(rec, known_model_names={"OrderResponseDTO"})
