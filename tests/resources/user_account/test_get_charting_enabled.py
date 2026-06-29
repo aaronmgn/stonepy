@@ -6,10 +6,10 @@ import httpx
 import respx
 
 from stonepy._core.config import ClientConfig
-from stonepy._core.models import ResponseModel
 from stonepy.client import AsyncStoneXClient, StoneXClient
 
-_RESPONSE_BODY = "{}"
+# The endpoint returns a bare top-level JSON boolean, not an object.
+_RESPONSE_BODY = "true"
 
 
 @respx.mock
@@ -22,7 +22,7 @@ def test_get_charting_enabled_returns_response() -> None:
         client._ctx.session.set_token("TOKEN", "user")
         id = "1"
         resp = client.user_account.get_charting_enabled(id)
-        assert isinstance(resp, ResponseModel)
+        assert resp is True
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/1/ChartingEnabled"
@@ -41,7 +41,7 @@ def test_get_charting_enabled_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             id = "1"
             resp = await client.user_account.get_charting_enabled(id)
-            assert isinstance(resp, ResponseModel)
+            assert resp is True
             assert route.called
             assert route.calls[0].request.method == "GET"
         finally:

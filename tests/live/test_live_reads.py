@@ -9,6 +9,7 @@ model, because they can legitimately be empty on a fresh demo account.
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -18,6 +19,12 @@ from stonepy import StoneXClient
 pytestmark = pytest.mark.live
 
 Call = Callable[[StoneXClient, dict[str, int]], Any]
+
+# A recent UTC window (Unix seconds) for the date-range price-history endpoints, computed once at
+# collection so the bounds track "now" rather than going stale.
+_NOW = datetime.now(UTC)
+_FROM_TS = int((_NOW - timedelta(days=3)).timestamp())
+_TO_TS = int(_NOW.timestamp())
 
 
 def _has_data(result: Any) -> bool:
@@ -88,6 +95,19 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
             market_id=str(i["mid"]), price_ticks=1, price_type="MID"
         ),
         _has_data,
+    ),
+    (
+        "market.get_price_bars_between_dates",
+        lambda c, i: c.market.get_price_bars_between_dates(
+            market_id=str(i["mid"]),
+            interval="HOUR",
+            span=1,
+            from_timestamp_utc=_FROM_TS,
+            to_timestamp_utc=_TO_TS,
+            price_type="MID",
+            max_results=5,
+        ),
+        _ok,
     ),
     (
         "cfd.list_cfd_markets",
@@ -181,12 +201,7 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
 
 # Endpoints whose generated model still mismatches the live wire format (tracked in #24). Marked
 # xfail (non-strict) so the suite stays green and flips to a visible xpass once each model is fixed.
-_XFAIL: dict[str, str] = {
-    "user_account.get_charting_enabled": (
-        "returns a bare scalar boolean, but is typed as ResponseModel, so it raises until "
-        "scalar-response support lands (#24)"
-    ),
-}
+_XFAIL: dict[str, str] = {}
 
 
 def _cases() -> list[Any]:

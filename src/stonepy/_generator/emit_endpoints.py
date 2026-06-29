@@ -79,6 +79,13 @@ _LIST_RESPONSE_OVERRIDES: frozenset[tuple[str, str]] = frozenset(
     }
 )
 
+# Endpoints whose success body is a bare top-level JSON scalar (verified live: GetChartingEnabled
+# returns `true`). For these the generator wraps the response in `ScalarResponse[<type>]` and the
+# wrapper returns the bare value. Keyed by (target_module, endpoint name) -> Python scalar type.
+_SCALAR_RESPONSE_OVERRIDES: dict[tuple[str, str], str] = {
+    ("user_account", "GetChartingEnabled"): "bool",
+}
+
 # Per-endpoint parameter-location corrections where the catalog declares the wrong location. Keyed
 # by (target_module, endpoint name) -> {wire param name: location}. Verified live.
 _PARAM_LOCATION_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
@@ -275,6 +282,7 @@ class _Binding:
         request_annotation: str | None,
         response_annotation: str,
         response_is_list: bool,
+        response_scalar_type: str | None,
         unresolved_response_model: str | None,
         uses_mapping: bool,
         model_imports: set[str],
@@ -296,6 +304,7 @@ class _Binding:
         self.request_annotation = request_annotation
         self.response_annotation = response_annotation
         self.response_is_list = response_is_list
+        self.response_scalar_type = response_scalar_type
         self.unresolved_response_model = unresolved_response_model
         self.uses_mapping = uses_mapping
         self.model_imports = model_imports
@@ -316,6 +325,7 @@ def _binding(
     response_model = _response_model_type(response_type_name, known_models)
     unresolved_response_model = _unresolved_response_model(response_type_name, known_models)
     response_is_list = (target_module(rec.target), rec.name) in _LIST_RESPONSE_OVERRIDES
+    response_scalar_type = _SCALAR_RESPONSE_OVERRIDES.get((target_module(rec.target), rec.name))
     optional_overrides = _OPTIONAL_PARAM_OVERRIDES.get(
         (target_module(rec.target), rec.name), frozenset()
     )
@@ -367,6 +377,7 @@ def _binding(
         request_annotation=request_annotation,
         response_annotation=response_model,
         response_is_list=response_is_list,
+        response_scalar_type=response_scalar_type,
         unresolved_response_model=unresolved_response_model,
         uses_mapping=uses_mapping,
         model_imports=model_imports,
@@ -374,6 +385,7 @@ def _binding(
             response_model,
             unresolved_response_model=unresolved_response_model,
             response_is_list=response_is_list,
+            response_scalar_type=response_scalar_type,
         ),
     )
 
@@ -462,11 +474,8 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
 
 
 def _binding_lines(binding: _Binding) -> list[str]:
-    spec_type = (
-        f"ListResponse[{binding.response_model}]"
-        if binding.response_is_list
-        else binding.response_annotation
-    )
+    wrapper = _root_wrapper(binding)
+    spec_type = wrapper[0] if wrapper is not None else binding.response_annotation
     lines = [
         f"{binding.spec_name}: EndpointSpec[{spec_type}] = EndpointSpec(\n",
         f"    name={_string_literal(binding.rec.name)},\n",
@@ -522,11 +531,8 @@ def _wrapper_lines(binding: _Binding, *, is_async: bool) -> list[str]:
     if optional_params:
         signature_params.append("*")
         signature_params.extend(optional_params)
-    return_annotation = (
-        f"list[{binding.response_model}]"
-        if binding.response_is_list
-        else binding.response_annotation
-    )
+    wrapper = _root_wrapper(binding)
+    return_annotation = wrapper[1] if wrapper is not None else binding.response_annotation
     lines = [
         f"{prefix} {function_name}(",
         ", ".join(signature_params),
@@ -543,8 +549,8 @@ def _wrapper_lines(binding: _Binding, *, is_async: bool) -> list[str]:
         else f"{binding.spec_name}, {', '.join(invocation_args)}"
     )
     invocation = f"{await_prefix}{call}({spec_args})"
-    # List endpoints carry a `ListResponse[...]` model; unwrap `.root` so the wrapper yields a list.
-    if binding.response_is_list:
+    # Root-wrapped (list/scalar) endpoints unwrap `.root` so the wrapper yields the plain value.
+    if wrapper is not None:
         lines.append(f"    return ({invocation}).root\n")
     else:
         lines.append(f"    return {invocation}\n")
@@ -813,7 +819,12 @@ def _core_model_imports(
     *,
     unresolved_response_model: str | None,
     response_is_list: bool = False,
+    response_scalar_type: str | None = None,
 ) -> set[str]:
+    # A scalar override replaces the declared response model entirely with ScalarResponse[...], so
+    # the declared model (often the bare ResponseModel default) is never referenced.
+    if response_scalar_type is not None:
+        return {"ScalarResponse"}
     imports: set[str] = set()
     if response_model == "ResponseModel":
         imports.add("ResponseModel")
@@ -822,6 +833,21 @@ def _core_model_imports(
     if response_is_list:
         imports.add("ListResponse")
     return imports
+
+
+def _root_wrapper(binding: _Binding) -> tuple[str, str] | None:
+    """Return ``(response_model expression, unwrapped return type)`` for a RootModel-wrapped
+    response (list or scalar), or ``None`` for an ordinary object response.
+
+    For these the spec carries a ``RootModel`` wrapper and the generated function returns
+    ``.root`` so callers receive a plain ``list[...]`` / scalar value.
+    """
+
+    if binding.response_is_list:
+        return f"ListResponse[{binding.response_model}]", f"list[{binding.response_model}]"
+    if binding.response_scalar_type is not None:
+        return f"ScalarResponse[{binding.response_scalar_type}]", binding.response_scalar_type
+    return None
 
 
 def _unresolved_response_aliases(bindings: list[_Binding]) -> list[str]:
