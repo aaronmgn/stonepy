@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"Deleted":false}'
 
 @respx.mock
 def test_delete_watchlist_returns_response() -> None:
-    route = respx.delete("https://api.example/watchlist/v2/watchlists").mock(
+    route = respx.delete("https://api.example/v2/watchlists").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -26,7 +26,7 @@ def test_delete_watchlist_returns_response() -> None:
         assert isinstance(resp, DeleteWatchlistResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "DELETE"
-        assert route.calls[0].request.url.path == "/watchlist/v2/watchlists"
+        assert route.calls[0].request.url.path == "/v2/watchlists"
     finally:
         client.close()
 
@@ -34,7 +34,7 @@ def test_delete_watchlist_returns_response() -> None:
 @respx.mock
 def test_delete_watchlist_async() -> None:
     async def run() -> None:
-        route = respx.delete("https://api.example/watchlist/v2/watchlists").mock(
+        route = respx.delete("https://api.example/v2/watchlists").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

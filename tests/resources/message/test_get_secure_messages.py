@@ -16,7 +16,7 @@ _RESPONSE_BODY = (
 
 @respx.mock
 def test_get_secure_messages_returns_response() -> None:
-    route = respx.get("https://api.example/message/v2/message/SecureMessages").mock(
+    route = respx.get("https://api.example/v2/message/SecureMessages").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -28,7 +28,7 @@ def test_get_secure_messages_returns_response() -> None:
         assert isinstance(resp, SecureMessageCount)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/message/v2/message/SecureMessages"
+        assert route.calls[0].request.url.path == "/v2/message/SecureMessages"
         assert dict(route.calls[0].request.url.params) == {
             "LegalPartyId": "1",
             "clientAccountId": "x",
@@ -40,7 +40,7 @@ def test_get_secure_messages_returns_response() -> None:
 @respx.mock
 def test_get_secure_messages_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/message/v2/message/SecureMessages").mock(
+        route = respx.get("https://api.example/v2/message/SecureMessages").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

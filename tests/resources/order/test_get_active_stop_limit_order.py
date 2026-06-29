@@ -14,10 +14,10 @@ _RESPONSE_BODY = '{"ActiveStopLimitOrder":{"OrderId":1,"ParentOrderId":1,"Market
 
 # The upstream "GetActiveStopLimitOrder v2" doc page has a typo in its URI template
 # ("/v2{orderId}/...", missing the slash every sibling v2 order endpoint has); the generator
-# corrects it via _PATH_OVERRIDES, so order_id=1 renders as "/order/v2/1/activeStopLimitOrder".
+# corrects it via _PATH_OVERRIDES, so order_id=1 renders as "/order/1/activeStopLimitOrder".
 @respx.mock
 def test_get_active_stop_limit_order_returns_response() -> None:
-    route = respx.get("https://api.example/order/v2/1/activeStopLimitOrder").mock(
+    route = respx.get("https://api.example/order/1/activeStopLimitOrder").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -29,7 +29,7 @@ def test_get_active_stop_limit_order_returns_response() -> None:
         assert isinstance(resp, GetActiveStopLimitOrderResponseDTOv2)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/order/v2/1/activeStopLimitOrder"
+        assert route.calls[0].request.url.path == "/order/1/activeStopLimitOrder"
         assert dict(route.calls[0].request.url.params) == {"clientAccountId": "1"}
     finally:
         client.close()
@@ -38,7 +38,7 @@ def test_get_active_stop_limit_order_returns_response() -> None:
 @respx.mock
 def test_get_active_stop_limit_order_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/order/v2/1/activeStopLimitOrder").mock(
+        route = respx.get("https://api.example/order/1/activeStopLimitOrder").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

@@ -66,7 +66,7 @@ async def acancel_order(
 GET_ACTIVE_STOP_LIMIT_ORDER_SPEC: EndpointSpec[GetActiveStopLimitOrderResponseDTOv2] = EndpointSpec(
     name="GetActiveStopLimitOrder v2",
     method="GET",
-    path="/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
+    path="/order/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -250,7 +250,7 @@ async def aget_markets_trades_wall(
 GET_OPEN_POSITION_SPEC: EndpointSpec[GetOpenPositionResponseDTOv2] = EndpointSpec(
     name="GetOpenPosition v2",
     method="GET",
-    path="/order/v2/{orderId}/openPosition?clientAccountId={clientAccountId}",
+    path="/v2/order/{orderId}/openPosition?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -299,7 +299,7 @@ async def aget_open_position(
 GET_ORDERS_BY_REFERENCE_SPEC: EndpointSpec[GetOrdersResponseDTOv2] = EndpointSpec(
     name="GetOrdersByReference v2",
     method="GET",
-    path="/order/v2/order/orders/{reference}?clientAccountId={clientAccountId}",
+    path="/v2/order/orders/{reference}?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -336,7 +336,7 @@ async def aget_orders_by_reference(
 GET_ORDERS_SPEC: EndpointSpec[EnrichedOrderDTO] = EndpointSpec(
     name="GetOrders v2",
     method="GET",
-    path="/order/v2/orders?clientAccountId={clientAccountId}",
+    path="/v2/orders?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -367,7 +367,7 @@ async def aget_orders(
 GET_ORDER_HISTORY_SPEC: EndpointSpec[OrderHistoryDTO] = EndpointSpec(
     name="GetOrderHistory v2",
     method="GET",
-    path="/order/v2/orderhistory?clientAccountId={clientAccountId}",
+    path="/v2/orderhistory?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -429,7 +429,7 @@ async def aget_order_history(
 GET_ORDER_SPEC: EndpointSpec[GetOrderResponseDTOv2] = EndpointSpec(
     name="GetOrder v2",
     method="GET",
-    path="/order/v2/order/{orderId}?clientAccountId={clientAccountId}",
+    path="/v2/order/{orderId}?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",
@@ -746,7 +746,7 @@ async def aorder(
 SAVE_ORDER_SPEC: EndpointSpec[ExecutionResponseDTO] = EndpointSpec(
     name="SaveOrder v2",
     method="POST",
-    path="/order/v2/save",
+    path="/v2/order",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order",

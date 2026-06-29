@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"MarketInformations":[]}'
 
 @respx.mock
 def test_list_market_information_returns_response() -> None:
-    route = respx.post("https://api.example/market/v2/market/information").mock(
+    route = respx.post("https://api.example/v2/market/information").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_list_market_information_returns_response() -> None:
         assert isinstance(resp, ListMarketInformationResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
-        assert route.calls[0].request.url.path == "/market/v2/market/information"
+        assert route.calls[0].request.url.path == "/v2/market/information"
     finally:
         client.close()
 
@@ -33,7 +33,7 @@ def test_list_market_information_returns_response() -> None:
 @respx.mock
 def test_list_market_information_async() -> None:
     async def run() -> None:
-        route = respx.post("https://api.example/market/v2/market/information").mock(
+        route = respx.post("https://api.example/v2/market/information").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

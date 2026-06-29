@@ -12,7 +12,7 @@ from stonepy.client import AsyncStoneXClient, StoneXClient
 
 @respx.mock
 def test_delete_user_preference_returns_response() -> None:
-    route = respx.delete("https://api.example/preference/v2/Preference").mock(
+    route = respx.delete("https://api.example/v2/Preference").mock(
         return_value=httpx.Response(200, json={})
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -23,7 +23,7 @@ def test_delete_user_preference_returns_response() -> None:
         assert isinstance(resp, ResponseModel)
         assert route.called
         assert route.calls[0].request.method == "DELETE"
-        assert route.calls[0].request.url.path == "/preference/v2/Preference"
+        assert route.calls[0].request.url.path == "/v2/Preference"
     finally:
         client.close()
 
@@ -31,7 +31,7 @@ def test_delete_user_preference_returns_response() -> None:
 @respx.mock
 def test_delete_user_preference_async() -> None:
     async def run() -> None:
-        route = respx.delete("https://api.example/preference/v2/Preference").mock(
+        route = respx.delete("https://api.example/v2/Preference").mock(
             return_value=httpx.Response(200, json={})
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"ClientCommunicationMessages":[]}'
 
 @respx.mock
 def test_get_client_communication_messages_returns_response() -> None:
-    route = respx.get("https://api.example/message/v2/message/clientCommunicationMessages").mock(
+    route = respx.get("https://api.example/v2/message/clientCommunicationMessages").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -28,7 +28,7 @@ def test_get_client_communication_messages_returns_response() -> None:
         assert isinstance(resp, ApiClientCommunicationResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/message/v2/message/clientCommunicationMessages"
+        assert route.calls[0].request.url.path == "/v2/message/clientCommunicationMessages"
     finally:
         client.close()
 
@@ -36,9 +36,9 @@ def test_get_client_communication_messages_returns_response() -> None:
 @respx.mock
 def test_get_client_communication_messages_async() -> None:
     async def run() -> None:
-        route = respx.get(
-            "https://api.example/message/v2/message/clientCommunicationMessages"
-        ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+        route = respx.get("https://api.example/v2/message/clientCommunicationMessages").mock(
+            return_value=httpx.Response(200, content=_RESPONSE_BODY)
+        )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")

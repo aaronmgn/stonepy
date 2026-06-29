@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"RequestId":"x","Reason":"x"}'
 
 @respx.mock
 def test_save_order_returns_response() -> None:
-    route = respx.post("https://api.example/order/v2/save").mock(
+    route = respx.post("https://api.example/v2/order").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_save_order_returns_response() -> None:
         assert isinstance(resp, ExecutionResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
-        assert route.calls[0].request.url.path == "/order/v2/save"
+        assert route.calls[0].request.url.path == "/v2/order"
     finally:
         client.close()
 
@@ -33,7 +33,7 @@ def test_save_order_returns_response() -> None:
 @respx.mock
 def test_save_order_async() -> None:
     async def run() -> None:
-        route = respx.post("https://api.example/order/v2/save").mock(
+        route = respx.post("https://api.example/v2/order").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

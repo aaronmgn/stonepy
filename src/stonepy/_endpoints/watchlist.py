@@ -15,7 +15,7 @@ from stonepy.models import (
 DELETE_WATCHLIST_SPEC: EndpointSpec[DeleteWatchlistResponseDTO] = EndpointSpec(
     name="DeleteWatchlist v2",
     method="DELETE",
-    path="/watchlist/v2/watchlists",
+    path="/v2/watchlists",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="watchlist",
@@ -50,7 +50,7 @@ async def adelete_watchlist(
 GET_WATCHLISTS_LIST_SPEC: EndpointSpec[ListWatchlistResponseDTO] = EndpointSpec(
     name="GetWatchlistsList v2",
     method="GET",
-    path="/watchlist/v2/watchlists/list?clientAccountId={clientAccountId}&ids={ids}",
+    path="/v2/watchlists/list?clientAccountId={clientAccountId}&ids={ids}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="watchlist",
@@ -111,7 +111,7 @@ async def aget_watchlists_list(
 GET_WATCHLISTS_SPEC: EndpointSpec[ListWatchlistResponseDTO] = EndpointSpec(
     name="GetWatchlists v2",
     method="GET",
-    path="/watchlists/v2/watchlists?clientAccountId={clientAccountId}",
+    path="/v2/watchlists?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="watchlist",
@@ -133,7 +133,7 @@ async def aget_watchlists(ctx: CallContext, client_account_id: int) -> ListWatch
 SAVE_WATCHLIST_SPEC: EndpointSpec[SaveWatchlistResponseDTO] = EndpointSpec(
     name="SaveWatchlist v2",
     method="POST",
-    path="/watchlist/v2/watchlists/save",
+    path="/v2/watchlists/save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="watchlist",

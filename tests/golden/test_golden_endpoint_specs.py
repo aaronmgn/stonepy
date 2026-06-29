@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy
 from stonepy._endpoints.market import GET_MARKET_INFORMATION_SPEC
-from stonepy._endpoints.order import LIST_ACTIVE_ORDERS_SPEC
+from stonepy._endpoints.order import (
+    GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
+    GET_OPEN_POSITION_SPEC,
+    LIST_ACTIVE_ORDERS_SPEC,
+    SAVE_ORDER_SPEC,
+)
 from stonepy._endpoints.session import LOG_ON_SPEC
 from stonepy.models import (
     ApiLogOnRequestDTO,
@@ -15,9 +20,11 @@ from stonepy.models import (
 
 def test_get_market_information_spec_matches_docs() -> None:
     assert GET_MARKET_INFORMATION_SPEC.method == "GET"
+    # CIAPI serves v2 market data at the documented "/v2/market/..." route under the /TradingAPI
+    # base; the catalog's doubled "/market/v2/market/..." path 404s.
     assert (
         GET_MARKET_INFORMATION_SPEC.path
-        == "/market/v2/market/{marketId}/information?clientAccountId={clientAccountId}"
+        == "/v2/market/{marketId}/information?clientAccountId={clientAccountId}"
     )
     assert GET_MARKET_INFORMATION_SPEC.auth_policy is AuthPolicy.SESSION
     assert GET_MARKET_INFORMATION_SPEC.idempotent is True
@@ -38,6 +45,22 @@ def test_list_active_orders_spec_matches_docs_and_is_retry_safe() -> None:
     assert [(p.name, p.location, p.python_name) for p in LIST_ACTIVE_ORDERS_SPEC.params] == [
         ("requestDTO", "query", "request_dto")
     ]
+
+
+def test_order_v2_specs_use_live_verified_routes() -> None:
+    # These three order routes were verified against the live CIAPI demo; the catalog templates
+    # (and the prior "/order/v2/..." correction) all 404. They stay base-rooted under /TradingAPI.
+    assert (
+        GET_ACTIVE_STOP_LIMIT_ORDER_SPEC.path
+        == "/order/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}"
+    )
+    assert GET_ACTIVE_STOP_LIMIT_ORDER_SPEC.host_rooted is False
+    assert (
+        GET_OPEN_POSITION_SPEC.path
+        == "/v2/order/{orderId}/openPosition?clientAccountId={clientAccountId}"
+    )
+    assert SAVE_ORDER_SPEC.method == "POST"
+    assert SAVE_ORDER_SPEC.path == "/v2/order"
 
 
 def test_log_on_spec_matches_docs_and_skips_session_auth() -> None:

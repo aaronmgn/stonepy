@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"ActiveStopLimitOrder":{"OrderId":1,"ParentOrderId":1,"Market
 
 @respx.mock
 def test_get_order_including_closed_returns_response() -> None:
-    route = respx.get("https://api.example/orderIncludingClosed/v2/orderIncludingClosed/1").mock(
+    route = respx.get("https://api.example/v2/orderIncludingClosed/1").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -26,7 +26,7 @@ def test_get_order_including_closed_returns_response() -> None:
         assert isinstance(resp, SingleActiveStopLimitOrderResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/orderIncludingClosed/v2/orderIncludingClosed/1"
+        assert route.calls[0].request.url.path == "/v2/orderIncludingClosed/1"
         assert dict(route.calls[0].request.url.params) == {"clientAccountId": "1"}
     finally:
         client.close()
@@ -35,9 +35,9 @@ def test_get_order_including_closed_returns_response() -> None:
 @respx.mock
 def test_get_order_including_closed_async() -> None:
     async def run() -> None:
-        route = respx.get(
-            "https://api.example/orderIncludingClosed/v2/orderIncludingClosed/1"
-        ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+        route = respx.get("https://api.example/v2/orderIncludingClosed/1").mock(
+            return_value=httpx.Response(200, content=_RESPONSE_BODY)
+        )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")

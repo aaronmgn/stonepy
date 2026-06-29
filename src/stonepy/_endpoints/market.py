@@ -140,7 +140,7 @@ GET_FULL_SEARCH_WITH_TAGS_SPEC: EndpointSpec[FullMarketInformationSearchWithTags
     EndpointSpec(
         name="GetFullSearchWithTags v2",
         method="GET",
-        path="/market/v2/market/fullSearchWithTags",
+        path="/v2/market/fullSearchWithTags",
         idempotent=True,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="market",
@@ -371,7 +371,7 @@ GET_MARKET_INFORMATION_EXTENDED_SPEC: EndpointSpec[ApiGetMarketInformationExtend
     EndpointSpec(
         name="GetMarketInformationExtended v2",
         method="GET",
-        path="/market/v2/market/{marketId}/informationExtended?clientAccountId={clientAccountId}",
+        path="/v2/market/{marketId}/informationExtended?clientAccountId={clientAccountId}",
         idempotent=True,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="market",
@@ -409,7 +409,7 @@ async def aget_market_information_extended(
 GET_MARKET_INFORMATION_SPEC: EndpointSpec[GetMarketInformationResponseDTOv2] = EndpointSpec(
     name="GetMarketInformation v2",
     method="GET",
-    path="/market/v2/market/{marketId}/information?clientAccountId={clientAccountId}",
+    path="/v2/market/{marketId}/information?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",
@@ -446,7 +446,7 @@ async def aget_market_information(
 GET_MARKET_SPREAD_SPEC: EndpointSpec[MarketSpreadData] = EndpointSpec(
     name="GetMarketSpread v2",
     method="GET",
-    path="/market/v2/market/spread?clientAccountId={clientAccountId}&marketId={marketId}",
+    path="/v2/market/spread?clientAccountId={clientAccountId}&marketId={marketId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",
@@ -1102,7 +1102,7 @@ async def alist_market_information_search(
 LIST_MARKET_INFORMATION_SPEC: EndpointSpec[ListMarketInformationResponseDTO] = EndpointSpec(
     name="ListMarketInformation v2",
     method="POST",
-    path="/market/v2/market/information",
+    path="/v2/market/information",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",
@@ -1389,7 +1389,7 @@ async def asave_market_information(
 SAVE_PRODUCT_INFORMATION_SPEC: EndpointSpec[ListProductInformationResponseDTO] = EndpointSpec(
     name="SaveProductInformation v2",
     method="POST",
-    path="/market/v2/market/productInformation",
+    path="/v2/market/productInformation",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",
@@ -1529,7 +1529,7 @@ async def asearch_with_tags(
 TAG_LOOKUP_SPEC: EndpointSpec[MarketInformationTagLookupResponseDTO] = EndpointSpec(
     name="TagLookup v2",
     method="GET",
-    path="/market/v2/market/tagLookup?clientAccountId={clientAccountId}",
+    path="/v2/market/tagLookup?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="market",

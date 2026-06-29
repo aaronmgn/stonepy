@@ -154,7 +154,7 @@ GET_CLIENT_COMMUNICATION_MESSAGES_SPEC: EndpointSpec[ApiClientCommunicationRespo
     EndpointSpec(
         name="GetClientCommunicationMessages v2",
         method="GET",
-        path="/message/v2/message/clientCommunicationMessages?clientAccountId={clientAccountId}",
+        path="/v2/message/clientCommunicationMessages?clientAccountId={clientAccountId}",
         idempotent=True,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="message",
@@ -223,7 +223,7 @@ async def aget_message_popup(
 GET_SECURE_MESSAGES_SPEC: EndpointSpec[SecureMessageCount] = EndpointSpec(
     name="GetSecureMessages v2",
     method="GET",
-    path="/message/v2/message/SecureMessages?clientAccountId={clientAccountId}",
+    path="/v2/message/SecureMessages?clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="message",
@@ -305,7 +305,7 @@ SAVE_CLIENT_COMMUNICATION_MESSAGE_RESPONSE_SPEC: EndpointSpec[
 ] = EndpointSpec(
     name="SaveClientCommunicationMessageResponse v2",
     method="POST",
-    path="/message/v2/message/clientCommunicationMessageResponse",
+    path="/v2/message/clientCommunicationMessageResponse",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="message",

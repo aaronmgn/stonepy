@@ -14,7 +14,7 @@ _RESPONSE_BODY = '{"Tags":[{"Children":[]}]}'
 
 @respx.mock
 def test_tag_lookup_returns_response() -> None:
-    route = respx.get("https://api.example/market/v2/market/tagLookup").mock(
+    route = respx.get("https://api.example/v2/market/tagLookup").mock(
         return_value=httpx.Response(200, content=_RESPONSE_BODY)
     )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
@@ -25,7 +25,7 @@ def test_tag_lookup_returns_response() -> None:
         assert isinstance(resp, MarketInformationTagLookupResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert route.calls[0].request.url.path == "/market/v2/market/tagLookup"
+        assert route.calls[0].request.url.path == "/v2/market/tagLookup"
         assert dict(route.calls[0].request.url.params) == {"clientAccountId": "x"}
     finally:
         client.close()
@@ -34,7 +34,7 @@ def test_tag_lookup_returns_response() -> None:
 @respx.mock
 def test_tag_lookup_async() -> None:
     async def run() -> None:
-        route = respx.get("https://api.example/market/v2/market/tagLookup").mock(
+        route = respx.get("https://api.example/v2/market/tagLookup").mock(
             return_value=httpx.Response(200, content=_RESPONSE_BODY)
         )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Correct the request path for the v2 endpoints across the `market`, `message`,
+  `client_preference`, `order`, `preference`, `watchlist`, `session`, `price_alert`, and
+  `user_account` resource groups. The frozen catalog composed each path as `/{target}{uri_template}`,
+  doubling the resource segment the v2 `uri_template` already carries (for example
+  `/market/v2/market/...`), so every one returned `404`. The generator now emits the documented
+  `/v2/...` template for v2 endpoints, served under the existing `/TradingAPI` base. Routes were
+  verified against the live CIAPI demo
+  ([#15](https://github.com/aaronmgn/stonepy/issues/15),
+  [#16](https://github.com/aaronmgn/stonepy/issues/16),
+  [#17](https://github.com/aaronmgn/stonepy/issues/17),
+  [#18](https://github.com/aaronmgn/stonepy/issues/18),
+  [#19](https://github.com/aaronmgn/stonepy/issues/19),
+  [#20](https://github.com/aaronmgn/stonepy/issues/20),
+  [#21](https://github.com/aaronmgn/stonepy/issues/21)).
+- Correct three v2 order/preference routes whose upstream `uri_template` is itself wrong:
+  `order.get_active_stop_limit_order` now calls the v1-style
+  `/order/{orderId}/activeStopLimitOrder` (the 0.2.0 `/order/v2/...` override also 404s),
+  `order.get_open_position` calls `/v2/order/{orderId}/openPosition`, `order.save_order` posts to
+  `/v2/order`, and `user_preference.get_user_preference` calls the singular `/v2/Preference`
+  (the catalog pluralised it to `/v2/Preferences`)
+  ([#18](https://github.com/aaronmgn/stonepy/issues/18),
+  [#19](https://github.com/aaronmgn/stonepy/issues/19)).
+
 ## [0.2.1] - 2026-06-28
 
 ### Fixed
