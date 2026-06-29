@@ -69,10 +69,12 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
         "order",
         "GetActiveStopLimitOrder v2",
     ): "/order/v2/{orderId}/activeStopLimitOrder?clientAccountId={clientAccountId}",
-    # CIAPI serves logon from the host root at "/v2/session" (see _HOST_ROOTED_ENDPOINTS), not the
-    # catalog's best-effort "/session/v2/Session", which doubles the target segment and 401s.
-    # Confirmed against the reference pygcapi client (BASE_URL_V2 = "https://host/v2").
+    # CIAPI serves logon and account lookup from the host root ("https://host/v2/...", see
+    # _HOST_ROOTED_ENDPOINTS), not the catalog's best-effort "/{target}/v2/..." which doubles the
+    # target segment and 401s. Confirmed against the reference pygcapi client (BASE_URL_V2 =
+    # "https://host/v2"): logon at "/v2/session", account at "/v2/UserAccount/...".
     ("session", "LogOn v2"): "/v2/session",
+    ("user_account", "GetClientAndTradingAccount v2"): "/v2/UserAccount/ClientAndTradingAccount",
 }
 
 # CIAPI serves a few v2 endpoints from the host root ("https://host/v2/...") rather than under the
@@ -81,6 +83,7 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
 _HOST_ROOTED_ENDPOINTS: frozenset[tuple[str, str]] = frozenset(
     {
         ("session", "LogOn v2"),
+        ("user_account", "GetClientAndTradingAccount v2"),
     }
 )
 

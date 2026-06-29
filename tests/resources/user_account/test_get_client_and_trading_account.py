@@ -14,9 +14,9 @@ _RESPONSE_BODY = '{"AccountResult":{"LegalParties":[],"AccountHolders":[],"Clien
 
 @respx.mock
 def test_get_client_and_trading_account_returns_response() -> None:
-    route = respx.get(
-        "https://api.example/userAccount/v2/userAccount/ClientAndTradingAccount"
-    ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+    route = respx.get("https://api.example/v2/UserAccount/ClientAndTradingAccount").mock(
+        return_value=httpx.Response(200, content=_RESPONSE_BODY)
+    )
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
@@ -24,9 +24,7 @@ def test_get_client_and_trading_account_returns_response() -> None:
         assert isinstance(resp, AccountInformationResponseDTOv2)
         assert route.called
         assert route.calls[0].request.method == "GET"
-        assert (
-            route.calls[0].request.url.path == "/userAccount/v2/userAccount/ClientAndTradingAccount"
-        )
+        assert route.calls[0].request.url.path == "/v2/UserAccount/ClientAndTradingAccount"
     finally:
         client.close()
 
@@ -34,9 +32,9 @@ def test_get_client_and_trading_account_returns_response() -> None:
 @respx.mock
 def test_get_client_and_trading_account_async() -> None:
     async def run() -> None:
-        route = respx.get(
-            "https://api.example/userAccount/v2/userAccount/ClientAndTradingAccount"
-        ).mock(return_value=httpx.Response(200, content=_RESPONSE_BODY))
+        route = respx.get("https://api.example/v2/UserAccount/ClientAndTradingAccount").mock(
+            return_value=httpx.Response(200, content=_RESPONSE_BODY)
+        )
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")

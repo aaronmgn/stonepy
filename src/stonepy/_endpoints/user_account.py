@@ -46,7 +46,8 @@ async def aget_charting_enabled(ctx: CallContext, id: str) -> ResponseModel:
 GET_CLIENT_AND_TRADING_ACCOUNT_SPEC: EndpointSpec[AccountInformationResponseDTOv2] = EndpointSpec(
     name="GetClientAndTradingAccount v2",
     method="GET",
-    path="/userAccount/v2/userAccount/ClientAndTradingAccount",
+    path="/v2/UserAccount/ClientAndTradingAccount",
+    host_rooted=True,
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="user_account",
