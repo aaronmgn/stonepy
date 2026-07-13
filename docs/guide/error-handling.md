@@ -7,6 +7,7 @@ particular failure.
 ```python
 from stonepy import (
     ClientConfig,
+    ConfigurationError,
     RateLimitError,
     StoneXAPIError,
     StoneXClient,
@@ -40,6 +41,7 @@ except StoneXError as exc:
 | Exception | Raised when |
 | --- | --- |
 | `AuthenticationError` | Log-on failed or the session could not be refreshed. |
+| `ConfigurationError` | The client has no credentials configured for session refresh. |
 | `RateLimitError` | The API returned a rate-limit response; inspect `retry_after`. |
 | `OrderRejectedError` | The request was accepted but the order was rejected. |
 | `StoneXAPIError` | A non-success API response; exposes `http_status`, `error_code`, `error_message`. |

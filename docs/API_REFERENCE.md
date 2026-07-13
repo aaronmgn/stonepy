@@ -30,6 +30,7 @@ The top-level `stonepy` package exports the client entry points and the error hi
 All exceptions inherit from `StoneXError`:
 
 - `AuthenticationError` - log-on failed or the session could not be refreshed.
+- `ConfigurationError` - the client has no credentials configured for session refresh.
 - `RateLimitError` - the API returned a rate-limit response; inspect `retry_after`.
 - `OrderRejectedError` - the request was accepted but the order was rejected.
 - `StoneXAPIError` - a non-success API response; exposes `http_status`, `error_code`, and `error_message`.
