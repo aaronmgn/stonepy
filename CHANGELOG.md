@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-13
+
 ### Changed
 
 - **BREAKING:** The proactive client-side rate limit now applies one aggregate
@@ -296,7 +298,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.2.6...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.3.0
 [0.2.6]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.6
 [0.2.5]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.5
 [0.2.4]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.4
