@@ -15,6 +15,15 @@ class StoneXError(Exception):
     """Base class for all stonepy errors."""
 
 
+class ConfigurationError(StoneXError):
+    """The client is not configured for the attempted operation.
+
+    Raised when a session-authenticated call needs a token refresh but no credentials were
+    configured on [`ClientConfig`][stonepy.ClientConfig] and no manual ``log_on`` has
+    succeeded.
+    """
+
+
 class StoneXAPIError(StoneXError):
     """HTTP or API business-error response with endpoint context.
 

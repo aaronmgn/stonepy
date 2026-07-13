@@ -8,12 +8,13 @@ from types import TracebackType
 
 from stonepy._core.clock import Clock, SystemClock
 from stonepy._core.config import ClientConfig
+from stonepy._core.errors import ConfigurationError
 from stonepy._core.pipeline import CallContext
 from stonepy._core.plugins import discover_plugin_resources
 from stonepy._core.ratelimit import BucketedSlidingWindowLimiter
 from stonepy._core.resource import BaseResource
 from stonepy._core.retry import RetryPolicy
-from stonepy._core.session import AsyncSessionManager, SessionManager
+from stonepy._core.session import AsyncSessionManager, SessionManager, require_session_token
 from stonepy._core.transport import AsyncTransport, SyncTransport
 from stonepy._endpoints import session as _session_ep
 from stonepy.models import ApiLogOnRequestDTO
@@ -52,7 +53,10 @@ from stonepy.resources.watchlist import AsyncWatchlistResource, WatchlistResourc
 
 def _missing_logon() -> tuple[str, str]:
     """Raise because no credentials were configured for session refresh."""
-    raise RuntimeError("session refresh is not configured")
+    raise ConfigurationError(
+        "session refresh is not configured: set app_key/username/password on "
+        "ClientConfig or call client.session.log_on() first"
+    )
 
 
 def _has_config_credentials(config: ClientConfig) -> bool:
@@ -77,10 +81,8 @@ def _config_logon(ctx: CallContext, config: ClientConfig) -> Callable[[], tuple[
         return _missing_logon
 
     def logon() -> tuple[str, str]:
-        return (
-            _session_ep.log_on(ctx, _logon_request(config)).session or "",
-            config.username,
-        )
+        response = _session_ep.log_on(ctx, _logon_request(config))
+        return require_session_token(response.session), config.username
 
     return logon
 
@@ -93,9 +95,8 @@ def _async_config_logon(
         return None
 
     async def alogon() -> tuple[str, str]:
-        return (
-            await _session_ep.alog_on(ctx, _logon_request(config))
-        ).session or "", config.username
+        response = await _session_ep.alog_on(ctx, _logon_request(config))
+        return require_session_token(response.session), config.username
 
     return alogon
 

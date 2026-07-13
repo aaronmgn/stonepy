@@ -9,6 +9,7 @@ from typing import TypeAlias
 
 from stonepy._core.clock import Clock
 from stonepy._core.endpoint import AuthPolicy
+from stonepy._core.errors import AuthenticationError
 
 SessionRefreshResult: TypeAlias = str | tuple[str, str]
 """A logon result: either a session token, or a ``(token, username)`` pair."""
@@ -226,3 +227,24 @@ def _refresh_credentials(
     if isinstance(result, tuple):
         return result
     return result, current_username
+
+
+def require_session_token(token: str | None) -> str:
+    """Return *token*, or raise if a logon reply carried no session token.
+
+    Raises:
+        AuthenticationError: When *token* is ``None`` or empty; storing an empty token would
+            send ``Session: ""`` on every later request and surface as confusing 401 loops far
+            from the root cause.
+    """
+    if token:
+        return token
+    raise AuthenticationError(
+        http_status=200,
+        error_code=None,
+        error_message="logon response contained no session token",
+        method="POST",
+        path="/v2/session",
+        raw_body=None,
+        headers={},
+    )

@@ -3,9 +3,12 @@ import threading
 from types import TracebackType
 from typing import Any
 
+import pytest
+
 from stonepy._core.clock import FakeClock
 from stonepy._core.endpoint import AuthPolicy
-from stonepy._core.session import AsyncSessionManager, SessionManager
+from stonepy._core.errors import AuthenticationError
+from stonepy._core.session import AsyncSessionManager, SessionManager, require_session_token
 
 
 class _TrackingLock:
@@ -219,3 +222,13 @@ def test_async_session_manager_aclear_drops_token() -> None:
         assert await manager.aauth_headers(AuthPolicy.SESSION) == {}
 
     asyncio.run(run())
+
+
+def test_require_session_token_returns_token() -> None:
+    assert require_session_token("TOKEN") == "TOKEN"
+
+
+def test_require_session_token_raises_on_missing_or_empty() -> None:
+    for bad in (None, ""):
+        with pytest.raises(AuthenticationError):
+            require_session_token(bad)
