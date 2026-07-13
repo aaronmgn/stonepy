@@ -1037,7 +1037,7 @@ def test_429_without_retry_after_waits_at_least_one_second() -> None:
     assert parts.clock.now() >= 1.0
 
 
-def test_rate_limit_bucket_uses_independent_windows() -> None:
+def test_rate_limit_buckets_share_global_window() -> None:
     t = FakeTransport(
         [
             httpx.Response(200, json={"OrderId": 1}),
@@ -1047,7 +1047,7 @@ def test_rate_limit_bucket_uses_independent_windows() -> None:
     )
     cfg = ClientConfig(
         base_url="https://api.example",
-        rate_limit_max=1,
+        rate_limit_max=2,
         rate_limit_window_seconds=5.0,
     )
     parts = _ctx(t, [], config=cfg)
@@ -1057,9 +1057,32 @@ def test_rate_limit_bucket_uses_independent_windows() -> None:
 
     assert parts.clock.now() == 0.0
 
-    parts.ctx.invoke(_bucket_spec("orders"), path_params={})
+    parts.ctx.invoke(_bucket_spec("accounts"), path_params={})
 
     assert parts.clock.now() == 5.0
+
+
+def test_rate_limit_501st_request_within_window_waits() -> None:
+    t = FakeTransport(
+        [httpx.Response(200, json={"OrderId": request_id}) for request_id in range(501)]
+    )
+    cfg = ClientConfig(
+        base_url="https://api.example",
+        rate_limit_max=500,
+        rate_limit_window_seconds=5.0,
+    )
+    parts = _ctx(t, [], config=cfg)
+    spec = _bucket_spec("orders")
+
+    for _ in range(500):
+        parts.ctx.invoke(spec, path_params={})
+
+    assert parts.clock.now() == 0.0
+
+    parts.ctx.invoke(spec, path_params={})
+
+    assert parts.clock.now() == 5.0
+    assert len(t.sent) == 501
 
 
 def test_5002_without_429_is_not_retried_as_rate_limit() -> None:

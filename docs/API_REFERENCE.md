@@ -78,3 +78,6 @@ For endpoint semantics, request bodies, and response bodies, the upstream
 [StoneX CIAPI v2 documentation](https://docs.labs.gaincapital.com/) remains authoritative.
 `stonepy` tracks that contract through its generated catalog; the pinned catalog revision is
 recorded in [`CATALOG_VERSION`](https://github.com/aaronmgn/stonepy/blob/main/CATALOG_VERSION).
+Contributors regenerating catalog-derived files must either set
+`STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog` or pass the same directory with the
+generator's `--catalog-root` option. The CLI option takes precedence when both are present.

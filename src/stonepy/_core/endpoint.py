@@ -54,7 +54,8 @@ class EndpointSpec(Generic[ResponseT]):
         path: The URL path template, which may contain ``{placeholder}`` segments.
         idempotent: Whether the call is safe to retry automatically.
         auth_policy: Whether the call requires a session token.
-        rate_limit_bucket: The limiter bucket this endpoint shares with its siblings.
+        rate_limit_bucket: Generated resource-group label passed to the limiter. All labels share
+            the client's aggregate CIAPI rate-limit window.
         response_model: The Pydantic model the response body is validated against.
         request_model: The Pydantic model for the request body, if any.
         params: The ordered path, query, and body parameter bindings.

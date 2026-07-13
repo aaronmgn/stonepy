@@ -244,22 +244,26 @@ def test_sliding_window_never_over_admits_across_threads() -> None:
     assert len(admitted_in_first_window) <= 4
 
 
-def test_bucketed_limiter_concurrent_bucket_creation_loses_no_grants(
+def test_bucketed_limiter_concurrent_initialization_shares_all_grants(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    created: list[SlidingWindowLimiter] = []
+
     class _SlowInitLimiter(SlidingWindowLimiter):
-        """Limiter whose construction yields the GIL, widening the get-create-store race."""
+        """Limiter whose construction yields the GIL, widening the initialization race."""
 
         def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
             time.sleep(0.001)
             super().__init__(max_requests, window_seconds, clock)
+            created.append(self)
 
     monkeypatch.setattr(ratelimit, "SlidingWindowLimiter", _SlowInitLimiter)
     clock = _ThreadedFakeClock()
     limiter = BucketedSlidingWindowLimiter(1000, 60.0, clock)
 
-    errors = _run_threads(lambda: limiter.acquire("order"), 8)
+    errors = _run_threads(lambda: limiter.acquire(threading.current_thread().name), 8)
 
     assert not errors
-    assert len(limiter._limiters) == 1
-    assert len(limiter._limiters["order"]._events) == 8
+    assert len(created) == 1
+    assert limiter._shared_limiter is created[0]
+    assert len(created[0]._events) == 8

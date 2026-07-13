@@ -64,38 +64,38 @@ class SlidingWindowLimiter:
 
 
 class BucketedSlidingWindowLimiter:
-    """Sliding-window limiter partitioned by generated endpoint bucket names.
+    """Bucket-compatible facade over one shared sliding-window limiter.
 
-    Buckets are expected to come from the closed set of generated `EndpointSpec`
-    constants, not from user input or other high-cardinality values.
+    Generated endpoint specs still supply resource-group bucket names, but CIAPI documents one
+    aggregate server budget. All bucket names therefore acquire from the same window. The shared
+    limiter is created lazily under a lock, and that lock is never held while sleeping or awaiting.
     """
 
     def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
         self._max_requests = max_requests
         self._window_seconds = window_seconds
         self._clock = clock
-        self._limiters: dict[str, SlidingWindowLimiter] = {}
-        self._buckets_lock = threading.Lock()
+        self._shared_limiter: SlidingWindowLimiter | None = None
+        self._limiter_lock = threading.Lock()
 
     def acquire(self, bucket: str) -> None:
-        """Acquire one slot from *bucket*'s limiter, creating it on first use."""
+        """Acquire one slot from the aggregate window shared by every *bucket*."""
         self._limiter(bucket).acquire()
 
     async def aacquire(self, bucket: str) -> None:
-        """Await one slot from *bucket*'s limiter, creating it on first use."""
+        """Await one slot from the aggregate window shared by every *bucket*."""
         await self._limiter(bucket).aacquire()
 
-    def _limiter(self, bucket: str) -> SlidingWindowLimiter:
-        key = bucket or "default"
-        with self._buckets_lock:
-            limiter = self._limiters.get(key)
+    def _limiter(self, _bucket: str) -> SlidingWindowLimiter:
+        with self._limiter_lock:
+            limiter = self._shared_limiter
             if limiter is None:
                 limiter = SlidingWindowLimiter(
                     max_requests=self._max_requests,
                     window_seconds=self._window_seconds,
                     clock=self._clock,
                 )
-                self._limiters[key] = limiter
+                self._shared_limiter = limiter
             return limiter
 
 
