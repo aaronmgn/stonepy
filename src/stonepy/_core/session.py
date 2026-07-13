@@ -46,17 +46,24 @@ class SessionManager:
         """Store a freshly issued token and username, bumping the generation."""
         self.set_token(token, username)
 
-    def clear(self) -> None:
-        """Drop the stored token so no auth headers are sent, bumping the generation."""
+    def clear(self, expected_token: str | None = None) -> None:
+        """Drop the stored token so no auth headers are sent, bumping the generation.
+
+        When *expected_token* is given, the token is only dropped if it is the one currently
+        stored; this keeps a log-off aimed at one session (or one that raced a re-logon) from
+        discarding a different, still-valid token.
+        """
         with self._lock:
+            if expected_token is not None and self._token != expected_token:
+                return
             self._token = None
             self._username = ""
             self._generation += 1
             self._issued_at = None
 
-    async def aclear(self) -> None:
+    async def aclear(self, expected_token: str | None = None) -> None:
         """Drop the stored token so no auth headers are sent, bumping the generation."""
-        self.clear()
+        self.clear(expected_token)
 
     @property
     def generation(self) -> int:
@@ -131,16 +138,29 @@ class AsyncSessionManager:
             self._generation += 1
             self._issued_at = self._clock.now()
 
-    def clear(self) -> None:
-        """Drop the stored token so no auth headers are sent, bumping the generation."""
+    def clear(self, expected_token: str | None = None) -> None:
+        """Drop the stored token so no auth headers are sent, bumping the generation.
+
+        Like the other synchronous twins on this class, this does not take the async lock, so
+        it can interleave with an in-flight ``arefresh``; prefer ``aclear`` from async code.
+        """
+        if expected_token is not None and self._token != expected_token:
+            return
         self._token = None
         self._username = ""
         self._generation += 1
         self._issued_at = None
 
-    async def aclear(self) -> None:
-        """Drop the stored token under the async lock, bumping the generation."""
+    async def aclear(self, expected_token: str | None = None) -> None:
+        """Drop the stored token under the async lock, bumping the generation.
+
+        When *expected_token* is given, the token is only dropped if it is the one currently
+        stored; this keeps a log-off aimed at one session (or one that raced a re-logon) from
+        discarding a different, still-valid token.
+        """
         async with self._lock:
+            if expected_token is not None and self._token != expected_token:
+                return
             self._token = None
             self._username = ""
             self._generation += 1
@@ -233,11 +253,11 @@ def require_session_token(token: str | None) -> str:
     """Return *token*, or raise if a logon reply carried no session token.
 
     Raises:
-        AuthenticationError: When *token* is ``None`` or empty; storing an empty token would
-            send ``Session: ""`` on every later request and surface as confusing 401 loops far
-            from the root cause.
+        AuthenticationError: When *token* is ``None``, empty, or whitespace-only; storing such
+            a token would send a useless ``Session`` header on every later request and surface
+            as confusing 401 loops far from the root cause.
     """
-    if token:
+    if token and token.strip():
         return token
     raise AuthenticationError(
         http_status=200,

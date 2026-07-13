@@ -23,7 +23,9 @@ _WORD_BOUNDARY_RE = re.compile(r"(.)([A-Z][a-z]+)")
 
 # Wire names of credential/token fields; emitted with repr=False so logging a DTO (or its
 # repr in a traceback) never echoes a secret. Matched case-insensitively on the raw name.
-_SECRET_FIELD_RAW_NAMES = frozenset({"appkey", "newpassword", "password", "session", "twofatoken"})
+_SECRET_FIELD_RAW_NAMES = frozenset(
+    {"appkey", "newpassword", "password", "session", "token", "twofatoken"}
+)
 
 # Width of a docstring text line, leaving room for the indent and surrounding quotes so the
 # generated source stays within the project's 100-column ``ruff`` line limit (E501).

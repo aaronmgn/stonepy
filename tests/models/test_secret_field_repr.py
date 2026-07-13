@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from stonepy.models import (
     ApiChangePasswordRequestDTO,
+    ApiClientAccountTokenDTOv2,
     ApiLogOnRequestDTO,
     ApiLogOnResponseDTOv2,
 )
@@ -29,3 +30,9 @@ def test_change_password_request_repr_hides_both_passwords() -> None:
     for rendered in (repr(dto), str(dto)):
         assert "old-pw" not in rendered
         assert "new-pw" not in rendered
+
+
+def test_client_account_token_repr_hides_token() -> None:
+    dto = ApiClientAccountTokenDTOv2.model_validate({"ClientAccountId": 1, "Token": "acct-secret"})
+    for rendered in (repr(dto), str(dto)):
+        assert "acct-secret" not in rendered

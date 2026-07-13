@@ -229,6 +229,41 @@ def test_require_session_token_returns_token() -> None:
 
 
 def test_require_session_token_raises_on_missing_or_empty() -> None:
-    for bad in (None, ""):
+    for bad in (None, "", "   "):
         with pytest.raises(AuthenticationError):
             require_session_token(bad)
+
+
+def test_session_manager_clear_with_matching_expected_token_drops_it() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("TOKEN", "user")
+
+    manager.clear(expected_token="TOKEN")
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {}
+
+
+def test_session_manager_clear_with_stale_expected_token_keeps_current() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("NEW", "user")
+    generation = manager.generation
+
+    manager.clear(expected_token="OLD")
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {"Session": "NEW", "UserName": "user"}
+    assert manager.generation == generation
+
+
+def test_async_session_manager_aclear_with_stale_expected_token_keeps_current() -> None:
+    async def run() -> None:
+        manager = AsyncSessionManager(FakeClock(), 1080.0)
+        await manager.aset_token("NEW", "user")
+
+        await manager.aclear(expected_token="OLD")
+
+        assert await manager.aauth_headers(AuthPolicy.SESSION) == {
+            "Session": "NEW",
+            "UserName": "user",
+        }
+
+    asyncio.run(run())

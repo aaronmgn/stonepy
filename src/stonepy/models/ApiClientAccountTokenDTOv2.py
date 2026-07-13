@@ -13,7 +13,7 @@ class ApiClientAccountTokenDTOv2(ResponseModel):
 
     client_account_id: int | None = Field(default=None, alias="ClientAccountId")
     """Client account identifier"""
-    token: str | None = Field(default=None, alias="Token")
+    token: str | None = Field(default=None, alias="Token", repr=False)
     """Token identifier"""
 
 
