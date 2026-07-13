@@ -476,6 +476,9 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
         ) from exc
 
 
+_TEXT_REJECTION_STATUSES = frozenset({"failure"})
+
+
 def check_business_status(
     model: BaseModel | Mapping[str, object],
     status_decoder: StatusDecoder,
@@ -486,15 +489,26 @@ def check_business_status(
 ) -> None:
     """Raise [`OrderRejectedError`][stonepy.OrderRejectedError] if a model carries a rejection.
 
-    Reads the ``Status`` (and optional ``StatusReason``) fields and runs them through
-    *status_decoder*. Returns without error when the model has no status field or the status
-    is not a rejection.
+    Reads the ``Status`` (and optional ``StatusReason``) fields and runs numeric codes through
+    *status_decoder*. Text statuses (e.g. SaveOrder's ``"Success"``/``"Failure"``) never reach
+    the decoder: ``"Failure"`` raises with the ``Reason`` field as the message and any other
+    text is ignored. Returns without error when the model has no status field or the status is
+    not a rejection.
     """
     status_value = _field_value(model, ("Status", "status"))
     if status_value is None:
         return
 
-    status = int(status_value)
+    if isinstance(status_value, str):
+        try:
+            status = int(status_value)
+        except ValueError:
+            _check_text_status(
+                model, status_value, method=method, path=path, http_status=http_status
+            )
+            return
+    else:
+        status = status_value
     status_reason_value = _field_value(
         model,
         ("StatusReason", "status_reason", "StatusReasonId", "statusReason"),
@@ -507,6 +521,34 @@ def check_business_status(
     raise OrderRejectedError(
         status=status,
         status_reason=status_reason,
+        reason=reason,
+        response=model,
+        method=method,
+        path=path,
+        http_status=http_status,
+    )
+
+
+def _check_text_status(
+    model: BaseModel | Mapping[str, object],
+    status_text: str,
+    *,
+    method: str | None,
+    path: str | None,
+    http_status: int | None,
+) -> None:
+    """Raise for a text ``"Failure"`` status; ignore every other text status.
+
+    Unknown text statuses are deliberately not rejections: a false rejection could prompt a
+    caller to resubmit and double an order.
+    """
+    if status_text.strip().lower() not in _TEXT_REJECTION_STATUSES:
+        return
+    reason_value = _field_value(model, ("Reason", "reason", "StatusReason", "status_reason"))
+    reason = str(reason_value) if reason_value is not None else status_text
+    raise OrderRejectedError(
+        status=status_text,
+        status_reason=None,
         reason=reason,
         response=model,
         method=method,

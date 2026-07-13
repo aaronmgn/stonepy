@@ -3,8 +3,10 @@ from __future__ import annotations
 import asyncio
 
 import httpx
+import pytest
 import respx
 
+from stonepy import OrderRejectedError
 from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ExecutionResponseDTO, ExecutionVenueRequestDTO
@@ -48,3 +50,34 @@ def test_save_order_async() -> None:
             await client.aclose()
 
     asyncio.run(run())
+
+
+def test_save_order_success_status_string_returns_model() -> None:
+    with respx.mock:
+        respx.post("https://api.example/v2/order").mock(
+            return_value=httpx.Response(200, content='{"RequestId":"r1","Status":"Success"}')
+        )
+        client = StoneXClient(ClientConfig(base_url="https://api.example"))
+        try:
+            client._ctx.session.set_token("TOKEN", "user")
+            resp = client.order.save_order(ExecutionVenueRequestDTO.model_construct())
+            assert resp.status == "Success"
+        finally:
+            client.close()
+
+
+def test_save_order_failure_status_string_raises_order_rejected() -> None:
+    with respx.mock:
+        respx.post("https://api.example/v2/order").mock(
+            return_value=httpx.Response(
+                200, content='{"RequestId":"r1","Status":"Failure","Reason":"Insufficient funds"}'
+            )
+        )
+        client = StoneXClient(ClientConfig(base_url="https://api.example"))
+        try:
+            client._ctx.session.set_token("TOKEN", "user")
+            with pytest.raises(OrderRejectedError) as exc_info:
+                client.order.save_order(ExecutionVenueRequestDTO.model_construct())
+            assert exc_info.value.reason == "Insufficient funds"
+        finally:
+            client.close()

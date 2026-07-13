@@ -1335,3 +1335,38 @@ def test_business_status_checker_is_noop_without_status_or_rejection() -> None:
         _StatusResp.model_validate({"Status": 1, "StatusReason": None}),
         lambda status, status_reason: BusinessStatus(is_rejection=status == 6),
     )
+
+
+def test_check_business_status_ignores_success_text_status() -> None:
+    check_business_status(
+        {"RequestId": "r1", "Status": "Success"},
+        default_status_decoder,
+        method="POST",
+        path="/v2/order",
+        http_status=200,
+    )
+
+
+def test_check_business_status_raises_on_failure_text_status() -> None:
+    with pytest.raises(OrderRejectedError) as exc_info:
+        check_business_status(
+            {"RequestId": "r1", "Status": "Failure", "Reason": "Insufficient funds"},
+            default_status_decoder,
+            method="POST",
+            path="/v2/order",
+            http_status=200,
+        )
+    assert exc_info.value.status == "Failure"
+    assert exc_info.value.reason == "Insufficient funds"
+    assert exc_info.value.status_reason is None
+
+
+def test_check_business_status_ignores_unknown_text_status() -> None:
+    # Unknown text statuses must not raise: a false rejection could prompt a caller
+    # to resubmit and double an order.
+    check_business_status({"Status": "Queued"}, default_status_decoder)
+
+
+def test_check_business_status_numeric_string_still_decodes() -> None:
+    with pytest.raises(OrderRejectedError):
+        check_business_status({"Status": "5"}, default_status_decoder)
