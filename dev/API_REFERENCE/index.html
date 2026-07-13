@@ -9282,6 +9282,7 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <p>All exceptions inherit from <code>StoneXError</code>:</p>
 <ul>
 <li><code>AuthenticationError</code> - log-on failed or the session could not be refreshed.</li>
+<li><code>ConfigurationError</code> - the client has no credentials configured for session refresh.</li>
 <li><code>RateLimitError</code> - the API returned a rate-limit response; inspect <code>retry_after</code>.</li>
 <li><code>OrderRejectedError</code> - the request was accepted but the order was rejected.</li>
 <li><code>StoneXAPIError</code> - a non-success API response; exposes <code>http_status</code>, <code>error_code</code>, and <code>error_message</code>.</li>
@@ -9290,8 +9291,9 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 </ul>
 <h2 id="resource-groups">Resource Groups<a class="headerlink" href="#resource-groups" title="Permanent link">&para;</a></h2>
 <p>Resource groups are exposed as properties on both clients and mirror the StoneX API surface:</p>
-<p><code>session</code>, <code>order</code>, <code>market</code>, <code>watchlist</code>, <code>price_alert</code>, <code>clientpreference</code>, <code>preference</code>,
-<code>message</code>, <code>news</code>, <code>spread</code>, <code>cfd</code>, <code>margin</code>, <code>clientapplication</code>, and <code>user_account</code>.</p>
+<p><code>cfd</code>, <code>client_preference</code>, <code>clientapplication</code>, <code>clientpreference</code>, <code>fixedmargin</code>, <code>margin</code>,
+<code>market</code>, <code>message</code>, <code>news</code>, <code>order</code>, <code>order_including_closed</code>, <code>pm</code>, <code>preference</code>,
+<code>price_alert</code>, <code>session</code>, <code>spread</code>, <code>tradingadvisor</code>, <code>user_account</code>, and <code>watchlist</code>.</p>
 <p>Each method maps to a single CIAPI v2 endpoint:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span><span class="n">request_dto</span><span class="p">)</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span><span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>

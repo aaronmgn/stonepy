@@ -10104,8 +10104,7 @@ lazily construct typed API resource groups.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>src/stonepy/client.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-168">168</a></span>
-<span class="normal"><a href="#__codelineno-0-169">169</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-169">169</a></span>
 <span class="normal"><a href="#__codelineno-0-170">170</a></span>
 <span class="normal"><a href="#__codelineno-0-171">171</a></span>
 <span class="normal"><a href="#__codelineno-0-172">172</a></span>
@@ -10151,54 +10150,55 @@ lazily construct typed API resource groups.</p>
 <span class="normal"><a href="#__codelineno-0-212">212</a></span>
 <span class="normal"><a href="#__codelineno-0-213">213</a></span>
 <span class="normal"><a href="#__codelineno-0-214">214</a></span>
-<span class="normal"><a href="#__codelineno-0-215">215</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-168" name="__codelineno-0-168"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ClientConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-169" name="__codelineno-0-169"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span> <span class="o">=</span> <span class="n">_build_context</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-171" name="__codelineno-0-171"></a>        <span class="n">name</span><span class="p">:</span> <span class="n">resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">)</span>
-<a id="__codelineno-0-172" name="__codelineno-0-172"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">_load_plugin_resources</span><span class="p">(</span>
-<a id="__codelineno-0-173" name="__codelineno-0-173"></a>            <span class="n">config</span><span class="p">,</span>
-<a id="__codelineno-0-174" name="__codelineno-0-174"></a>            <span class="p">{</span>
-<a id="__codelineno-0-175" name="__codelineno-0-175"></a>                <span class="s2">&quot;cfd&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-176" name="__codelineno-0-176"></a>                <span class="s2">&quot;client_preference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-177" name="__codelineno-0-177"></a>                <span class="s2">&quot;clientapplication&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-178" name="__codelineno-0-178"></a>                <span class="s2">&quot;clientpreference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-179" name="__codelineno-0-179"></a>                <span class="s2">&quot;fixedmargin&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-180" name="__codelineno-0-180"></a>                <span class="s2">&quot;margin&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-181" name="__codelineno-0-181"></a>                <span class="s2">&quot;market&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-182" name="__codelineno-0-182"></a>                <span class="s2">&quot;message&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-183" name="__codelineno-0-183"></a>                <span class="s2">&quot;news&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-184" name="__codelineno-0-184"></a>                <span class="s2">&quot;order&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-185" name="__codelineno-0-185"></a>                <span class="s2">&quot;order_including_closed&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-186" name="__codelineno-0-186"></a>                <span class="s2">&quot;pm&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-187" name="__codelineno-0-187"></a>                <span class="s2">&quot;preference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-188" name="__codelineno-0-188"></a>                <span class="s2">&quot;price_alert&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-189" name="__codelineno-0-189"></a>                <span class="s2">&quot;session&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-190" name="__codelineno-0-190"></a>                <span class="s2">&quot;spread&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-191" name="__codelineno-0-191"></a>                <span class="s2">&quot;tradingadvisor&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-192" name="__codelineno-0-192"></a>                <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-193" name="__codelineno-0-193"></a>                <span class="s2">&quot;watchlist&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-194" name="__codelineno-0-194"></a>            <span class="p">},</span>
-<a id="__codelineno-0-195" name="__codelineno-0-195"></a>        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-<a id="__codelineno-0-196" name="__codelineno-0-196"></a>    <span class="p">}</span>
-<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cfd</span><span class="p">:</span> <span class="n">CfdResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_preference</span><span class="p">:</span> <span class="n">ClientPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientapplication</span><span class="p">:</span> <span class="n">ClientapplicationResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientpreference</span><span class="p">:</span> <span class="n">ClientpreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_fixedmargin</span><span class="p">:</span> <span class="n">FixedmarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_margin</span><span class="p">:</span> <span class="n">MarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_market</span><span class="p">:</span> <span class="n">MarketResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span> <span class="n">MessageResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_news</span><span class="p">:</span> <span class="n">NewsResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">:</span> <span class="n">OrderResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-207" name="__codelineno-0-207"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order_including_closed</span><span class="p">:</span> <span class="n">OrderIncludingClosedResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_pm</span><span class="p">:</span> <span class="n">PmResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_preference</span><span class="p">:</span> <span class="n">PreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_price_alert</span><span class="p">:</span> <span class="n">PriceAlertResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="p">:</span> <span class="n">SessionResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_spread</span><span class="p">:</span> <span class="n">SpreadResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_tradingadvisor</span><span class="p">:</span> <span class="n">TradingadvisorResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_user_account</span><span class="p">:</span> <span class="n">UserAccountResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_watchlist</span><span class="p">:</span> <span class="n">WatchlistResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="normal"><a href="#__codelineno-0-215">215</a></span>
+<span class="normal"><a href="#__codelineno-0-216">216</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-169" name="__codelineno-0-169"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ClientConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-170" name="__codelineno-0-170"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span> <span class="o">=</span> <span class="n">_build_context</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-0-171" name="__codelineno-0-171"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-172" name="__codelineno-0-172"></a>        <span class="n">name</span><span class="p">:</span> <span class="n">resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">)</span>
+<a id="__codelineno-0-173" name="__codelineno-0-173"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">_load_plugin_resources</span><span class="p">(</span>
+<a id="__codelineno-0-174" name="__codelineno-0-174"></a>            <span class="n">config</span><span class="p">,</span>
+<a id="__codelineno-0-175" name="__codelineno-0-175"></a>            <span class="p">{</span>
+<a id="__codelineno-0-176" name="__codelineno-0-176"></a>                <span class="s2">&quot;cfd&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-177" name="__codelineno-0-177"></a>                <span class="s2">&quot;client_preference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-178" name="__codelineno-0-178"></a>                <span class="s2">&quot;clientapplication&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-179" name="__codelineno-0-179"></a>                <span class="s2">&quot;clientpreference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-180" name="__codelineno-0-180"></a>                <span class="s2">&quot;fixedmargin&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-181" name="__codelineno-0-181"></a>                <span class="s2">&quot;margin&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-182" name="__codelineno-0-182"></a>                <span class="s2">&quot;market&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-183" name="__codelineno-0-183"></a>                <span class="s2">&quot;message&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-184" name="__codelineno-0-184"></a>                <span class="s2">&quot;news&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-185" name="__codelineno-0-185"></a>                <span class="s2">&quot;order&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-186" name="__codelineno-0-186"></a>                <span class="s2">&quot;order_including_closed&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-187" name="__codelineno-0-187"></a>                <span class="s2">&quot;pm&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-188" name="__codelineno-0-188"></a>                <span class="s2">&quot;preference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-189" name="__codelineno-0-189"></a>                <span class="s2">&quot;price_alert&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-190" name="__codelineno-0-190"></a>                <span class="s2">&quot;session&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-191" name="__codelineno-0-191"></a>                <span class="s2">&quot;spread&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-192" name="__codelineno-0-192"></a>                <span class="s2">&quot;tradingadvisor&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-193" name="__codelineno-0-193"></a>                <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-194" name="__codelineno-0-194"></a>                <span class="s2">&quot;watchlist&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-195" name="__codelineno-0-195"></a>            <span class="p">},</span>
+<a id="__codelineno-0-196" name="__codelineno-0-196"></a>        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<a id="__codelineno-0-197" name="__codelineno-0-197"></a>    <span class="p">}</span>
+<a id="__codelineno-0-198" name="__codelineno-0-198"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cfd</span><span class="p">:</span> <span class="n">CfdResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-199" name="__codelineno-0-199"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_preference</span><span class="p">:</span> <span class="n">ClientPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-200" name="__codelineno-0-200"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientapplication</span><span class="p">:</span> <span class="n">ClientapplicationResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-201" name="__codelineno-0-201"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientpreference</span><span class="p">:</span> <span class="n">ClientpreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-202" name="__codelineno-0-202"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_fixedmargin</span><span class="p">:</span> <span class="n">FixedmarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-203" name="__codelineno-0-203"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_margin</span><span class="p">:</span> <span class="n">MarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-204" name="__codelineno-0-204"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_market</span><span class="p">:</span> <span class="n">MarketResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-205" name="__codelineno-0-205"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span> <span class="n">MessageResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-206" name="__codelineno-0-206"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_news</span><span class="p">:</span> <span class="n">NewsResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-207" name="__codelineno-0-207"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">:</span> <span class="n">OrderResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-208" name="__codelineno-0-208"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order_including_closed</span><span class="p">:</span> <span class="n">OrderIncludingClosedResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-209" name="__codelineno-0-209"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_pm</span><span class="p">:</span> <span class="n">PmResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-210" name="__codelineno-0-210"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_preference</span><span class="p">:</span> <span class="n">PreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-211" name="__codelineno-0-211"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_price_alert</span><span class="p">:</span> <span class="n">PriceAlertResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-212" name="__codelineno-0-212"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="p">:</span> <span class="n">SessionResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-213" name="__codelineno-0-213"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_spread</span><span class="p">:</span> <span class="n">SpreadResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-214" name="__codelineno-0-214"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_tradingadvisor</span><span class="p">:</span> <span class="n">TradingadvisorResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-215" name="__codelineno-0-215"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_user_account</span><span class="p">:</span> <span class="n">UserAccountResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-216" name="__codelineno-0-216"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_watchlist</span><span class="p">:</span> <span class="n">WatchlistResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -10689,11 +10689,11 @@ lazily construct typed API resource groups.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/stonepy/client.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-350">350</a></span>
-<span class="normal"><a href="#__codelineno-0-351">351</a></span>
-<span class="normal"><a href="#__codelineno-0-352">352</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-350" name="__codelineno-0-350"></a><span class="k">def</span><span class="w"> </span><span class="nf">plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseResource</span><span class="p">:</span>
-<a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a loaded plugin resource by name.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-352" name="__codelineno-0-352"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-351">351</a></span>
+<span class="normal"><a href="#__codelineno-0-352">352</a></span>
+<span class="normal"><a href="#__codelineno-0-353">353</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-351" name="__codelineno-0-351"></a><span class="k">def</span><span class="w"> </span><span class="nf">plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseResource</span><span class="p">:</span>
+<a id="__codelineno-0-352" name="__codelineno-0-352"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a loaded plugin resource by name.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-353" name="__codelineno-0-353"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -10718,11 +10718,11 @@ lazily construct typed API resource groups.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/stonepy/client.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-367">367</a></span>
-<span class="normal"><a href="#__codelineno-0-368">368</a></span>
-<span class="normal"><a href="#__codelineno-0-369">369</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-367" name="__codelineno-0-367"></a><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Close the underlying synchronous HTTP transport.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-369" name="__codelineno-0-369"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-368">368</a></span>
+<span class="normal"><a href="#__codelineno-0-369">369</a></span>
+<span class="normal"><a href="#__codelineno-0-370">370</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-368" name="__codelineno-0-368"></a><span class="k">def</span><span class="w"> </span><span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-369" name="__codelineno-0-369"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Close the underlying synchronous HTTP transport.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-370" name="__codelineno-0-370"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -10771,8 +10771,7 @@ mirror the synchronous client and expose awaitable methods.</p>
 
                   <details class="mkdocstrings-source">
                     <summary>Source code in <code>src/stonepy/client.py</code></summary>
-                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-379">379</a></span>
-<span class="normal"><a href="#__codelineno-0-380">380</a></span>
+                    <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-380">380</a></span>
 <span class="normal"><a href="#__codelineno-0-381">381</a></span>
 <span class="normal"><a href="#__codelineno-0-382">382</a></span>
 <span class="normal"><a href="#__codelineno-0-383">383</a></span>
@@ -10818,54 +10817,55 @@ mirror the synchronous client and expose awaitable methods.</p>
 <span class="normal"><a href="#__codelineno-0-423">423</a></span>
 <span class="normal"><a href="#__codelineno-0-424">424</a></span>
 <span class="normal"><a href="#__codelineno-0-425">425</a></span>
-<span class="normal"><a href="#__codelineno-0-426">426</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-379" name="__codelineno-0-379"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ClientConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-380" name="__codelineno-0-380"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span> <span class="o">=</span> <span class="n">_build_async_context</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
-<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-<a id="__codelineno-0-382" name="__codelineno-0-382"></a>        <span class="n">name</span><span class="p">:</span> <span class="n">resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">)</span>
-<a id="__codelineno-0-383" name="__codelineno-0-383"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">_load_plugin_resources</span><span class="p">(</span>
-<a id="__codelineno-0-384" name="__codelineno-0-384"></a>            <span class="n">config</span><span class="p">,</span>
-<a id="__codelineno-0-385" name="__codelineno-0-385"></a>            <span class="p">{</span>
-<a id="__codelineno-0-386" name="__codelineno-0-386"></a>                <span class="s2">&quot;cfd&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-387" name="__codelineno-0-387"></a>                <span class="s2">&quot;client_preference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-388" name="__codelineno-0-388"></a>                <span class="s2">&quot;clientapplication&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-389" name="__codelineno-0-389"></a>                <span class="s2">&quot;clientpreference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-390" name="__codelineno-0-390"></a>                <span class="s2">&quot;fixedmargin&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-391" name="__codelineno-0-391"></a>                <span class="s2">&quot;margin&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-392" name="__codelineno-0-392"></a>                <span class="s2">&quot;market&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-393" name="__codelineno-0-393"></a>                <span class="s2">&quot;message&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-394" name="__codelineno-0-394"></a>                <span class="s2">&quot;news&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-395" name="__codelineno-0-395"></a>                <span class="s2">&quot;order&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-396" name="__codelineno-0-396"></a>                <span class="s2">&quot;order_including_closed&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-397" name="__codelineno-0-397"></a>                <span class="s2">&quot;pm&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-398" name="__codelineno-0-398"></a>                <span class="s2">&quot;preference&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-399" name="__codelineno-0-399"></a>                <span class="s2">&quot;price_alert&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-400" name="__codelineno-0-400"></a>                <span class="s2">&quot;session&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-401" name="__codelineno-0-401"></a>                <span class="s2">&quot;spread&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-402" name="__codelineno-0-402"></a>                <span class="s2">&quot;tradingadvisor&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-403" name="__codelineno-0-403"></a>                <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-404" name="__codelineno-0-404"></a>                <span class="s2">&quot;watchlist&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-405" name="__codelineno-0-405"></a>            <span class="p">},</span>
-<a id="__codelineno-0-406" name="__codelineno-0-406"></a>        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-<a id="__codelineno-0-407" name="__codelineno-0-407"></a>    <span class="p">}</span>
-<a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cfd</span><span class="p">:</span> <span class="n">AsyncCfdResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_preference</span><span class="p">:</span> <span class="n">AsyncClientPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientapplication</span><span class="p">:</span> <span class="n">AsyncClientapplicationResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientpreference</span><span class="p">:</span> <span class="n">AsyncClientpreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_fixedmargin</span><span class="p">:</span> <span class="n">AsyncFixedmarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_margin</span><span class="p">:</span> <span class="n">AsyncMarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_market</span><span class="p">:</span> <span class="n">AsyncMarketResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span> <span class="n">AsyncMessageResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_news</span><span class="p">:</span> <span class="n">AsyncNewsResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-417" name="__codelineno-0-417"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">:</span> <span class="n">AsyncOrderResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order_including_closed</span><span class="p">:</span> <span class="n">AsyncOrderIncludingClosedResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_pm</span><span class="p">:</span> <span class="n">AsyncPmResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-420" name="__codelineno-0-420"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_preference</span><span class="p">:</span> <span class="n">AsyncPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-421" name="__codelineno-0-421"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_price_alert</span><span class="p">:</span> <span class="n">AsyncPriceAlertResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-422" name="__codelineno-0-422"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="p">:</span> <span class="n">AsyncSessionResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_spread</span><span class="p">:</span> <span class="n">AsyncSpreadResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_tradingadvisor</span><span class="p">:</span> <span class="n">AsyncTradingadvisorResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-425" name="__codelineno-0-425"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_user_account</span><span class="p">:</span> <span class="n">AsyncUserAccountResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
-<a id="__codelineno-0-426" name="__codelineno-0-426"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_watchlist</span><span class="p">:</span> <span class="n">AsyncWatchlistResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="normal"><a href="#__codelineno-0-426">426</a></span>
+<span class="normal"><a href="#__codelineno-0-427">427</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-380" name="__codelineno-0-380"></a><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="n">ClientConfig</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-381" name="__codelineno-0-381"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span> <span class="o">=</span> <span class="n">_build_async_context</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+<a id="__codelineno-0-382" name="__codelineno-0-382"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">BaseResource</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-0-383" name="__codelineno-0-383"></a>        <span class="n">name</span><span class="p">:</span> <span class="n">resource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ctx</span><span class="p">)</span>
+<a id="__codelineno-0-384" name="__codelineno-0-384"></a>        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resource</span> <span class="ow">in</span> <span class="n">_load_plugin_resources</span><span class="p">(</span>
+<a id="__codelineno-0-385" name="__codelineno-0-385"></a>            <span class="n">config</span><span class="p">,</span>
+<a id="__codelineno-0-386" name="__codelineno-0-386"></a>            <span class="p">{</span>
+<a id="__codelineno-0-387" name="__codelineno-0-387"></a>                <span class="s2">&quot;cfd&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-388" name="__codelineno-0-388"></a>                <span class="s2">&quot;client_preference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-389" name="__codelineno-0-389"></a>                <span class="s2">&quot;clientapplication&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-390" name="__codelineno-0-390"></a>                <span class="s2">&quot;clientpreference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-391" name="__codelineno-0-391"></a>                <span class="s2">&quot;fixedmargin&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-392" name="__codelineno-0-392"></a>                <span class="s2">&quot;margin&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-393" name="__codelineno-0-393"></a>                <span class="s2">&quot;market&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-394" name="__codelineno-0-394"></a>                <span class="s2">&quot;message&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-395" name="__codelineno-0-395"></a>                <span class="s2">&quot;news&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-396" name="__codelineno-0-396"></a>                <span class="s2">&quot;order&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-397" name="__codelineno-0-397"></a>                <span class="s2">&quot;order_including_closed&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-398" name="__codelineno-0-398"></a>                <span class="s2">&quot;pm&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-399" name="__codelineno-0-399"></a>                <span class="s2">&quot;preference&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-400" name="__codelineno-0-400"></a>                <span class="s2">&quot;price_alert&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-401" name="__codelineno-0-401"></a>                <span class="s2">&quot;session&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-402" name="__codelineno-0-402"></a>                <span class="s2">&quot;spread&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-403" name="__codelineno-0-403"></a>                <span class="s2">&quot;tradingadvisor&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-404" name="__codelineno-0-404"></a>                <span class="s2">&quot;user_account&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-405" name="__codelineno-0-405"></a>                <span class="s2">&quot;watchlist&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-406" name="__codelineno-0-406"></a>            <span class="p">},</span>
+<a id="__codelineno-0-407" name="__codelineno-0-407"></a>        <span class="p">)</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+<a id="__codelineno-0-408" name="__codelineno-0-408"></a>    <span class="p">}</span>
+<a id="__codelineno-0-409" name="__codelineno-0-409"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_cfd</span><span class="p">:</span> <span class="n">AsyncCfdResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-410" name="__codelineno-0-410"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_client_preference</span><span class="p">:</span> <span class="n">AsyncClientPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-411" name="__codelineno-0-411"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientapplication</span><span class="p">:</span> <span class="n">AsyncClientapplicationResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-412" name="__codelineno-0-412"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_clientpreference</span><span class="p">:</span> <span class="n">AsyncClientpreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-413" name="__codelineno-0-413"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_fixedmargin</span><span class="p">:</span> <span class="n">AsyncFixedmarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-414" name="__codelineno-0-414"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_margin</span><span class="p">:</span> <span class="n">AsyncMarginResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-415" name="__codelineno-0-415"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_market</span><span class="p">:</span> <span class="n">AsyncMarketResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-416" name="__codelineno-0-416"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_message</span><span class="p">:</span> <span class="n">AsyncMessageResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-417" name="__codelineno-0-417"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_news</span><span class="p">:</span> <span class="n">AsyncNewsResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-418" name="__codelineno-0-418"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order</span><span class="p">:</span> <span class="n">AsyncOrderResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-419" name="__codelineno-0-419"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_order_including_closed</span><span class="p">:</span> <span class="n">AsyncOrderIncludingClosedResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-420" name="__codelineno-0-420"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_pm</span><span class="p">:</span> <span class="n">AsyncPmResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-421" name="__codelineno-0-421"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_preference</span><span class="p">:</span> <span class="n">AsyncPreferenceResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-422" name="__codelineno-0-422"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_price_alert</span><span class="p">:</span> <span class="n">AsyncPriceAlertResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-423" name="__codelineno-0-423"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_session</span><span class="p">:</span> <span class="n">AsyncSessionResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-424" name="__codelineno-0-424"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_spread</span><span class="p">:</span> <span class="n">AsyncSpreadResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-425" name="__codelineno-0-425"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_tradingadvisor</span><span class="p">:</span> <span class="n">AsyncTradingadvisorResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-426" name="__codelineno-0-426"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_user_account</span><span class="p">:</span> <span class="n">AsyncUserAccountResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="__codelineno-0-427" name="__codelineno-0-427"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_watchlist</span><span class="p">:</span> <span class="n">AsyncWatchlistResource</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
 </code></pre></div></td></tr></table></div>
                   </details>
 
@@ -11356,11 +11356,11 @@ mirror the synchronous client and expose awaitable methods.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/stonepy/client.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-561">561</a></span>
-<span class="normal"><a href="#__codelineno-0-562">562</a></span>
-<span class="normal"><a href="#__codelineno-0-563">563</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-561" name="__codelineno-0-561"></a><span class="k">def</span><span class="w"> </span><span class="nf">plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseResource</span><span class="p">:</span>
-<a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a loaded plugin resource by name.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-563" name="__codelineno-0-563"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-562">562</a></span>
+<span class="normal"><a href="#__codelineno-0-563">563</a></span>
+<span class="normal"><a href="#__codelineno-0-564">564</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-562" name="__codelineno-0-562"></a><span class="k">def</span><span class="w"> </span><span class="nf">plugin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BaseResource</span><span class="p">:</span>
+<a id="__codelineno-0-563" name="__codelineno-0-563"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a loaded plugin resource by name.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-564" name="__codelineno-0-564"></a>    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_plugins</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
@@ -11389,11 +11389,11 @@ mirror the synchronous client and expose awaitable methods.</p>
 
             <details class="mkdocstrings-source">
               <summary>Source code in <code>src/stonepy/client.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-578">578</a></span>
-<span class="normal"><a href="#__codelineno-0-579">579</a></span>
-<span class="normal"><a href="#__codelineno-0-580">580</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-578" name="__codelineno-0-578"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aclose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-<a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Close the underlying asynchronous HTTP transport.&quot;&quot;&quot;</span>
-<a id="__codelineno-0-580" name="__codelineno-0-580"></a>    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span><span class="o">.</span><span class="n">aclose</span><span class="p">()</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#__codelineno-0-579">579</a></span>
+<span class="normal"><a href="#__codelineno-0-580">580</a></span>
+<span class="normal"><a href="#__codelineno-0-581">581</a></span></pre></div></td><td class="code"><div><pre><span></span><code><a id="__codelineno-0-579" name="__codelineno-0-579"></a><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">aclose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<a id="__codelineno-0-580" name="__codelineno-0-580"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Close the underlying asynchronous HTTP transport.&quot;&quot;&quot;</span>
+<a id="__codelineno-0-581" name="__codelineno-0-581"></a>    <span class="k">await</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transport</span><span class="o">.</span><span class="n">aclose</span><span class="p">()</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>

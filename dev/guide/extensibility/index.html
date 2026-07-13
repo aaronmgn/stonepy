@@ -9442,15 +9442,16 @@
 <h3 id="how-loading-and-validation-work-fail-loud-vs-fail-soft">How loading and validation work (fail-loud vs fail-soft)<a class="headerlink" href="#how-loading-and-validation-work-fail-loud-vs-fail-soft" title="Permanent link">&para;</a></h3>
 <p><code>load_plugin_resources</code> enforces a precise set of rules. Understanding which conditions raise and which are silently skipped matters for debugging:</p>
 <ul>
-<li><strong>Name collides with a built-in</strong> - if an entry-point name is one of the 14 built-in resource names and is <strong>not</strong> listed in <code>allow_overrides</code>, loading raises <code>ValueError("plugin resource '&lt;name&gt;' collides with a built-in; add it to allow_overrides to override")</code>. This is fail-loud, raised during client construction.</li>
+<li><strong>Name collides with a built-in</strong> - if an entry-point name is one of the 19 built-in resource names and is <strong>not</strong> listed in <code>allow_overrides</code>, loading raises <code>ValueError("plugin resource '&lt;name&gt;' collides with a built-in; add it to allow_overrides to override")</code>. This is fail-loud, raised during client construction.</li>
 <li><strong>Duplicate plugin name</strong> - if two entry points declare the same name, loading raises <code>ValueError("plugin resource '&lt;name&gt;' was declared more than once")</code>. Fail-loud.</li>
 <li><strong><code>ep.load()</code> raises</strong> - if importing/loading the entry point throws, the loader logs a warning (<code>logger = logging.getLogger("stonepy.plugins")</code>) and <strong>continues</strong>, skipping that plugin. Fail-soft.</li>
 <li><strong>Loaded object is not a <code>BaseResource</code> subclass</strong> - if <code>ep.load()</code> does not return a class that is a subclass of <code>BaseResource</code>, the loader logs a warning and <strong>continues</strong>, skipping it. Fail-soft.</li>
 <li><strong><code>requires_stonepy</code> mismatch or invalid</strong> - raises <code>ValueError</code> (see below). Fail-loud.</li>
 </ul>
 <p>The built-in names that count as collisions are exactly the <code>known</code> set passed in from <code>client.py</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cfd, clientapplication, clientpreference, margin, market, message, news,
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>order, preference, price_alert, session, spread, user_account, watchlist
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>cfd, client_preference, clientapplication, clientpreference, fixedmargin, margin, market,
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>message, news, order, order_including_closed, pm, preference, price_alert, session, spread,
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>tradingadvisor, user_account, watchlist
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>

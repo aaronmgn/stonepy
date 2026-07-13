@@ -9211,7 +9211,7 @@
 </ul>
 <h2 id="install">Install<a class="headerlink" href="#install" title="Permanent link">&para;</a></h2>
 <p>Choose whichever installer matches your workflow.</p>
-<div class="tabbed-set tabbed-alternate" data-tabs="1:3"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><input id="__tabbed_1_3" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">pip</label><label for="__tabbed_1_2">uv</label><label for="__tabbed_1_3">pipx</label></div>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">pip</label><label for="__tabbed_1_2">uv</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>stonepy
@@ -9225,16 +9225,11 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>stonepy
 </code></pre></div>
 </div>
-<div class="tabbed-block">
-<p>Useful if you want <code>stonepy</code> installed in an isolated environment, for example to use it from scripts or notebooks:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>pipx<span class="w"> </span>install<span class="w"> </span>stonepy
-</code></pre></div>
-</div>
 </div>
 </div>
 <div class="admonition tip">
 <p class="admonition-title">Verify the install</p>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import stonepy; print(stonepy.__version__)&quot;</span>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import stonepy; print(stonepy.__version__)&quot;</span>
 </code></pre></div>
 This prints the installed version (for example <code>0.2.6</code>).</p>
 </div>
@@ -9269,7 +9264,7 @@ This prints the installed version (for example <code>0.2.6</code>).</p>
 <p>That is the entire footprint - no native build steps and no heavyweight transitive trees beyond what these three require.</p>
 <div class="admonition note">
 <p class="admonition-title">No extras for normal use</p>
-<p>There are <strong>no</strong> optional extras to install for typical usage. <code>pip install stonepy</code> (or the <code>uv</code> / <code>pipx</code> equivalents above) gives you everything needed to authenticate and trade. The extras below are only for people working <em>on</em> the library.</p>
+<p>There are <strong>no</strong> optional extras to install for typical usage. <code>pip install stonepy</code> (or the <code>uv</code> equivalent above) gives you everything needed to authenticate and trade. The extras below are only for people working <em>on</em> the library.</p>
 </div>
 <h2 id="contributor-extras">Contributor extras<a class="headerlink" href="#contributor-extras" title="Permanent link">&para;</a></h2>
 <p>Two optional dependency groups exist for contributors. End users do not need these.</p>
@@ -9277,28 +9272,28 @@ This prints the installed version (for example <code>0.2.6</code>).</p>
 <div class="tabbed-content">
 <div class="tabbed-block">
 <p>Test, lint, type-check, and release tooling:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;stonepy[dev]&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;stonepy[dev]&quot;</span>
 </code></pre></div>
 <p>Includes <code>pytest</code>, <code>pytest-cov</code>, <code>respx</code>, <code>mypy</code>, <code>ruff</code>, <code>unasync</code>, <code>pre-commit</code>, <code>types-simplejson</code>, and <code>twine</code>.</p>
 </div>
 <div class="tabbed-block">
 <p>Documentation build tooling:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;stonepy[docs]&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">&quot;stonepy[docs]&quot;</span>
 </code></pre></div>
 <p>Includes <code>mkdocs-material</code>, <code>mkdocstrings[python]</code>, <code>mike</code>, and <code>ruff</code>.</p>
 </div>
 </div>
 </div>
 <p>With <code>uv</code>, install groups against a checkout instead:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[dev]&quot;</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">&quot;.[docs]&quot;</span>
 </code></pre></div>
 <h2 id="type-checking-pep-561">Type checking (PEP 561)<a class="headerlink" href="#type-checking-pep-561" title="Permanent link">&para;</a></h2>
 <p><code>stonepy</code> is fully typed and ships a <code>py.typed</code> marker, so it is <a href="https://peps.python.org/pep-0561/">PEP 561</a> compliant. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
 <p>This means tools like <code>mypy</code> and <code>pyright</code> work out of the box:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>mypy<span class="w"> </span>your_script.py
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="c1"># or</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>pyright<span class="w"> </span>your_script.py
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mypy<span class="w"> </span>your_script.py
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># or</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pyright<span class="w"> </span>your_script.py
 </code></pre></div>
 <p>Editor features such as autocomplete and inline type hints (in VS Code, PyCharm, and other LSP-aware editors) work the same way, with no extra configuration.</p>
 <h2 id="stability">Stability<a class="headerlink" href="#stability" title="Permanent link">&para;</a></h2>

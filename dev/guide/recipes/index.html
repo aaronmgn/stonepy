@@ -9365,8 +9365,8 @@ money.</p>
 </code></pre></div>
 <h2 id="list-and-save-a-watchlist">List and save a watchlist<a class="headerlink" href="#list-and-save-a-watchlist" title="Permanent link">&para;</a></h2>
 <p><code>get_watchlists(client_account_id)</code> returns the client's watchlists. <code>save_watchlist</code>
-accepts a <code>SaveWatchlistRequestDTO</code> containing one or more <code>ApiClientAccountWatchlistDTO</code>
-entries (each with <code>ApiClientAccountWatchlistItemDTO</code> items) and returns the saved
+accepts a <code>SaveWatchlistRequestDTO</code> containing a single <code>ApiClientAccountWatchlistDTO</code>
+(with <code>ApiClientAccountWatchlistItemDTO</code> items) and returns the saved
 <code>watchlist_id</code>.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -9388,21 +9388,19 @@ entries (each with <code>ApiClientAccountWatchlistItemDTO</code> items) and retu
 <a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>    <span class="n">saved</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">save_watchlist</span><span class="p">(</span>
 <a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="n">SaveWatchlistRequestDTO</span><span class="p">(</span>
 <a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>            <span class="n">client_account_id</span><span class="o">=</span><span class="n">client_account_id</span><span class="p">,</span>
-<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>            <span class="n">watchlist</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                <span class="n">ApiClientAccountWatchlistDTO</span><span class="p">(</span>
-<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>                    <span class="n">watchlist_description</span><span class="o">=</span><span class="s2">&quot;FX Majors&quot;</span><span class="p">,</span>
-<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>                    <span class="n">display_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>                    <span class="n">items</span><span class="o">=</span><span class="p">[</span>
-<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>                        <span class="n">ApiClientAccountWatchlistItemDTO</span><span class="p">(</span>
-<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>                            <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
-<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>                            <span class="n">display_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>                        <span class="p">)</span>
-<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>                    <span class="p">],</span>
-<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>                <span class="p">)</span>
-<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>            <span class="p">],</span>
-<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>        <span class="p">)</span>
-<a id="__codelineno-7-34" name="__codelineno-7-34" href="#__codelineno-7-34"></a>    <span class="p">)</span>
-<a id="__codelineno-7-35" name="__codelineno-7-35" href="#__codelineno-7-35"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved watchlist id:&quot;</span><span class="p">,</span> <span class="n">saved</span><span class="o">.</span><span class="n">watchlist_id</span><span class="p">)</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>            <span class="n">watchlist</span><span class="o">=</span><span class="n">ApiClientAccountWatchlistDTO</span><span class="p">(</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                <span class="n">watchlist_description</span><span class="o">=</span><span class="s2">&quot;FX Majors&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>                <span class="n">display_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>                <span class="n">items</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>                    <span class="n">ApiClientAccountWatchlistItemDTO</span><span class="p">(</span>
+<a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>                        <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
+<a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>                        <span class="n">display_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>                    <span class="p">)</span>
+<a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>                <span class="p">],</span>
+<a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>            <span class="p">),</span>
+<a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>        <span class="p">)</span>
+<a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>    <span class="p">)</span>
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved watchlist id:&quot;</span><span class="p">,</span> <span class="n">saved</span><span class="o">.</span><span class="n">watchlist_id</span><span class="p">)</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
