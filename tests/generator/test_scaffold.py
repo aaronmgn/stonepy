@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 from stonepy._generator.__main__ import main
@@ -303,8 +304,8 @@ def test_scaffold_long_description_resource_is_ruff_clean(tmp_path: Path) -> Non
 
     result = subprocess.run(
         [
-            "uv",
-            "run",
+            sys.executable,
+            "-m",
             "ruff",
             "check",
             str(package_root / "resources" / "session" / "change_password.py"),
@@ -330,8 +331,8 @@ def test_scaffold_generated_test_stub_is_ruff_clean(tmp_path: Path) -> None:
 
     result = subprocess.run(
         [
-            "uv",
-            "run",
+            sys.executable,
+            "-m",
             "ruff",
             "check",
             str(project_root / "tests" / "resources" / "session" / "test_change_password.py"),
@@ -415,7 +416,7 @@ def test_scaffold_samples_model_list_arguments_as_empty_lists_and_keeps_stub_ruf
     test_file = project_root / "tests" / "resources" / "party" / "test_submit_parties.py"
     test_text = test_file.read_text(encoding="utf-8")
     result = subprocess.run(
-        ["uv", "run", "ruff", "check", str(test_file)],
+        [sys.executable, "-m", "ruff", "check", str(test_file)],
         check=False,
         capture_output=True,
         text=True,
@@ -459,7 +460,7 @@ def test_scaffold_samples_optional_model_list_arguments_as_empty_lists(
     test_file = project_root / "tests" / "resources" / "party" / "test_search_parties.py"
     test_text = test_file.read_text(encoding="utf-8")
     result = subprocess.run(
-        ["uv", "run", "ruff", "check", str(test_file)],
+        [sys.executable, "-m", "ruff", "check", str(test_file)],
         check=False,
         capture_output=True,
         text=True,

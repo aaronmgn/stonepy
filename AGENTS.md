@@ -31,6 +31,17 @@ add the smallest local workaround in the resource method and leave a short comme
 the catalog mismatch. Do not patch generated files directly; fix the generator or catalog when
 the mismatch is systematic.
 
+## Catalog Generation
+
+Catalog-consuming generator commands have no default catalog location. Set
+`STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog` or pass
+`--catalog-root /path/to/stonex_api_docs/Docs/catalog`; the CLI flag takes precedence. For example:
+
+```bash
+STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog \
+  uv run python -m stonepy._generator all
+```
+
 ## Blocked Work
 
 If a resource cannot be implemented because the catalog is ambiguous, the response model is

@@ -15,7 +15,6 @@ from stonepy._generator.catalog import (
     load_catalog,
 )
 
-_DEFAULT_CATALOG_ROOT = Path("/home/aaron/Projects/stonex_api_docs/Docs/catalog")
 _DEFAULT_PACKAGE_DIR = Path(__file__).resolve().parents[1]
 _DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
@@ -33,7 +32,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--catalog-root",
         type=Path,
-        default=Path(os.environ.get("STONEPY_CATALOG", _DEFAULT_CATALOG_ROOT)),
+        default=None,
+        help="Catalog directory (takes precedence over STONEPY_CATALOG).",
     )
     parser.add_argument(
         "--out-dir",
@@ -90,7 +90,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.scaffold_target is None or args.scaffold_endpoint is None:
             parser.error("scaffold requires <target> and <EndpointName>")
         project_root = args.project_root or args.out_dir or _DEFAULT_PROJECT_ROOT
-        catalog_root = _resolve_catalog_root(args.catalog_root)
+        catalog_root = _resolve_catalog_root(_catalog_root(parser, args.catalog_root))
         catalog = load_catalog(catalog_root)
         _validate_catalog(
             catalog,
@@ -110,7 +110,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     project_root = args.project_root or args.out_dir or _DEFAULT_PROJECT_ROOT
 
-    catalog_root = _resolve_catalog_root(args.catalog_root)
+    catalog_root = _resolve_catalog_root(_catalog_root(parser, args.catalog_root))
     catalog = load_catalog(catalog_root)
     _validate_catalog(
         catalog,
@@ -140,6 +140,19 @@ def _validate_catalog(
         assert_allowed_unresolved(catalog)
     if not allow_unfrozen_catalog:
         assert_catalog_frozen(catalog, catalog_root)
+
+
+def _catalog_root(parser: argparse.ArgumentParser, cli_root: Path | None) -> Path:
+    """Resolve the catalog input from the CLI first, then the environment."""
+
+    if cli_root is not None:
+        return cli_root
+
+    env_root = os.environ.get("STONEPY_CATALOG")
+    if env_root is not None and env_root.strip():
+        return Path(env_root)
+
+    parser.error("catalog root is required: pass --catalog-root PATH or set STONEPY_CATALOG")
 
 
 def _resolve_catalog_root(root: Path) -> Path:
