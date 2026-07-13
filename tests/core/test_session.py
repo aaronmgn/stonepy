@@ -3,9 +3,12 @@ import threading
 from types import TracebackType
 from typing import Any
 
+import pytest
+
 from stonepy._core.clock import FakeClock
 from stonepy._core.endpoint import AuthPolicy
-from stonepy._core.session import AsyncSessionManager, SessionManager
+from stonepy._core.errors import AuthenticationError
+from stonepy._core.session import AsyncSessionManager, SessionManager, require_session_token
 
 
 class _TrackingLock:
@@ -192,6 +195,75 @@ def test_async_refresh_callback_can_update_username_without_prior_token() -> Non
         assert await sm.aauth_headers(AuthPolicy.SESSION) == {
             "Session": "NEW",
             "UserName": "alice",
+        }
+
+    asyncio.run(run())
+
+
+def test_session_manager_clear_drops_token_and_bumps_generation() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("TOKEN", "user")
+    generation = manager.generation
+
+    manager.clear()
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {}
+    assert manager.generation == generation + 1
+    assert manager.needs_proactive_refresh() is False
+
+
+def test_async_session_manager_aclear_drops_token() -> None:
+    async def run() -> None:
+        manager = AsyncSessionManager(FakeClock(), 1080.0)
+        await manager.aset_token("TOKEN", "user")
+
+        await manager.aclear()
+
+        assert await manager.aauth_headers(AuthPolicy.SESSION) == {}
+
+    asyncio.run(run())
+
+
+def test_require_session_token_returns_token() -> None:
+    assert require_session_token("TOKEN") == "TOKEN"
+
+
+def test_require_session_token_raises_on_missing_or_empty() -> None:
+    for bad in (None, "", "   "):
+        with pytest.raises(AuthenticationError):
+            require_session_token(bad)
+
+
+def test_session_manager_clear_with_matching_expected_token_drops_it() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("TOKEN", "user")
+
+    manager.clear(expected_token="TOKEN")
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {}
+
+
+def test_session_manager_clear_with_stale_expected_token_keeps_current() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("NEW", "user")
+    generation = manager.generation
+
+    manager.clear(expected_token="OLD")
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {"Session": "NEW", "UserName": "user"}
+    assert manager.generation == generation
+
+
+def test_async_session_manager_aclear_with_stale_expected_token_keeps_current() -> None:
+    async def run() -> None:
+        manager = AsyncSessionManager(FakeClock(), 1080.0)
+        await manager.aset_token("NEW", "user")
+
+        await manager.aclear(expected_token="OLD")
+
+        assert await manager.aauth_headers(AuthPolicy.SESSION) == {
+            "Session": "NEW",
+            "UserName": "user",
         }
 
     asyncio.run(run())

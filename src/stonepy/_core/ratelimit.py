@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections import deque
 
 from stonepy._core.clock import AsyncClock, Clock
@@ -12,6 +13,7 @@ class SlidingWindowLimiter:
 
     Records the timestamp of each grant and, when the window is full, sleeps until the oldest
     grant ages out. ``max_requests`` and ``window_seconds`` must both be positive.
+    Safe for concurrent use from multiple threads; the lock is never held while sleeping.
     """
 
     def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
@@ -23,29 +25,30 @@ class SlidingWindowLimiter:
         self._window = window_seconds
         self._clock = clock
         self._events: deque[float] = deque()
+        self._state_lock = threading.Lock()
 
     def acquire(self) -> None:
         """Acquire one slot, sleeping until the window has room if it is currently full."""
         while True:
-            now = self._clock.now()
-            self._evict(now)
-            if len(self._events) < self._max:
-                self._events.append(now)
-                return
-
-            wait = self._events[0] + self._window - now
+            with self._state_lock:
+                now = self._clock.now()
+                self._evict(now)
+                if len(self._events) < self._max:
+                    self._events.append(now)
+                    return
+                wait = self._events[0] + self._window - now
             self._clock.sleep(max(0.0, wait))
 
     async def aacquire(self) -> None:
         """Acquire one slot, awaiting until the window has room if it is currently full."""
         while True:
-            now = self._clock.now()
-            self._evict(now)
-            if len(self._events) < self._max:
-                self._events.append(now)
-                return
-
-            wait = self._events[0] + self._window - now
+            with self._state_lock:
+                now = self._clock.now()
+                self._evict(now)
+                if len(self._events) < self._max:
+                    self._events.append(now)
+                    return
+                wait = self._events[0] + self._window - now
             await self._asleep(max(0.0, wait))
 
     def _evict(self, now: float) -> None:
@@ -72,6 +75,7 @@ class BucketedSlidingWindowLimiter:
         self._window_seconds = window_seconds
         self._clock = clock
         self._limiters: dict[str, SlidingWindowLimiter] = {}
+        self._buckets_lock = threading.Lock()
 
     def acquire(self, bucket: str) -> None:
         """Acquire one slot from *bucket*'s limiter, creating it on first use."""
@@ -83,15 +87,16 @@ class BucketedSlidingWindowLimiter:
 
     def _limiter(self, bucket: str) -> SlidingWindowLimiter:
         key = bucket or "default"
-        limiter = self._limiters.get(key)
-        if limiter is None:
-            limiter = SlidingWindowLimiter(
-                max_requests=self._max_requests,
-                window_seconds=self._window_seconds,
-                clock=self._clock,
-            )
-            self._limiters[key] = limiter
-        return limiter
+        with self._buckets_lock:
+            limiter = self._limiters.get(key)
+            if limiter is None:
+                limiter = SlidingWindowLimiter(
+                    max_requests=self._max_requests,
+                    window_seconds=self._window_seconds,
+                    clock=self._clock,
+                )
+                self._limiters[key] = limiter
+            return limiter
 
 
 def backoff_delay(

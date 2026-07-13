@@ -79,7 +79,7 @@ ENDPOINT_CASES = [
     pytest.param(
         _ep_client_preference.GET_CLIENT_PREFERENCES_LIST_SPEC,
         "GET",
-        "/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",
+        "/v2/clientPreference/list?keys={Keys}&clientAccountId={clientAccountId}",
         True,
         True,
         "SESSION",
@@ -88,7 +88,6 @@ ENDPOINT_CASES = [
         (
             ("Keys", "query", "keys"),
             ("ClientAccountId", "query", "client_account_id"),
-            ("string", "query", "string"),
         ),
         id="GetClientPreferencesList v2",
     ),

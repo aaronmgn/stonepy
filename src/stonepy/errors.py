@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from stonepy._core.errors import (
     AuthenticationError,
+    ConfigurationError,
     OrderRejectedError,
     RateLimitError,
     ResponseParseError,
@@ -14,6 +15,7 @@ from stonepy._core.errors import (
 
 __all__ = [
     "AuthenticationError",
+    "ConfigurationError",
     "OrderRejectedError",
     "RateLimitError",
     "ResponseParseError",

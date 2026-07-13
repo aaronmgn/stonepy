@@ -11,4 +11,10 @@ from stonepy.models import ApiLogOffResponseDTO
 class _DeleteSessionMixin(BaseResource):
     def delete_session(self, user_name: str, session: str) -> ApiLogOffResponseDTO:
         """Delete a session. This is how you "log off" from the StoneX API."""
-        return _ep.delete_session(self._ctx, user_name, session)
+        response = _ep.delete_session(self._ctx, user_name, session)
+        if response.logged_out is not False:
+            # Drop the local token so later calls do not send a known-invalid session, but
+            # only when it is the token that was just deleted: deleting another session (or
+            # racing a re-logon) must not discard a still-valid token.
+            self._ctx.session.clear(expected_token=session)
+        return response

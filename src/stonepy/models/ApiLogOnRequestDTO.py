@@ -13,9 +13,9 @@ class ApiLogOnRequestDTO(RequestModel):
 
     user_name: str = Field(alias="UserName")
     """Username is case sensitive"""
-    password: str = Field(alias="Password")
+    password: str = Field(alias="Password", repr=False)
     """Password is case sensitive"""
-    app_key: str = Field(alias="AppKey")
+    app_key: str = Field(alias="AppKey", repr=False)
     """A unique key to identify the client application"""
     app_version: str = Field(alias="AppVersion")
     """The version of the client application"""

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy
+from stonepy._endpoints.client_preference import GET_CLIENT_PREFERENCES_LIST_SPEC
 from stonepy._endpoints.market import GET_MARKET_INFORMATION_SPEC
 from stonepy._endpoints.order import (
     GET_ACTIVE_STOP_LIMIT_ORDER_SPEC,
@@ -74,4 +75,18 @@ def test_log_on_spec_matches_docs_and_skips_session_auth() -> None:
     assert LOG_ON_SPEC.response_model is ApiLogOnResponseDTOv2
     assert [(p.name, p.location, p.python_name) for p in LOG_ON_SPEC.params] == [
         ("apiLogOnRequest", "body", "api_log_on_request")
+    ]
+
+
+def test_get_client_preferences_list_spec_has_no_synthetic_string_param() -> None:
+    # The catalog template names its placeholder after the *type* ("keys={string}"), which
+    # used to synthesize a bogus required `string` argument and send the filter twice
+    # ("keys=" and "Keys="). The _PATH_OVERRIDES entry rebinds the placeholder to Keys.
+    assert GET_CLIENT_PREFERENCES_LIST_SPEC.method == "GET"
+    assert GET_CLIENT_PREFERENCES_LIST_SPEC.path == (
+        "/v2/clientPreference/list?keys={Keys}&clientAccountId={clientAccountId}"
+    )
+    assert [(p.name, p.location) for p in GET_CLIENT_PREFERENCES_LIST_SPEC.params] == [
+        ("Keys", "query"),
+        ("ClientAccountId", "query"),
     ]

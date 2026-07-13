@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
@@ -41,6 +42,12 @@ from stonepy._core.status import (
     default_status_decoder,
 )
 from stonepy._core.transport import Request, build_request
+
+logger = logging.getLogger("stonepy.pipeline")
+
+# CIAPI basics guide: when throttling activates (HTTP 429), "the client UI application must
+# wait 1 second before sending further API requests".
+_MIN_THROTTLE_DELAY_SECONDS = 1.0
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
@@ -224,7 +231,7 @@ class CallContext:
 
             if _is_rate_limited(resp, error_info):
                 retry_after = _parse_retry_after(resp)
-                delay = self._backoff_delay(attempt, retry_after)
+                delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     self.clock.sleep(delay)
                     attempt += 1
@@ -322,7 +329,7 @@ class CallContext:
 
             if _is_rate_limited(resp, error_info):
                 retry_after = _parse_retry_after(resp)
-                delay = self._backoff_delay(attempt, retry_after)
+                delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     await self._asleep(delay)
                     attempt += 1
@@ -366,6 +373,18 @@ class CallContext:
     def _backoff_delay(self, attempt: int, retry_after: float | None) -> float:
         jitter = 1.0 if retry_after is not None else self.jitter()
         return backoff_delay(attempt, retry_after, jitter=jitter)
+
+    def _throttle_delay(self, attempt: int, retry_after: float | None) -> float:
+        """Delay before retrying a throttled (429) call.
+
+        Without a ``Retry-After`` header, the delay is floored at the one second the CIAPI
+        basics guide requires after throttling; jittered backoff alone can wait less on the
+        first retry. An explicit ``Retry-After`` is honored as-is.
+        """
+        delay = self._backoff_delay(attempt, retry_after)
+        if retry_after is None:
+            return max(delay, _MIN_THROTTLE_DELAY_SECONDS)
+        return delay
 
     def _sync_transport(self) -> _Transport:
         if isinstance(self.transport, _Transport):
@@ -476,6 +495,9 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
         ) from exc
 
 
+_TEXT_REJECTION_STATUSES = frozenset({"failure"})
+
+
 def check_business_status(
     model: BaseModel | Mapping[str, object],
     status_decoder: StatusDecoder,
@@ -486,15 +508,26 @@ def check_business_status(
 ) -> None:
     """Raise [`OrderRejectedError`][stonepy.OrderRejectedError] if a model carries a rejection.
 
-    Reads the ``Status`` (and optional ``StatusReason``) fields and runs them through
-    *status_decoder*. Returns without error when the model has no status field or the status
-    is not a rejection.
+    Reads the ``Status`` (and optional ``StatusReason``) fields and runs numeric codes through
+    *status_decoder*. Text statuses (e.g. SaveOrder's ``"Success"``/``"Failure"``) never reach
+    the decoder: ``"Failure"`` raises with the ``Reason`` field as the message and any other
+    text is ignored. Returns without error when the model has no status field or the status is
+    not a rejection.
     """
     status_value = _field_value(model, ("Status", "status"))
     if status_value is None:
         return
 
-    status = int(status_value)
+    if isinstance(status_value, str):
+        try:
+            status = int(status_value)
+        except ValueError:
+            _check_text_status(
+                model, status_value, method=method, path=path, http_status=http_status
+            )
+            return
+    else:
+        status = status_value
     status_reason_value = _field_value(
         model,
         ("StatusReason", "status_reason", "StatusReasonId", "statusReason"),
@@ -507,6 +540,41 @@ def check_business_status(
     raise OrderRejectedError(
         status=status,
         status_reason=status_reason,
+        reason=reason,
+        response=model,
+        method=method,
+        path=path,
+        http_status=http_status,
+    )
+
+
+def _check_text_status(
+    model: BaseModel | Mapping[str, object],
+    status_text: str,
+    *,
+    method: str | None,
+    path: str | None,
+    http_status: int | None,
+) -> None:
+    """Raise for a text ``"Failure"`` status; ignore every other text status.
+
+    Unknown text statuses are deliberately not rejections: a false rejection could prompt a
+    caller to resubmit and double an order.
+    """
+    normalized = status_text.strip().lower()
+    if normalized not in _TEXT_REJECTION_STATUSES:
+        if normalized != "success":
+            # Not treated as a rejection (see above), but loud enough that an unexpected
+            # status like "Failed" or "Queued" is never a *silent* success.
+            logger.warning(
+                "ignoring unknown text business status %r on %s %s", status_text, method, path
+            )
+        return
+    reason_value = _field_value(model, ("Reason", "reason", "StatusReason", "status_reason"))
+    reason = str(reason_value) if reason_value is not None else status_text
+    raise OrderRejectedError(
+        status=status_text,
+        status_reason=None,
         reason=reason,
         response=model,
         method=method,

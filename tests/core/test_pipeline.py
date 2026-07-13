@@ -995,6 +995,23 @@ def test_async_429_idempotent_call_backs_off_then_replays() -> None:
     asyncio.run(run())
 
 
+def test_429_without_retry_after_waits_at_least_one_second() -> None:
+    # CIAPI basics guide: after throttling "the client UI application must wait 1 second
+    # before sending further API requests". With a zero-jitter draw the plain backoff for
+    # the first retry would be 0.5s; the throttle path must floor it at 1s.
+    t = FakeTransport(
+        [
+            httpx.Response(429, json={"ErrorCode": 5002, "ErrorMessage": "busy"}),
+            httpx.Response(200, json={"OrderId": 7}),
+        ]
+    )
+    parts = _ctx(t, [], retry=RetryPolicy(1), jitter=lambda: 0.0)
+    out = parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+    assert out.order_id == 7
+    assert len(t.sent) == 2
+    assert parts.clock.now() >= 1.0
+
+
 def test_rate_limit_bucket_uses_independent_windows() -> None:
     t = FakeTransport(
         [
@@ -1335,3 +1352,50 @@ def test_business_status_checker_is_noop_without_status_or_rejection() -> None:
         _StatusResp.model_validate({"Status": 1, "StatusReason": None}),
         lambda status, status_reason: BusinessStatus(is_rejection=status == 6),
     )
+
+
+def test_check_business_status_ignores_success_text_status() -> None:
+    check_business_status(
+        {"RequestId": "r1", "Status": "Success"},
+        default_status_decoder,
+        method="POST",
+        path="/v2/order",
+        http_status=200,
+    )
+
+
+def test_check_business_status_raises_on_failure_text_status() -> None:
+    with pytest.raises(OrderRejectedError) as exc_info:
+        check_business_status(
+            {"RequestId": "r1", "Status": "Failure", "Reason": "Insufficient funds"},
+            default_status_decoder,
+            method="POST",
+            path="/v2/order",
+            http_status=200,
+        )
+    assert exc_info.value.status == "Failure"
+    assert exc_info.value.reason == "Insufficient funds"
+    assert exc_info.value.status_reason is None
+
+
+def test_check_business_status_ignores_unknown_text_status_with_warning(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    # Unknown text statuses must not raise: a false rejection could prompt a caller
+    # to resubmit and double an order. They must still be visible, not silent success.
+    with caplog.at_level("WARNING", logger="stonepy.pipeline"):
+        check_business_status({"Status": "Queued"}, default_status_decoder)
+    assert any("unknown text business status 'Queued'" in r.getMessage() for r in caplog.records)
+
+
+def test_check_business_status_success_text_status_does_not_warn(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    with caplog.at_level("WARNING", logger="stonepy.pipeline"):
+        check_business_status({"Status": " SUCCESS "}, default_status_decoder)
+    assert not caplog.records
+
+
+def test_check_business_status_numeric_string_still_decodes() -> None:
+    with pytest.raises(OrderRejectedError):
+        check_business_status({"Status": "5"}, default_status_decoder)

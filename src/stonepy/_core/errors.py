@@ -15,6 +15,15 @@ class StoneXError(Exception):
     """Base class for all stonepy errors."""
 
 
+class ConfigurationError(StoneXError):
+    """The client is not configured for the attempted operation.
+
+    Raised when a session-authenticated call needs a token refresh but no credentials were
+    configured on [`ClientConfig`][stonepy.ClientConfig] and no manual ``log_on`` has
+    succeeded.
+    """
+
+
 class StoneXAPIError(StoneXError):
     """HTTP or API business-error response with endpoint context.
 
@@ -155,7 +164,8 @@ class OrderRejectedError(StoneXError):
     sensitive response data; it is intentionally omitted from `repr()`.
 
     Attributes:
-        status: The order ``Status`` code that triggered the rejection.
+        status: The order ``Status`` code that triggered the rejection (an ``int`` code or a
+            text status such as ``"Failure"``).
         status_reason: The ``StatusReason`` code, if the response supplied one.
         reason: A human-readable reason, decoded from the status/reason codes.
         response: The parsed response model or mapping (may be sensitive).
@@ -167,7 +177,7 @@ class OrderRejectedError(StoneXError):
     def __init__(
         self,
         *,
-        status: int,
+        status: int | str,
         status_reason: int | None,
         reason: str | None,
         response: object,

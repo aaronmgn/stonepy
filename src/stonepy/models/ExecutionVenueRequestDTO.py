@@ -19,7 +19,7 @@ class ExecutionVenueRequestDTO(RequestModel):
 
     client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    app_key: str = Field(alias="AppKey")
+    app_key: str = Field(alias="AppKey", repr=False)
     """Information about app key"""
     request_id: str = Field(alias="RequestId")
     """Request identifier"""

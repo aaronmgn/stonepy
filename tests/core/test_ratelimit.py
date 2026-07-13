@@ -1,11 +1,19 @@
 import asyncio
 import inspect
+import threading
+import time
+from collections import deque
+from collections.abc import Callable
 
 import pytest
 
 from stonepy._core import ratelimit
-from stonepy._core.clock import FakeClock, SystemClock
-from stonepy._core.ratelimit import SlidingWindowLimiter, backoff_delay
+from stonepy._core.clock import Clock, FakeClock, SystemClock
+from stonepy._core.ratelimit import (
+    BucketedSlidingWindowLimiter,
+    SlidingWindowLimiter,
+    backoff_delay,
+)
 
 
 class PartialSleepClock:
@@ -173,3 +181,85 @@ def test_backoff_is_exponential_with_jitter_cap() -> None:
     assert backoff_delay(1, None, base=1.0, cap=30.0, jitter=1.0) == 2.0
     assert backoff_delay(10, None, base=1.0, cap=30.0, jitter=1.0) == 30.0
     assert backoff_delay(2, None, base=1.0, cap=30.0, jitter=0.0) == 2.0
+
+
+class _ThreadedFakeClock:
+    """FakeClock twin whose state is guarded for cross-thread use in these tests."""
+
+    def __init__(self) -> None:
+        self._t = 0.0
+        self._lock = threading.Lock()
+
+    def now(self) -> float:
+        with self._lock:
+            return self._t
+
+    def sleep(self, seconds: float) -> None:
+        with self._lock:
+            self._t += max(0.0, seconds)
+
+
+def _run_threads(worker: Callable[[], None], count: int) -> list[BaseException]:
+    barrier = threading.Barrier(count)
+    errors: list[BaseException] = []
+
+    def wrapped() -> None:
+        try:
+            barrier.wait()
+            worker()
+        except BaseException as exc:  # noqa: BLE001 - captured for the assertion
+            errors.append(exc)
+
+    threads = [threading.Thread(target=wrapped) for _ in range(count)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10.0)
+    assert not any(t.is_alive() for t in threads), "worker threads deadlocked"
+    return errors
+
+
+class _RacyLenDeque(deque[float]):
+    """Deque whose ``__len__`` returns a stale snapshot after yielding the GIL.
+
+    Widens the check-then-append race window so an unlocked limiter reliably over-admits;
+    with the lock held around the whole check/append section the stale read cannot happen.
+    """
+
+    def __len__(self) -> int:
+        snapshot = super().__len__()
+        time.sleep(0.001)
+        return snapshot
+
+
+def test_sliding_window_never_over_admits_across_threads() -> None:
+    clock = _ThreadedFakeClock()
+    limiter = SlidingWindowLimiter(4, 60.0, clock)
+    limiter._events = _RacyLenDeque()
+
+    errors = _run_threads(limiter.acquire, 8)
+
+    assert not errors
+    admitted_in_first_window = [t for t in limiter._events if t < 60.0]
+    assert len(admitted_in_first_window) <= 4
+
+
+def test_bucketed_limiter_concurrent_bucket_creation_loses_no_grants(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _SlowInitLimiter(SlidingWindowLimiter):
+        """Limiter whose construction yields the GIL, widening the get-create-store race."""
+
+        def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
+            time.sleep(0.001)
+            super().__init__(max_requests, window_seconds, clock)
+
+    monkeypatch.setattr(ratelimit, "SlidingWindowLimiter", _SlowInitLimiter)
+    clock = _ThreadedFakeClock()
+    limiter = BucketedSlidingWindowLimiter(1000, 60.0, clock)
+
+    errors = _run_threads(lambda: limiter.acquire("order"), 8)
+
+    assert not errors
+    assert len(limiter._limiters) == 1
+    assert len(limiter._limiters["order"]._events) == 8

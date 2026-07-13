@@ -21,6 +21,12 @@ _IDENTIFIER_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 _LOWER_TO_UPPER_RE = re.compile(r"([a-z0-9])([A-Z])")
 _WORD_BOUNDARY_RE = re.compile(r"(.)([A-Z][a-z]+)")
 
+# Wire names of credential/token fields; emitted with repr=False so logging a DTO (or its
+# repr in a traceback) never echoes a secret. Matched case-insensitively on the raw name.
+_SECRET_FIELD_RAW_NAMES = frozenset(
+    {"appkey", "newpassword", "password", "session", "token", "twofatoken"}
+)
+
 # Width of a docstring text line, leaving room for the indent and surrounding quotes so the
 # generated source stays within the project's 100-column ``ruff`` line limit (E501).
 _DOCSTRING_BUDGET = 94
@@ -301,11 +307,12 @@ def _model_fields(
             or (force_optional is not None and raw_name in force_optional)
         )
         alias = _string_literal(raw_name)
+        secret_suffix = ", repr=False" if raw_name.lower() in _SECRET_FIELD_RAW_NAMES else ""
         if optional:
             annotation = f"{annotation} | None"
-            field_expr = f"Field(default=None, alias={alias})"
+            field_expr = f"Field(default=None, alias={alias}{secret_suffix})"
         else:
-            field_expr = f"Field(alias={alias})"
+            field_expr = f"Field(alias={alias}{secret_suffix})"
         description = prop.get("description")
         rendered.append(
             _RenderedField(

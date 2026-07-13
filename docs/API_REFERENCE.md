@@ -30,6 +30,7 @@ The top-level `stonepy` package exports the client entry points and the error hi
 All exceptions inherit from `StoneXError`:
 
 - `AuthenticationError` - log-on failed or the session could not be refreshed.
+- `ConfigurationError` - the client has no credentials configured for session refresh.
 - `RateLimitError` - the API returned a rate-limit response; inspect `retry_after`.
 - `OrderRejectedError` - the request was accepted but the order was rejected.
 - `StoneXAPIError` - a non-success API response; exposes `http_status`, `error_code`, and `error_message`.
@@ -40,8 +41,9 @@ All exceptions inherit from `StoneXError`:
 
 Resource groups are exposed as properties on both clients and mirror the StoneX API surface:
 
-`session`, `order`, `market`, `watchlist`, `price_alert`, `clientpreference`, `preference`,
-`message`, `news`, `spread`, `cfd`, `margin`, `clientapplication`, and `user_account`.
+`cfd`, `client_preference`, `clientapplication`, `clientpreference`, `fixedmargin`, `margin`,
+`market`, `message`, `news`, `order`, `order_including_closed`, `pm`, `preference`,
+`price_alert`, `session`, `spread`, `tradingadvisor`, `user_account`, and `watchlist`.
 
 Each method maps to a single CIAPI v2 endpoint:
 

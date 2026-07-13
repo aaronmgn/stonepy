@@ -33,6 +33,11 @@ def test_client_preference_round_trip(client: StoneXClient, ids: dict[str, int])
         assert fetched is not None
         keys = client.client_preference.get_client_preferences_key_list(client_account_id=cid)
         assert _TEST_KEY in (keys.client_preference_keys or []), "saved preference key not listed"
+        # Live-verify the corrected GetClientPreferencesList binding: lowercase "keys=",
+        # sent exactly once (the docs' URI template names the placeholder after its type).
+        listed = client.client_preference.get_client_preferences_list([_TEST_KEY], cid)
+        listed_keys = [p.key for p in (listed.client_preferences or [])]
+        assert _TEST_KEY in listed_keys, "keys= filter (lowercase, comma-delimited) not honored"
     finally:
         client.client_preference.delete_client_preference(client_account_id=cid, key=_TEST_KEY)
 

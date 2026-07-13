@@ -13,9 +13,9 @@ class ApiChangePasswordRequestDTO(RequestModel):
 
     user_name: str = Field(alias="UserName")
     """The username of the user whose password is to be changed (case sensitive) ."""
-    password: str = Field(alias="Password")
+    password: str = Field(alias="Password", repr=False)
     """The user's existing password (case sensitive) ."""
-    new_password: str = Field(alias="NewPassword")
+    new_password: str = Field(alias="NewPassword", repr=False)
     """The user's new password (case sensitive) ."""
 
 

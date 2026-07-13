@@ -2,15 +2,22 @@ import asyncio
 import json
 
 import httpx
+import pytest
 import respx
 from pydantic import Field
 
-from stonepy import StoneXClient
+from stonepy import AuthenticationError, StoneXClient
 from stonepy._core.config import ClientConfig
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec
 from stonepy._core.models import ResponseModel
 from stonepy.client import AsyncStoneXClient
 from stonepy.models import ApiLogOnRequestDTO
+
+
+def _logon_request() -> ApiLogOnRequestDTO:
+    return ApiLogOnRequestDTO(
+        UserName="me", Password="pw", AppKey="key", AppVersion="v", AppComments=""
+    )
 
 
 class _ProtectedResp(ResponseModel):
@@ -274,3 +281,18 @@ def test_async_config_credentials_refresh_replays_with_username() -> None:
             await client.aclose()
 
     asyncio.run(run())
+
+
+@respx.mock
+def test_log_on_without_session_token_raises_and_preserves_refresh_callable() -> None:
+    respx.post("https://api.example/v2/session").mock(
+        return_value=httpx.Response(200, content='{"StatusCode":1}')
+    )
+    client = StoneXClient(ClientConfig(base_url="https://api.example"))
+    try:
+        original_logon = client._ctx.logon
+        with pytest.raises(AuthenticationError):
+            client.session.log_on(_logon_request())
+        assert client._ctx.logon is original_logon
+    finally:
+        client.close()

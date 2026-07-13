@@ -16,7 +16,7 @@ Python client for the StoneX (CIAPI) v2 trading API.
   model, and the package ships a `py.typed` marker, so editors autocomplete fields and `mypy`
   checks your calls.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
-- **Complete coverage.** All 72 documented CIAPI endpoints across 14 resource groups, using the
+- **Complete coverage.** All 128 documented CIAPI endpoints across 19 resource groups, using the
   v2 variant of every endpoint that has one.
 - **Batteries included.** Automatic session refresh, configurable retries, client-side rate
   limiting, secret redaction in logs, and a clear exception hierarchy.

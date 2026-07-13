@@ -9,6 +9,7 @@ used to construct them, and the public exception hierarchy rooted at
 from stonepy._core.config import ClientConfig
 from stonepy._core.errors import (
     AuthenticationError,
+    ConfigurationError,
     OrderRejectedError,
     RateLimitError,
     ResponseParseError,
@@ -24,6 +25,7 @@ __all__ = [
     "AsyncStoneXClient",
     "AuthenticationError",
     "ClientConfig",
+    "ConfigurationError",
     "OrderRejectedError",
     "RateLimitError",
     "ResponseParseError",

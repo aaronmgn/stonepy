@@ -12,7 +12,7 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 - **Fully typed.** Every request and response is a [Pydantic](https://docs.pydantic.dev/) model,
   so your editor autocompletes fields and `mypy` checks your calls.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
-- **Complete coverage.** All 72 documented CIAPI endpoints are bound, using the v2 variant of
+- **Complete coverage.** All 128 documented CIAPI endpoints are bound, using the v2 variant of
   every endpoint that has one.
 - **Batteries included.** Automatic session refresh, retry handling, rate-limit handling, and a
   clear exception hierarchy.

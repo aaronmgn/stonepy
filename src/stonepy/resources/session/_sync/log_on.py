@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from stonepy._core.resource import BaseResource
+from stonepy._core.session import require_session_token
 from stonepy._endpoints import session as _ep
 from stonepy.models import ApiLogOnRequestDTO, ApiLogOnResponseDTOv2
 
@@ -11,11 +12,15 @@ from stonepy.models import ApiLogOnRequestDTO, ApiLogOnResponseDTOv2
 class _LogOnMixin(BaseResource):
     def log_on(self, request: ApiLogOnRequestDTO) -> ApiLogOnResponseDTOv2:
         """Create a new session."""
+        response = _ep.log_on(self._ctx, request)
+        token = require_session_token(response.session)
+        self._ctx.session.set_token(token, request.user_name)
 
+        # Install the refresh callable only after a successful logon, so a failed manual
+        # logon cannot clobber a working config-credential refresh.
         def logon() -> tuple[str, str]:
-            return (_ep.log_on(self._ctx, request)).session or "", request.user_name
+            replay = _ep.log_on(self._ctx, request)
+            return require_session_token(replay.session), request.user_name
 
         self._ctx.logon = logon
-        response = _ep.log_on(self._ctx, request)
-        self._ctx.session.set_token(response.session or "", request.user_name)
         return response

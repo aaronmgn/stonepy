@@ -144,6 +144,13 @@ _PATH_OVERRIDES: dict[tuple[str, str], str] = {
     # The user-preference route is the singular "/v2/Preference"; the catalog pluralises it to
     # "/v2/Preferences", which 404s.
     ("preference", "GetUserPreference v2"): "/v2/Preference",
+    # The catalog's template names its keys placeholder after the *type* ("keys={string}"),
+    # which synthesized a bogus required `string` argument and sent the filter twice on the
+    # wire (both "keys=" and "Keys="). Rebinding the placeholder to the declared Keys param
+    # drops the synthetic argument and sends the filter exactly once.
+    ("client_preference", "GetClientPreferencesList v2"): (
+        "/v2/clientPreference/list?keys={Keys}&clientAccountId={clientAccountId}"
+    ),
 }
 
 # CIAPI serves a few v2 endpoints from the host root ("https://host/v2/...") rather than under the

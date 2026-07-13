@@ -8,6 +8,7 @@ def test_public_exports() -> None:
         "StoneXClient",
         "AsyncStoneXClient",
         "ClientConfig",
+        "ConfigurationError",
         "StoneXError",
         "StoneXAPIError",
         "AuthenticationError",

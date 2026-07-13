@@ -15,6 +15,9 @@ jobs:
       STONEX_PASSWORD: ${{ secrets.STONEX_PASSWORD }}
       STONEX_APP_KEY: ${{ secrets.STONEX_APP_KEY }}
       STONEX_BASE_URL: ${{ vars.STONEX_BASE_URL }}
+      # Opt-in gate for the SaveOrder simulation probe (tests/live/test_live_contract_probes.py):
+      # set the STONEX_LIVE_ORDER_PROBE repository variable to "1" to enable it.
+      STONEX_LIVE_ORDER_PROBE: ${{ vars.STONEX_LIVE_ORDER_PROBE }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0

@@ -31,14 +31,6 @@ Choose whichever installer matches your workflow.
     uv pip install stonepy
     ```
 
-=== "pipx"
-
-    Useful if you want `stonepy` installed in an isolated environment, for example to use it from scripts or notebooks:
-
-    ```bash
-    pipx install stonepy
-    ```
-
 !!! tip "Verify the install"
     ```bash
     python -c "import stonepy; print(stonepy.__version__)"
@@ -58,7 +50,7 @@ A normal install pulls in three small, well-established libraries:
 That is the entire footprint - no native build steps and no heavyweight transitive trees beyond what these three require.
 
 !!! note "No extras for normal use"
-    There are **no** optional extras to install for typical usage. `pip install stonepy` (or the `uv` / `pipx` equivalents above) gives you everything needed to authenticate and trade. The extras below are only for people working *on* the library.
+    There are **no** optional extras to install for typical usage. `pip install stonepy` (or the `uv` equivalent above) gives you everything needed to authenticate and trade. The extras below are only for people working *on* the library.
 
 ## Contributor extras
 

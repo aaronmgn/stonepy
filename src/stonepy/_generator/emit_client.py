@@ -31,6 +31,7 @@ def emit_client(resources_dir: Path, out_dir: Path) -> None:
     resource_targets = [_resource_target(target) for target in targets]
 
     replacements = {
+        "aclear": "clear",
         "ainvoke": "invoke",
         "alogon": "logon",
         "aset_token": "set_token",
@@ -260,6 +261,7 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         "from __future__ import annotations\n\n",
         "from collections.abc import Awaitable, Callable\n",
         "from types import TracebackType\n\n",
+        "from stonepy._core.errors import ConfigurationError\n",
         "from stonepy._core.resource import BaseResource\n",
         "from stonepy._core.clock import Clock, SystemClock\n",
         "from stonepy._core.config import ClientConfig\n",
@@ -267,7 +269,10 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         "from stonepy._core.plugins import discover_plugin_resources\n",
         "from stonepy._core.ratelimit import BucketedSlidingWindowLimiter\n",
         "from stonepy._core.retry import RetryPolicy\n",
-        "from stonepy._core.session import AsyncSessionManager, SessionManager\n",
+        (
+            "from stonepy._core.session import "
+            "AsyncSessionManager, SessionManager, require_session_token\n"
+        ),
         "from stonepy._core.transport import AsyncTransport, SyncTransport\n",
         "from stonepy._endpoints import session as _session_ep\n",
         "from stonepy.models import ApiLogOnRequestDTO\n",
@@ -290,7 +295,10 @@ def _client_helpers() -> list[str]:
     return [
         "def _missing_logon() -> tuple[str, str]:\n",
         '    """Raise because no credentials were configured for session refresh."""\n',
-        '    raise RuntimeError("session refresh is not configured")\n',
+        "    raise ConfigurationError(\n",
+        '        "session refresh is not configured: set app_key/username/password on "\n',
+        '        "ClientConfig or call client.session.log_on() first"\n',
+        "    )\n",
         "\n\n",
         "def _has_config_credentials(config: ClientConfig) -> bool:\n",
         '    """Return whether the config carries the credentials needed to log on."""\n',
@@ -314,10 +322,8 @@ def _client_helpers() -> list[str]:
         "        return _missing_logon\n",
         "\n",
         "    def logon() -> tuple[str, str]:\n",
-        "        return (\n",
-        '            _session_ep.log_on(ctx, _logon_request(config)).session or "",\n',
-        "            config.username,\n",
-        "        )\n",
+        "        response = _session_ep.log_on(ctx, _logon_request(config))\n",
+        "        return require_session_token(response.session), config.username\n",
         "\n",
         "    return logon\n",
         "\n\n",
@@ -329,10 +335,8 @@ def _client_helpers() -> list[str]:
         "        return None\n",
         "\n",
         "    async def alogon() -> tuple[str, str]:\n",
-        (
-            "        return (await _session_ep.alog_on(ctx, "
-            '_logon_request(config))).session or "", config.username\n'
-        ),
+        "        response = await _session_ep.alog_on(ctx, _logon_request(config))\n",
+        "        return require_session_token(response.session), config.username\n",
         "\n",
         "    return alogon\n",
         "\n\n",

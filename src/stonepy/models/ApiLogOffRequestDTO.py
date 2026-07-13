@@ -13,7 +13,7 @@ class ApiLogOffRequestDTO(ResponseModel):
 
     user_name: str | None = Field(default=None, alias="UserName")
     """User name of the session to delete (log off) . This is case sensitive."""
-    session: str | None = Field(default=None, alias="Session")
+    session: str | None = Field(default=None, alias="Session", repr=False)
     """Session identifier (session token) to delete (log off) ."""
 
 
