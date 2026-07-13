@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class ApiLogOnResponseDTOv2(ResponseModel):
     """Response to a LogOn v2 call."""
 
-    session: str | None = Field(default=None, alias="Session")
+    session: str | None = Field(default=None, alias="Session", repr=False)
     """
     Your session token (treat as a random string) . Session tokens are valid for a set period
     from the time of their creation. The period is subject to change, and may vary depending
@@ -33,7 +33,7 @@ class ApiLogOnResponseDTOv2(ResponseModel):
     """Contains the logon status code."""
     is2_fa_enabled: bool | None = Field(default=None, alias="Is2FAEnabled")
     """Returns a flag if Two Factor Authentication is enabled"""
-    two_fa_token: str | None = Field(default=None, alias="TwoFAToken")
+    two_fa_token: str | None = Field(default=None, alias="TwoFAToken", repr=False)
     """Two Factor Authentication token"""
     additional2_fa_methods: list[Api2FALogonOnResponseDTO] | None = Field(
         default=None, alias="Additional2FAMethods"

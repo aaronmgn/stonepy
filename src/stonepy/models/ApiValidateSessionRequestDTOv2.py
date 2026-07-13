@@ -15,7 +15,7 @@ class ApiValidateSessionRequestDTOv2(RequestModel):
     """Client account identifier"""
     user_name: str = Field(alias="UserName")
     """The username to validate"""
-    session: str = Field(alias="Session")
+    session: str = Field(alias="Session", repr=False)
     """The session ID to validate with the username"""
     trading_account_id: int = Field(alias="TradingAccountId")
     """Trading account identifier"""
