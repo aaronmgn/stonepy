@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `save_order` no longer crashes with `ValueError` when the API returns its text
+  `Status` ("Success"/"Failure"); a `"Failure"` status now raises `OrderRejectedError`.
+- The client-side rate limiter is now thread-safe.
+- `get_client_preferences_list` no longer requires a meaningless `string` argument and no
+  longer sends the keys filter twice (a breaking signature fix).
+- Logging out via `delete_session` now clears the locally stored session token.
+- A logon response without a session token now raises `AuthenticationError` instead of
+  silently storing an empty token; a failed manual `log_on` no longer disables automatic
+  session refresh; calling an authenticated endpoint on an unconfigured client raises the
+  new `ConfigurationError` instead of a bare `RuntimeError`.
+- Credential and token fields on generated models are excluded from `repr()`.
+- Docs: fixed the broken testing-guide example (renamed DTO, pre-0.2.2 URL) and the
+  watchlist recipe (single `ApiClientAccountWatchlistDTO`, not a list); corrected endpoint
+  and resource-group counts; removed the pipx instructions and the stale SECURITY table.
+
 ## [0.2.6] - 2026-06-29
 
 ### Fixed

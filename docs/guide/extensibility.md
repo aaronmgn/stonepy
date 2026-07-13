@@ -123,7 +123,7 @@ The same works for `AsyncStoneXClient`; both clients build their `_plugins` dict
 
 `load_plugin_resources` enforces a precise set of rules. Understanding which conditions raise and which are silently skipped matters for debugging:
 
-- **Name collides with a built-in** - if an entry-point name is one of the 14 built-in resource names and is **not** listed in `allow_overrides`, loading raises `ValueError("plugin resource '<name>' collides with a built-in; add it to allow_overrides to override")`. This is fail-loud, raised during client construction.
+- **Name collides with a built-in** - if an entry-point name is one of the 19 built-in resource names and is **not** listed in `allow_overrides`, loading raises `ValueError("plugin resource '<name>' collides with a built-in; add it to allow_overrides to override")`. This is fail-loud, raised during client construction.
 - **Duplicate plugin name** - if two entry points declare the same name, loading raises `ValueError("plugin resource '<name>' was declared more than once")`. Fail-loud.
 - **`ep.load()` raises** - if importing/loading the entry point throws, the loader logs a warning (`logger = logging.getLogger("stonepy.plugins")`) and **continues**, skipping that plugin. Fail-soft.
 - **Loaded object is not a `BaseResource` subclass** - if `ep.load()` does not return a class that is a subclass of `BaseResource`, the loader logs a warning and **continues**, skipping it. Fail-soft.
@@ -132,8 +132,9 @@ The same works for `AsyncStoneXClient`; both clients build their `_plugins` dict
 The built-in names that count as collisions are exactly the `known` set passed in from `client.py`:
 
 ```text
-cfd, clientapplication, clientpreference, margin, market, message, news,
-order, preference, price_alert, session, spread, user_account, watchlist
+cfd, client_preference, clientapplication, clientpreference, fixedmargin, margin, market,
+message, news, order, order_including_closed, pm, preference, price_alert, session, spread,
+tradingadvisor, user_account, watchlist
 ```
 
 !!! tip

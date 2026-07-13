@@ -5,6 +5,8 @@ for usage patterns.
 
 ::: stonepy.StoneXError
 
+::: stonepy.ConfigurationError
+
 ::: stonepy.AuthenticationError
 
 ::: stonepy.RateLimitError

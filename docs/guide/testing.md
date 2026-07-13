@@ -68,9 +68,9 @@ A few things to know before reading it:
   and automatically attaches it as a `Session` header on every later request, so
   your data-call assertions can check for it.
 - `get_market_information(market_id, client_account_id)` issues a `GET` to
-  `{base_url}/market/v2/market/{market_id}/information` with
+  `{base_url}/v2/market/{market_id}/information` with
   `clientAccountId` as a query parameter, and returns a
-  `GetMarketInformationResponseDTO`.
+  `GetMarketInformationResponseDTOv2`.
 - Both clients are context managers, so `with StoneXClient(...) as client:`
   closes the underlying `httpx` client for you.
 
@@ -85,7 +85,7 @@ from stonepy import AsyncStoneXClient, ClientConfig, StoneXClient
 from stonepy.models import (
     ApiLogOnRequestDTO,
     ApiLogOnResponseDTOv2,
-    GetMarketInformationResponseDTO,
+    GetMarketInformationResponseDTOv2,
 )
 
 BASE_URL = "https://ciapi.cityindex.com/TradingAPI"
@@ -117,7 +117,7 @@ def test_sync_flow() -> None:
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
     market_route = respx.get(
-        f"{BASE_URL}/market/v2/market/99498/information"
+        f"{BASE_URL}/v2/market/99498/information"
     ).mock(return_value=httpx.Response(200, json=MARKET_BODY))
 
     config = ClientConfig(base_url=BASE_URL)
@@ -136,7 +136,7 @@ def test_sync_flow() -> None:
         assert logon.session == "TEST-SESSION-TOKEN"
 
         market = client.market.get_market_information("99498", 12345)
-        assert isinstance(market, GetMarketInformationResponseDTO)
+        assert isinstance(market, GetMarketInformationResponseDTOv2)
         assert market.market_information.name == "UK 100"
 
     # Assert on what stonepy actually sent.
@@ -162,7 +162,7 @@ def test_async_flow() -> None:
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
     market_route = respx.get(
-        f"{BASE_URL}/market/v2/market/99498/information"
+        f"{BASE_URL}/v2/market/99498/information"
     ).mock(return_value=httpx.Response(200, json=MARKET_BODY))
 
     async def run() -> None:
@@ -180,7 +180,7 @@ def test_async_flow() -> None:
             assert isinstance(logon, ApiLogOnResponseDTOv2)
 
             market = await client.market.get_market_information("99498", 12345)
-            assert isinstance(market, GetMarketInformationResponseDTO)
+            assert isinstance(market, GetMarketInformationResponseDTOv2)
             assert market.market_information.name == "UK 100"
 
     asyncio.run(run())

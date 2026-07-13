@@ -186,8 +186,8 @@ with StoneXClient(config) as client:
 ## List and save a watchlist
 
 `get_watchlists(client_account_id)` returns the client's watchlists. `save_watchlist`
-accepts a `SaveWatchlistRequestDTO` containing one or more `ApiClientAccountWatchlistDTO`
-entries (each with `ApiClientAccountWatchlistItemDTO` items) and returns the saved
+accepts a `SaveWatchlistRequestDTO` containing a single `ApiClientAccountWatchlistDTO`
+(with `ApiClientAccountWatchlistItemDTO` items) and returns the saved
 `watchlist_id`.
 
 ```python
@@ -211,18 +211,16 @@ with StoneXClient(config) as client:
     saved = client.watchlist.save_watchlist(
         SaveWatchlistRequestDTO(
             client_account_id=client_account_id,
-            watchlist=[
-                ApiClientAccountWatchlistDTO(
-                    watchlist_description="FX Majors",
-                    display_order=1,
-                    items=[
-                        ApiClientAccountWatchlistItemDTO(
-                            market_id=400481000,
-                            display_order=1,
-                        )
-                    ],
-                )
-            ],
+            watchlist=ApiClientAccountWatchlistDTO(
+                watchlist_description="FX Majors",
+                display_order=1,
+                items=[
+                    ApiClientAccountWatchlistItemDTO(
+                        market_id=400481000,
+                        display_order=1,
+                    )
+                ],
+            ),
         )
     )
     print("saved watchlist id:", saved.watchlist_id)

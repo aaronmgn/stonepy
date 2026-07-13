@@ -5,11 +5,6 @@
 `stonepy` is pre-1.0 software. Security fixes are released only for the latest version
 published on [PyPI](https://pypi.org/project/stonepy/).
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| < 0.1   | :x:                |
-
 ## Reporting a Vulnerability
 
 Please report security vulnerabilities **privately** - do not open a public issue.

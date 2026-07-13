@@ -40,8 +40,9 @@ All exceptions inherit from `StoneXError`:
 
 Resource groups are exposed as properties on both clients and mirror the StoneX API surface:
 
-`session`, `order`, `market`, `watchlist`, `price_alert`, `clientpreference`, `preference`,
-`message`, `news`, `spread`, `cfd`, `margin`, `clientapplication`, and `user_account`.
+`cfd`, `client_preference`, `clientapplication`, `clientpreference`, `fixedmargin`, `margin`,
+`market`, `message`, `news`, `order`, `order_including_closed`, `pm`, `preference`,
+`price_alert`, `session`, `spread`, `tradingadvisor`, `user_account`, and `watchlist`.
 
 Each method maps to a single CIAPI v2 endpoint:
 
