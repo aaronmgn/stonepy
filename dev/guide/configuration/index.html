@@ -9372,7 +9372,7 @@
 <td><code>rate_limit_max</code></td>
 <td><code>int</code></td>
 <td><code>500</code></td>
-<td>Maximum number of requests allowed within the rate-limit window.</td>
+<td>Maximum aggregate requests across all endpoints within the rate-limit window.</td>
 </tr>
 <tr>
 <td><code>rate_limit_window_seconds</code></td>
@@ -9432,7 +9432,7 @@
 <td><code>status_decoder</code></td>
 <td><code>StatusDecoder \| None</code></td>
 <td><code>default_status_decoder</code></td>
-<td>Callable that maps API status codes to outcomes. Pass <code>None</code> to disable status decoding.</td>
+<td>Replaces top-level numeric instruction/order decoding. Text execution and nested-order checks stay built in; pass <code>None</code> to disable all business-status checks.</td>
 </tr>
 <tr>
 <td><code>enable_plugins</code></td>

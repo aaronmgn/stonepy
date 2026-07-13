@@ -9489,26 +9489,39 @@
 <p><code>allow_overrides</code> does <strong>not</strong> replace the built-in resource property. The built-in <code>client.order</code> property still returns the generated <code>OrderResource</code>; the overriding plugin is only reachable through <code>client.plugin("order")</code>. The two coexist - <code>allow_overrides</code> simply suppresses the collision error so the plugin can be loaded alongside the built-in.</p>
 </div>
 <h2 id="3-supplying-a-custom-status_decoder">3. Supplying a custom <code>status_decoder</code><a class="headerlink" href="#3-supplying-a-custom-status_decoder" title="Permanent link">&para;</a></h2>
-<p>After a successful HTTP response is parsed, the pipeline can raise <code>OrderRejectedError</code> based on a business <code>Status</code> field in the payload. The decision is made by <code>ClientConfig.status_decoder</code>, whose type is:</p>
+<p>After a successful HTTP response is parsed, the pipeline can raise <code>OrderRejectedError</code> based on
+the status domain declared by the endpoint spec. <code>ClientConfig.status_decoder</code> can replace the
+top-level numeric decision, and has this backward-compatible type:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># src/stonepy/_core/status.py</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="n">StatusDecision</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">BusinessStatus</span> <span class="o">|</span> <span class="nb">bool</span> <span class="o">|</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">StatusDecoder</span><span class="p">:</span> <span class="n">TypeAlias</span> <span class="o">=</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">],</span> <span class="n">StatusDecision</span><span class="p">]</span>
 </code></pre></div>
-<p>A decoder receives <code>(status, status_reason)</code> (the <code>status_reason</code> may be <code>None</code>) and returns a <code>StatusDecision</code>. The pipeline (<code>_decode_rejection</code>) interprets the return value as follows:</p>
+<p>A decoder receives <code>(status, status_reason)</code> (the <code>status_reason</code> may be <code>None</code>) and returns a
+<code>StatusDecision</code>. It is called for the top-level status on both <code>INSTRUCTION</code> and <code>ORDER</code> specs;
+the signature does not include the domain. The pipeline interprets its return value as follows:</p>
 <ul>
 <li><code>BusinessStatus(is_rejection=..., reason=...)</code> - used directly.</li>
 <li><code>bool</code> - <code>True</code> means rejected with no reason; <code>False</code> means accepted.</li>
 <li><code>str</code> - treated as rejected, with the string used as the rejection reason.</li>
 <li><code>None</code> - treated as accepted.</li>
 </ul>
-<p>The default is <code>default_status_decoder</code>, which treats only <code>OrderStatus.Rejected</code> (5) and <code>OrderStatus.RedCard</code> (10) as rejections and returns <code>BusinessStatus(False)</code> for everything else.</p>
-<h3 id="where-the-check-runs">Where the check runs<a class="headerlink" href="#where-the-check-runs" title="Permanent link">&para;</a></h3>
-<p>The pipeline narrows when the check fires based on whether you kept the default decoder (<code>_should_check_business_status</code> in <code>src/stonepy/_core/pipeline.py</code>):</p>
+<p>When <code>ClientConfig</code> keeps the default callable, the pipeline selects its built-in logic by domain:</p>
 <ul>
-<li>With the <strong>default</strong> decoder, the business-status check runs <strong>only</strong> for endpoints whose <code>rate_limit_bucket == "order"</code>.</li>
-<li>With <strong>any custom</strong> decoder, the check runs for <strong>every</strong> parsed response that carries a <code>Status</code> field.</li>
+<li>Instruction acknowledgements reject <code>RedCard</code> (2) and <code>Error</code> (4). An undocumented numeric
+  instruction status raises <code>OrderStatusUnknownError</code>.</li>
+<li>Order/simulation acknowledgements reject <code>Rejected</code> (5) and <code>RedCard</code> (10); unknown numeric
+  lifecycle values are informational.</li>
 </ul>
-<p>So installing a custom decoder broadens the scope of business-status checking to all responses, not just order endpoints. Keep that in mind if your decoder is strict.</p>
+<p>Supplying any other callable fully replaces that top-level numeric logic, including the unknown
+instruction-code safeguard. The custom callable therefore needs a policy that is valid for both
+numeric vocabularies, even though some numbers have different meanings between them.</p>
+<h3 id="where-the-check-runs">Where the check runs<a class="headerlink" href="#where-the-check-runs" title="Permanent link">&para;</a></h3>
+<p>Business-status checking runs only for endpoint specs with an explicit non-<code>NONE</code> <code>StatusDomain</code>.
+A custom decoder does not broaden checking to read endpoints that merely echo stored status.</p>
+<p>The custom decoder replaces only the top-level numeric decision. SaveOrder's closed text
+<code>Success</code>/<code>Failure</code> check and instruction responses' nested <code>Orders[]</code> checks remain built in;
+fixed-margin responses likewise retain their <code>OrderStatusId</code> check. Nested quote statuses are out
+of scope.</p>
 <h3 id="writing-one">Writing one<a class="headerlink" href="#writing-one" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">OrderStatus</span>
@@ -9516,29 +9529,32 @@
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
 <a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
 <a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">def</span><span class="w"> </span><span class="nf">strict_decoder</span><span class="p">(</span><span class="n">status</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">status_reason</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">StatusDecision</span><span class="p">:</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="c1"># Treat anything that is not a clean &quot;Accepted&quot; as a rejection.</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="n">OrderStatus</span><span class="o">.</span><span class="n">Accepted</span><span class="p">:</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>        <span class="k">return</span> <span class="n">BusinessStatus</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
-<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="k">return</span> <span class="n">BusinessStatus</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;status=</span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2"> reason=</span><span class="si">{</span><span class="n">status_reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="c1"># Example custom policy: require an OrderStatus-style Accepted code. This same numeric rule</span>
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="c1"># also receives instruction statuses, so use it only when that cross-domain policy is wanted.</span>
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="k">if</span> <span class="n">status</span> <span class="o">==</span> <span class="nb">int</span><span class="p">(</span><span class="n">OrderStatus</span><span class="o">.</span><span class="n">Accepted</span><span class="p">):</span>
+<a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>        <span class="k">return</span> <span class="n">BusinessStatus</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+<a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="k">return</span> <span class="n">BusinessStatus</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">reason</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;status=</span><span class="si">{</span><span class="n">status</span><span class="si">}</span><span class="s2"> reason=</span><span class="si">{</span><span class="n">status_reason</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 <a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
-<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">status_decoder</span><span class="o">=</span><span class="n">strict_decoder</span><span class="p">,</span>
-<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="p">)</span>
+<a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
+<a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
+<a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
+<a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="n">status_decoder</span><span class="o">=</span><span class="n">strict_decoder</span><span class="p">,</span>
+<a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a><span class="p">)</span>
 </code></pre></div>
 <h3 id="disabling-business-status-checks">Disabling business-status checks<a class="headerlink" href="#disabling-business-status-checks" title="Permanent link">&para;</a></h3>
-<p><code>status_decoder</code> is <code>StatusDecoder | None</code>. Setting it to <code>None</code> disables the business-status check entirely - <code>_parse_success</code> skips <code>check_business_status</code> when the decoder is <code>None</code>, so no <code>OrderRejectedError</code> is ever raised from a 2xx response:</p>
+<p><code>status_decoder</code> is <code>StatusDecoder | None</code>. Setting it to <code>None</code> disables all business-status
+checks, including execution-text and nested-order checks, so no <code>OrderRejectedError</code> or
+<code>OrderStatusUnknownError</code> is raised from a 2xx response:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
 <a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
 <a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">status_decoder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># never raise OrderRejectedError on 2xx</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">status_decoder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># never raise a business-status exception on 2xx</span>
 <a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
 </code></pre></div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Setting <code>status_decoder=None</code> means a 2xx response whose body reports an order rejection will be returned as a normal result rather than raising <code>OrderRejectedError</code>. Inspect the <code>Status</code> field yourself before acting on the order, especially in any flow that places or cancels live orders.</p>
+<p>Setting <code>status_decoder=None</code> means a 2xx response whose body reports a rejection or an indeterminate acknowledgement will be returned as a normal result. Inspect the status fields yourself before acting, especially in any flow that places or cancels live orders.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

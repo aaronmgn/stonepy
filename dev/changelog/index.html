@@ -9027,6 +9027,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9278,7 +9289,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9328,7 +9339,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9367,7 +9378,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9406,7 +9417,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9507,6 +9518,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#changed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#fixed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9758,7 +9780,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed" class="md-nav__link">
+  <a href="#changed_1" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9808,7 +9830,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_1" class="md-nav__link">
+  <a href="#changed_2" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9847,7 +9869,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#changed_2" class="md-nav__link">
+  <a href="#changed_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9886,7 +9908,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#changed_3" class="md-nav__link">
+  <a href="#changed_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Changed
@@ -9965,14 +9987,35 @@
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
 <h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.2.6...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>BREAKING:</strong> The proactive client-side rate limit now applies one aggregate
+  <code>rate_limit_max</code> / <code>rate_limit_window_seconds</code> window across all endpoint resource groups,
+  matching CIAPI's documented server-wide 500-request/5-second budget. Resource groups no longer
+  receive independent windows that can multiply aggregate traffic.</li>
+<li><strong>BREAKING:</strong> An undocumented instruction status, unknown <code>save_order</code> text status, or numeric
+  <code>save_order</code> status now raises the new <code>OrderStatusUnknownError</code> instead of warning and returning
+  an indeterminate response. The exception is not an <code>OrderRejectedError</code>: the order may or may
+  not have been placed, and callers must verify order state before resubmitting.</li>
+<li><strong>BREAKING:</strong> Business-status rejection checking now runs only on endpoints with an explicit
+  placement/simulation acknowledgement domain. Read endpoints no longer raise
+  <code>OrderRejectedError</code> merely because returned current or historical data contains a rejected
+  stored order status.</li>
+</ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>save_order</code> no longer crashes with <code>ValueError</code> when the API returns its text
-  <code>Status</code> ("Success"/"Failure"); a <code>"Failure"</code> status now raises <code>OrderRejectedError</code>, and
-  an unrecognized text status is logged as a warning rather than passing silently.</li>
+<li>Trade/order placement responses now decode top-level <code>ApiTradeOrderResponseDTO.Status</code> and
+  <code>StatusReason</code> as <code>InstructionStatus</code>/<code>InstructionStatusReason</code>; only nested <code>Orders[]</code> uses
+  <code>OrderStatus</code>/<code>OrderStatusReason</code>. This prevents instruction <code>RedCard</code> (2) from being mistaken
+  for an accepted order lifecycle value, and instruction <code>Pending</code> (5) from raising a false
+  <code>OrderRejectedError</code> (which could prompt a resubmit and a doubled order).</li>
+<li><code>save_order</code> no longer crashes with <code>ValueError</code> when the API returns its documented text
+  <code>Status</code>; <code>Success</code> returns and <code>Failure</code> raises <code>OrderRejectedError</code> with the response reason.</li>
 <li>The client-side rate limiter is now thread-safe.</li>
 <li>A throttled (HTTP 429) retry without a <code>Retry-After</code> header now waits at least the one
   second the CIAPI basics guide requires before resending.</li>
+<li>The generator no longer silently falls back to a developer-specific catalog path;
+  catalog-consuming commands now require <code>--catalog-root</code> or <code>STONEPY_CATALOG</code>.</li>
 <li><code>get_client_preferences_list</code> no longer requires a meaningless <code>string</code> argument and no
   longer sends the keys filter twice (a breaking signature fix).</li>
 <li>Logging out via <code>delete_session</code> now clears the locally stored session token, but only
@@ -10141,7 +10184,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   tests.</li>
 <li>30 new DTO models for the v2 responses and requests, each with auto-generated reference pages.</li>
 </ul>
-<h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
+<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Model reference pages now render each model class directly instead of wrapping it in a module
   heading, and the API overview links to the full per-model reference rather than duplicating a
@@ -10179,7 +10222,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Community health files: <code>CODE_OF_CONDUCT.md</code>, issue templates, a pull request template, and
   <code>CODEOWNERS</code>.</li>
 </ul>
-<h3 id="changed_1">Changed<a class="headerlink" href="#changed_1" title="Permanent link">&para;</a></h3>
+<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Expanded the README with a feature overview, a project status notice, install options, and a
   support section.</li>
@@ -10192,7 +10235,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   error-handling examples self-contained and runnable.</li>
 </ul>
 <h2 id="012-2026-06-27"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.1.2">0.1.2</a> - 2026-06-27<a class="headerlink" href="#012-2026-06-27" title="Permanent link">&para;</a></h2>
-<h3 id="changed_2">Changed<a class="headerlink" href="#changed_2" title="Permanent link">&para;</a></h3>
+<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Harden the Dependabot configuration so published runtime version caps are preserved, and fix a
   setup-uv cache race in CI.</li>
@@ -10206,7 +10249,7 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li><code>Operating System :: OS Independent</code> and <code>Programming Language :: Python :: 3 :: Only</code>
   classifiers.</li>
 </ul>
-<h3 id="changed_3">Changed<a class="headerlink" href="#changed_3" title="Permanent link">&para;</a></h3>
+<h3 id="changed_4">Changed<a class="headerlink" href="#changed_4" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Pin all GitHub Actions to commit SHAs and bump them to Node 24 releases.</li>
 </ul>

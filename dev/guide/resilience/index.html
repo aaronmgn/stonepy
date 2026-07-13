@@ -9533,7 +9533,7 @@
 <tr>
 <td><code>rate_limit_max</code></td>
 <td><code>500</code></td>
-<td>Maximum requests allowed per window, <strong>per bucket</strong>.</td>
+<td>Maximum aggregate requests allowed per window across all endpoints.</td>
 </tr>
 <tr>
 <td><code>rate_limit_window_seconds</code></td>
@@ -9544,12 +9544,12 @@
 </table>
 <p>How it works:</p>
 <ul>
-<li>Requests are partitioned into <strong>buckets</strong> by <code>spec.rate_limit_bucket</code> (a fixed label baked into each generated <code>EndpointSpec</code>, for example <code>"order"</code>). Each bucket gets its own independent <code>SlidingWindowLimiter</code> with the same <code>rate_limit_max</code> and <code>rate_limit_window_seconds</code>. The limit is therefore applied <strong>per bucket</strong>, not globally across all endpoints.</li>
-<li>Before every send, the pipeline calls <code>acquire(bucket)</code>. The limiter keeps a deque of recent request timestamps, evicts any older than <code>window_seconds</code>, and:</li>
+<li>CIAPI documents one server-side budget: 500 requests over a 5-second window. Generated <code>EndpointSpec</code> objects retain their <code>rate_limit_bucket</code> resource-group labels for compatibility, but every label maps to one shared <code>SlidingWindowLimiter</code>. The configured limit is therefore aggregate across all endpoints used by a client instance.</li>
+<li>Before every send, the pipeline calls <code>acquire(bucket)</code>. The shared limiter keeps a deque of recent request timestamps, evicts any older than <code>window_seconds</code>, and:</li>
 <li>if fewer than <code>rate_limit_max</code> events remain in the window, it records "now" and returns immediately;</li>
 <li>otherwise it sleeps until the oldest in-window event ages out (<code>oldest + window - now</code>), then re-checks.</li>
 </ul>
-<p>This is a true sliding window (not a fixed bucket reset), so it smooths bursts rather than allowing a full burst at every window boundary. It is best-effort and local to the process - it does not coordinate across multiple client instances or machines.</p>
+<p>This is a true sliding window (not a fixed bucket reset), so it smooths bursts rather than allowing a full burst at every window boundary. It is best-effort and local to a client instance - it does not coordinate across multiple client instances, processes, or machines.</p>
 <h3 id="server-side-429-handling">Server-side 429 handling<a class="headerlink" href="#server-side-429-handling" title="Permanent link">&para;</a></h3>
 <p>Even with the proactive limiter, the server may still return HTTP <code>429</code>. The pipeline detects this (<code>_is_rate_limited</code> treats any <code>429</code> as rate-limited) and:</p>
 <ol>
@@ -9580,7 +9580,7 @@
 <h3 id="tuning-rate-limiting">Tuning rate limiting<a class="headerlink" href="#tuning-rate-limiting" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Tighter local throttle: at most 100 requests per 2s window, per bucket.</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Tighter local throttle: at most 100 aggregate requests per 2s window.</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
 <a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">rate_limit_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
@@ -9595,12 +9595,12 @@
 <h2 id="how-the-three-layers-interact">How the three layers interact<a class="headerlink" href="#how-the-three-layers-interact" title="Permanent link">&para;</a></h2>
 <p>For a single call, the order of events inside the pipeline loop is:</p>
 <ol>
-<li>Acquire a slot from the client-side limiter for the endpoint's bucket (may sleep proactively).</li>
+<li>Acquire a slot from the client-side aggregate limiter (may sleep proactively).</li>
 <li>Send one HTTP attempt, bounded by the four timeouts.</li>
 <li>On a transport error or a retryable status (<code>502/503/504</code>), or a <code>429</code>, decide whether to retry based on idempotency, <code>max_retries</code>, and <code>retry_budget_seconds</code>; sleep using the backoff/<code>Retry-After</code> delay; then loop.</li>
 <li>When no retry is possible, raise the mapped error (<code>TransportError</code>, <code>RateLimitError</code>, <code>AuthenticationError</code>, or <code>StoneXAPIError</code>).</li>
 </ol>
-<p>Each layer is independent: timeouts bound a single attempt, the limiter shapes outgoing request rate per bucket, and the retry budget bounds the total wall-clock time spent retrying across attempts.</p>
+<p>Each layer is independent: timeouts bound a single attempt, the limiter shapes aggregate outgoing request rate, and the retry budget bounds the total wall-clock time spent retrying across attempts.</p>
 
 
 
