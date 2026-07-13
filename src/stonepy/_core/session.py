@@ -45,6 +45,18 @@ class SessionManager:
         """Store a freshly issued token and username, bumping the generation."""
         self.set_token(token, username)
 
+    def clear(self) -> None:
+        """Drop the stored token so no auth headers are sent, bumping the generation."""
+        with self._lock:
+            self._token = None
+            self._username = ""
+            self._generation += 1
+            self._issued_at = None
+
+    async def aclear(self) -> None:
+        """Drop the stored token so no auth headers are sent, bumping the generation."""
+        self.clear()
+
     @property
     def generation(self) -> int:
         """The current token generation; increments on every refresh."""
@@ -117,6 +129,21 @@ class AsyncSessionManager:
             self._username = username
             self._generation += 1
             self._issued_at = self._clock.now()
+
+    def clear(self) -> None:
+        """Drop the stored token so no auth headers are sent, bumping the generation."""
+        self._token = None
+        self._username = ""
+        self._generation += 1
+        self._issued_at = None
+
+    async def aclear(self) -> None:
+        """Drop the stored token under the async lock, bumping the generation."""
+        async with self._lock:
+            self._token = None
+            self._username = ""
+            self._generation += 1
+            self._issued_at = None
 
     @property
     def generation(self) -> int:

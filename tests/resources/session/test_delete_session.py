@@ -6,6 +6,7 @@ import httpx
 import respx
 
 from stonepy._core.config import ClientConfig
+from stonepy._core.endpoint import AuthPolicy
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiLogOffResponseDTO
 
@@ -50,3 +51,34 @@ def test_delete_session_async() -> None:
             await client.aclose()
 
     asyncio.run(run())
+
+
+@respx.mock
+def test_delete_session_clears_local_token_on_success() -> None:
+    respx.post("https://api.example/session/deleteSession").mock(
+        return_value=httpx.Response(200, content='{"LoggedOut":true}')
+    )
+    client = StoneXClient(ClientConfig(base_url="https://api.example"))
+    try:
+        client._ctx.session.set_token("TOKEN", "user")
+        client.session.delete_session("user", "TOKEN")
+        assert client._ctx.session.auth_headers(AuthPolicy.SESSION) == {}
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_delete_session_keeps_token_when_logoff_reports_false() -> None:
+    respx.post("https://api.example/session/deleteSession").mock(
+        return_value=httpx.Response(200, content='{"LoggedOut":false}')
+    )
+    client = StoneXClient(ClientConfig(base_url="https://api.example"))
+    try:
+        client._ctx.session.set_token("TOKEN", "user")
+        client.session.delete_session("user", "TOKEN")
+        assert client._ctx.session.auth_headers(AuthPolicy.SESSION) == {
+            "Session": "TOKEN",
+            "UserName": "user",
+        }
+    finally:
+        client.close()

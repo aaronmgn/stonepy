@@ -31,6 +31,7 @@ def emit_client(resources_dir: Path, out_dir: Path) -> None:
     resource_targets = [_resource_target(target) for target in targets]
 
     replacements = {
+        "aclear": "clear",
         "ainvoke": "invoke",
         "alogon": "logon",
         "aset_token": "set_token",

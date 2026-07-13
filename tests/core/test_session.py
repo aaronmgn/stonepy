@@ -195,3 +195,27 @@ def test_async_refresh_callback_can_update_username_without_prior_token() -> Non
         }
 
     asyncio.run(run())
+
+
+def test_session_manager_clear_drops_token_and_bumps_generation() -> None:
+    manager = SessionManager(FakeClock(), 1080.0)
+    manager.set_token("TOKEN", "user")
+    generation = manager.generation
+
+    manager.clear()
+
+    assert manager.auth_headers(AuthPolicy.SESSION) == {}
+    assert manager.generation == generation + 1
+    assert manager.needs_proactive_refresh() is False
+
+
+def test_async_session_manager_aclear_drops_token() -> None:
+    async def run() -> None:
+        manager = AsyncSessionManager(FakeClock(), 1080.0)
+        await manager.aset_token("TOKEN", "user")
+
+        await manager.aclear()
+
+        assert await manager.aauth_headers(AuthPolicy.SESSION) == {}
+
+    asyncio.run(run())
