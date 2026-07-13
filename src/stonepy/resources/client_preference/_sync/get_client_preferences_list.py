@@ -10,7 +10,7 @@ from stonepy.models import ApiGetClientPreferencesResponseDTO
 
 class _GetClientPreferencesListMixin(BaseResource):
     def get_client_preferences_list(
-        self, keys: list[str], client_account_id: int, string: str
+        self, keys: list[str], client_account_id: int
     ) -> ApiGetClientPreferencesResponseDTO:
         """Returns the list of client's preferences."""
-        return _ep.get_client_preferences_list(self._ctx, keys, client_account_id, string)
+        return _ep.get_client_preferences_list(self._ctx, keys, client_account_id)

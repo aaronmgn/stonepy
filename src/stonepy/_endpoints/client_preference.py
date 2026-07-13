@@ -86,7 +86,7 @@ async def aget_client_preferences_key_list(
 GET_CLIENT_PREFERENCES_LIST_SPEC: EndpointSpec[ApiGetClientPreferencesResponseDTO] = EndpointSpec(
     name="GetClientPreferencesList v2",
     method="GET",
-    path="/v2/clientPreference/list?keys={string}&clientAccountId={clientAccountId}",
+    path="/v2/clientPreference/list?keys={Keys}&clientAccountId={clientAccountId}",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="client_preference",
@@ -94,28 +94,25 @@ GET_CLIENT_PREFERENCES_LIST_SPEC: EndpointSpec[ApiGetClientPreferencesResponseDT
     params=(
         Param(name="Keys", location="query", python_name="keys"),
         Param(name="ClientAccountId", location="query", python_name="client_account_id"),
-        Param(name="string", location="query", python_name="string"),
     ),
 )
 
 
 def get_client_preferences_list(
-    ctx: CallContext, keys: list[str], client_account_id: int, string: str
+    ctx: CallContext, keys: list[str], client_account_id: int
 ) -> ApiGetClientPreferencesResponseDTO:
     """Returns the list of client's preferences."""
     return ctx.invoke(
-        GET_CLIENT_PREFERENCES_LIST_SPEC,
-        query={"Keys": keys, "ClientAccountId": client_account_id, "string": string},
+        GET_CLIENT_PREFERENCES_LIST_SPEC, query={"Keys": keys, "ClientAccountId": client_account_id}
     )
 
 
 async def aget_client_preferences_list(
-    ctx: CallContext, keys: list[str], client_account_id: int, string: str
+    ctx: CallContext, keys: list[str], client_account_id: int
 ) -> ApiGetClientPreferencesResponseDTO:
     """Returns the list of client's preferences."""
     return await ctx.ainvoke(
-        GET_CLIENT_PREFERENCES_LIST_SPEC,
-        query={"Keys": keys, "ClientAccountId": client_account_id, "string": string},
+        GET_CLIENT_PREFERENCES_LIST_SPEC, query={"Keys": keys, "ClientAccountId": client_account_id}
     )
 
 
