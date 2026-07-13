@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from math import isfinite
-from typing import Any, Protocol, TypeVar, cast, get_origin, runtime_checkable
+from typing import Any, Never, Protocol, TypeVar, cast, get_origin, runtime_checkable
 
 import httpx
 from pydantic import BaseModel, Field, RootModel
@@ -22,6 +21,7 @@ from stonepy._core.endpoint import AuthPolicy, EndpointSpec
 from stonepy._core.errors import (
     AuthenticationError,
     OrderRejectedError,
+    OrderStatusUnknownError,
     RateLimitError,
     ResponseParseError,
     StoneXAPIError,
@@ -39,11 +39,12 @@ from stonepy._core.status import (
     BusinessStatus,
     StatusDecision,
     StatusDecoder,
+    StatusDomain,
+    _decode_default_status,
+    _UnknownInstructionStatus,
     default_status_decoder,
 )
 from stonepy._core.transport import Request, build_request
-
-logger = logging.getLogger("stonepy.pipeline")
 
 # CIAPI basics guide: when throttling activates (HTTP 429), "the client UI application must
 # wait 1 second before sending further API requests".
@@ -167,6 +168,7 @@ class CallContext:
             AuthenticationError: On unrecoverable authentication failures.
             RateLimitError: When rate-limit retries are exhausted.
             OrderRejectedError: When an order response carries a rejection status.
+            OrderStatusUnknownError: When a write acknowledgement carries an indeterminate status.
             TransportError: When a network failure persists past the retry budget.
             ResponseParseError: When the response body cannot be decoded or validated.
             StoneXAPIError: For other non-2xx responses.
@@ -435,15 +437,17 @@ class CallContext:
         return self.logon()
 
     def _parse_success(self, spec: EndpointSpec[ResponseT], resp: httpx.Response) -> ResponseT:
-        model = parse_response(spec, resp)
+        status_decoder = self.config.status_decoder
+        model = parse_response(spec, resp, status_decoder=status_decoder)
         if (
             not isinstance(model, RootModel)
-            and self.config.status_decoder is not None
-            and _should_check_business_status(spec, self.config.status_decoder)
+            and status_decoder is not None
+            and spec.status_domain not in {StatusDomain.NONE, StatusDomain.EXECUTION_TEXT}
         ):
             check_business_status(
                 model,
-                self.config.status_decoder,
+                status_decoder,
+                status_domain=spec.status_domain,
                 method=spec.method,
                 path=spec.path,
                 http_status=resp.status_code,
@@ -457,10 +461,21 @@ class CallContext:
         self.clock.sleep(delay)
 
 
-def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> ResponseT:
+def parse_response(
+    spec: EndpointSpec[ResponseT],
+    resp: httpx.Response,
+    *,
+    status_decoder: StatusDecoder | None = None,
+) -> ResponseT:
     """Decode and validate a success response into ``spec.response_model``.
 
+    When *status_decoder* is supplied for an ``EXECUTION_TEXT`` spec, the raw mapping is checked
+    before model validation. This makes a numeric ``Status`` indeterminate rather than allowing
+    the response model's expected string type to turn it into a generic parse error.
+
     Raises:
+        OrderRejectedError: If an execution-text acknowledgement reports ``Failure``.
+        OrderStatusUnknownError: If an execution-text acknowledgement has an unknown status.
         ResponseParseError: If the body is not valid JSON (``phase="decode"``) or does not
             satisfy the response model (``phase="validate"``).
     """
@@ -482,6 +497,19 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
             raw_body=raw_body,
             message=str(exc),
         ) from exc
+    if (
+        status_decoder is not None
+        and spec.status_domain is StatusDomain.EXECUTION_TEXT
+        and isinstance(payload, Mapping)
+    ):
+        check_business_status(
+            cast(Mapping[str, object], payload),
+            status_decoder,
+            status_domain=spec.status_domain,
+            method=spec.method,
+            path=spec.path,
+            http_status=resp.status_code,
+        )
     try:
         return model_type.model_validate(payload)
     except PydanticValidationError as exc:
@@ -495,52 +523,215 @@ def parse_response(spec: EndpointSpec[ResponseT], resp: httpx.Response) -> Respo
         ) from exc
 
 
-_TEXT_REJECTION_STATUSES = frozenset({"failure"})
-
-
 def check_business_status(
     model: BaseModel | Mapping[str, object],
     status_decoder: StatusDecoder,
     *,
+    status_domain: StatusDomain = StatusDomain.ORDER,
     method: str | None = None,
     path: str | None = None,
     http_status: int | None = None,
 ) -> None:
-    """Raise [`OrderRejectedError`][stonepy.OrderRejectedError] if a model carries a rejection.
+    """Check one response using its declared business-status domain.
 
-    Reads the ``Status`` (and optional ``StatusReason``) fields and runs numeric codes through
-    *status_decoder*. Text statuses (e.g. SaveOrder's ``"Success"``/``"Failure"``) never reach
-    the decoder: ``"Failure"`` raises with the ``Reason`` field as the message and any other
-    text is ignored. Returns without error when the model has no status field or the status is
-    not a rejection.
+    A custom *status_decoder* replaces only the top-level numeric decision for ``INSTRUCTION``
+    and ``ORDER`` domains. SaveOrder's ``EXECUTION_TEXT`` vocabulary and an instruction
+    response's nested ``Orders[]`` remain built-in checks. Fixed-margin acknowledgements expose
+    that order result as ``OrderStatusId`` rather than ``Orders[]`` and receive the same built-in
+    order-domain check. Quote statuses are intentionally out of scope.
+
+    Raises:
+        OrderRejectedError: If a status is a documented rejection.
+        OrderStatusUnknownError: If a closed acknowledgement domain cannot be interpreted.
     """
+    if status_domain is StatusDomain.NONE:
+        return
+    if status_domain is StatusDomain.EXECUTION_TEXT:
+        _check_execution_text_status(model, method=method, path=path, http_status=http_status)
+        return
+
+    _check_numeric_status(
+        model,
+        status_decoder,
+        status_domain=status_domain,
+        response=model,
+        method=method,
+        path=path,
+        http_status=http_status,
+    )
+    if status_domain is StatusDomain.INSTRUCTION:
+        _check_instruction_order_statuses(model, method=method, path=path, http_status=http_status)
+
+
+def _check_numeric_status(
+    model: BaseModel | Mapping[str, object],
+    status_decoder: StatusDecoder,
+    *,
+    status_domain: StatusDomain,
+    response: object,
+    method: str | None,
+    path: str | None,
+    http_status: int | None,
+) -> None:
+    status_names, reason_names = _numeric_status_field_names(status_domain)
+    status_value = _field_value(model, status_names)
+    if status_value is None:
+        return
+    try:
+        status = int(status_value)
+    except (TypeError, ValueError):
+        _raise_unknown_status(
+            status=status_value,
+            status_reason=None,
+            response=response,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+
+    status_reason_value = _field_value(model, reason_names)
+    try:
+        status_reason = None if status_reason_value is None else int(status_reason_value)
+    except (TypeError, ValueError):
+        _raise_unknown_status(
+            status=status,
+            status_reason=None,
+            response=response,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+
+    decision: StatusDecision
+    if status_decoder is default_status_decoder:
+        try:
+            decision = _decode_default_status(status_domain, status, status_reason)
+        except _UnknownInstructionStatus:
+            _raise_unknown_status(
+                status=status,
+                status_reason=status_reason,
+                response=response,
+                method=method,
+                path=path,
+                http_status=http_status,
+            )
+    else:
+        decision = status_decoder(status, status_reason)
+    rejected, reason = _decode_rejection(decision)
+    if rejected:
+        raise OrderRejectedError(
+            status=status,
+            status_reason=status_reason,
+            reason=reason,
+            response=response,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+
+
+def _numeric_status_field_names(
+    status_domain: StatusDomain,
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    if status_domain is StatusDomain.INSTRUCTION:
+        return (
+            ("Status", "status", "InstructionStatusId", "instruction_status_id"),
+            (
+                "StatusReason",
+                "status_reason",
+                "InstructionStatusReasonId",
+                "instruction_status_reason_id",
+            ),
+        )
+    if status_domain is StatusDomain.ORDER:
+        return (
+            ("Status", "status", "OrderStatusId", "order_status_id"),
+            (
+                "StatusReason",
+                "status_reason",
+                "OrderStatusReasonId",
+                "order_status_reason_id",
+            ),
+        )
+    raise ValueError(f"numeric status fields cannot use {status_domain.value!r}")
+
+
+def _check_instruction_order_statuses(
+    model: BaseModel | Mapping[str, object],
+    *,
+    method: str | None,
+    path: str | None,
+    http_status: int | None,
+) -> None:
+    # FixedMarginOrderResponseDTO exposes the resulting order status beside its instruction
+    # status (Docs/reference/data-types/FixedMarginOrderResponseDTO.md), rather than in Orders[].
+    if _field_value(model, ("OrderStatusId", "order_status_id")) is not None:
+        _check_numeric_status(
+            model,
+            default_status_decoder,
+            status_domain=StatusDomain.ORDER,
+            response=model,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+
+    orders = _field_object_value(model, ("Orders", "orders"))
+    if not isinstance(orders, list):
+        return
+    for order in orders:
+        if not isinstance(order, (BaseModel, Mapping)):
+            continue
+        _check_numeric_status(
+            cast(BaseModel | Mapping[str, object], order),
+            default_status_decoder,
+            status_domain=StatusDomain.ORDER,
+            response=model,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+
+
+def _check_execution_text_status(
+    model: BaseModel | Mapping[str, object],
+    *,
+    method: str | None,
+    path: str | None,
+    http_status: int | None,
+) -> None:
+    """Accept Success, reject Failure, and fail closed on every other supplied value."""
     status_value = _field_value(model, ("Status", "status"))
     if status_value is None:
         return
+    if not isinstance(status_value, str):
+        _raise_unknown_status(
+            status=status_value,
+            status_reason=None,
+            response=model,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
 
-    if isinstance(status_value, str):
-        try:
-            status = int(status_value)
-        except ValueError:
-            _check_text_status(
-                model, status_value, method=method, path=path, http_status=http_status
-            )
-            return
-    else:
-        status = status_value
-    status_reason_value = _field_value(
-        model,
-        ("StatusReason", "status_reason", "StatusReasonId", "statusReason"),
-    )
-    status_reason = None if status_reason_value is None else int(status_reason_value)
-    rejected, reason = _decode_rejection(status_decoder(status, status_reason))
-    if not rejected:
+    normalized = status_value.strip().lower()
+    if normalized == "success":
         return
-
-    raise OrderRejectedError(
-        status=status,
-        status_reason=status_reason,
-        reason=reason,
+    if normalized == "failure":
+        reason_value = _field_value(model, ("Reason", "reason", "StatusReason", "status_reason"))
+        reason = str(reason_value) if reason_value is not None else status_value
+        raise OrderRejectedError(
+            status=status_value,
+            status_reason=None,
+            reason=reason,
+            response=model,
+            method=method,
+            path=path,
+            http_status=http_status,
+        )
+    _raise_unknown_status(
+        status=status_value,
+        status_reason=None,
         response=model,
         method=method,
         path=path,
@@ -548,35 +739,19 @@ def check_business_status(
     )
 
 
-def _check_text_status(
-    model: BaseModel | Mapping[str, object],
-    status_text: str,
+def _raise_unknown_status(
     *,
+    status: int | str,
+    status_reason: int | None,
+    response: object,
     method: str | None,
     path: str | None,
     http_status: int | None,
-) -> None:
-    """Raise for a text ``"Failure"`` status; ignore every other text status.
-
-    Unknown text statuses are deliberately not rejections: a false rejection could prompt a
-    caller to resubmit and double an order.
-    """
-    normalized = status_text.strip().lower()
-    if normalized not in _TEXT_REJECTION_STATUSES:
-        if normalized != "success":
-            # Not treated as a rejection (see above), but loud enough that an unexpected
-            # status like "Failed" or "Queued" is never a *silent* success.
-            logger.warning(
-                "ignoring unknown text business status %r on %s %s", status_text, method, path
-            )
-        return
-    reason_value = _field_value(model, ("Reason", "reason", "StatusReason", "status_reason"))
-    reason = str(reason_value) if reason_value is not None else status_text
-    raise OrderRejectedError(
-        status=status_text,
-        status_reason=None,
-        reason=reason,
-        response=model,
+) -> Never:
+    raise OrderStatusUnknownError(
+        status=status,
+        status_reason=status_reason,
+        response=response,
         method=method,
         path=path,
         http_status=http_status,
@@ -601,12 +776,6 @@ def _should_refresh_auth(
     if error_info.error_code == 4010:
         return False
     return resp.status_code == 401 or error_info.error_code == 4011
-
-
-def _should_check_business_status(spec: EndpointSpec[Any], status_decoder: StatusDecoder) -> bool:
-    if status_decoder is default_status_decoder:
-        return spec.rate_limit_bucket == "order"
-    return True
 
 
 def _map_error(
@@ -708,24 +877,28 @@ def _is_rate_limited(resp: httpx.Response, error_info: _ErrorInfo) -> bool:
 def _field_value(
     model: BaseModel | Mapping[str, object], names: tuple[str, ...]
 ) -> int | str | None:
+    return _coerce_status_value(_field_object_value(model, names))
+
+
+def _field_object_value(model: BaseModel | Mapping[str, object], names: tuple[str, ...]) -> object:
     if isinstance(model, BaseModel):
-        value = _mapping_field_value(model.model_dump(by_alias=True), names)
+        value = _mapping_object_value(model.model_dump(by_alias=True), names)
         if value is not None:
             return value
-        return _mapping_field_value(model.model_dump(), names)
+        return _mapping_object_value(model.model_dump(), names)
 
-    return _mapping_field_value(model, names)
+    return _mapping_object_value(model, names)
 
 
-def _mapping_field_value(mapping: Mapping[Any, Any], names: tuple[str, ...]) -> int | str | None:
+def _mapping_object_value(mapping: Mapping[Any, Any], names: tuple[str, ...]) -> object:
     for name in names:
         if name in mapping:
-            return _coerce_status_value(mapping[name])
+            return mapping[name]
 
     lower_names = {name.lower() for name in names}
     for key, value in mapping.items():
         if isinstance(key, str) and key.lower() in lower_names:
-            return _coerce_status_value(value)
+            return value
     return None
 
 

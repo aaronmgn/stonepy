@@ -36,6 +36,22 @@ def test_get_active_stop_limit_order_returns_response() -> None:
 
 
 @respx.mock
+def test_get_active_stop_limit_order_returns_stored_rejected_status_as_data() -> None:
+    rejected_body = _RESPONSE_BODY.replace('"Status":1', '"Status":5', 1)
+    respx.get("https://api.example/order/1/activeStopLimitOrder").mock(
+        return_value=httpx.Response(200, content=rejected_body)
+    )
+    client = StoneXClient(ClientConfig(base_url="https://api.example"))
+    try:
+        client._ctx.session.set_token("TOKEN", "user")
+        resp = client.order.get_active_stop_limit_order(1, 1)
+        assert resp.active_stop_limit_order is not None
+        assert resp.active_stop_limit_order.status == 5
+    finally:
+        client.close()
+
+
+@respx.mock
 def test_get_active_stop_limit_order_async() -> None:
     async def run() -> None:
         route = respx.get("https://api.example/order/1/activeStopLimitOrder").mock(

@@ -1,6 +1,7 @@
 from stonepy._core.errors import (
     AuthenticationError,
     OrderRejectedError,
+    OrderStatusUnknownError,
     RateLimitError,
     StoneXAPIError,
     StoneXError,
@@ -43,6 +44,7 @@ def test_public_exception_classes_have_docstrings() -> None:
     assert StoneXAPIError.__doc__
     assert RateLimitError.__doc__
     assert OrderRejectedError.__doc__
+    assert OrderStatusUnknownError.__doc__
 
 
 def test_order_rejected_carries_status() -> None:
@@ -66,3 +68,25 @@ def test_order_rejected_repr_omits_attached_response() -> None:
     assert "SECRET" not in text
     assert "POST" in text
     assert "/order/newstoplimitorder" in text
+
+
+def test_unknown_order_status_is_not_a_rejection_and_warns_against_resubmission() -> None:
+    err = OrderStatusUnknownError(
+        status=999,
+        status_reason=75,
+        response={"Session": "SECRET"},
+        method="POST",
+        path="/order/newtradeorder",
+        http_status=200,
+    )
+
+    assert isinstance(err, StoneXError)
+    assert not isinstance(err, OrderRejectedError)
+    assert err.status == 999
+    assert err.status_reason == 75
+    assert err.method == "POST"
+    assert err.path == "/order/newtradeorder"
+    assert err.http_status == 200
+    assert "MAY OR MAY NOT have been placed" in str(err)
+    assert "verify order state before resubmitting" in str(err)
+    assert "SECRET" not in repr(err)

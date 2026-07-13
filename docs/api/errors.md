@@ -13,6 +13,8 @@ for usage patterns.
 
 ::: stonepy.OrderRejectedError
 
+::: stonepy.OrderStatusUnknownError
+
 ::: stonepy.StoneXAPIError
 
 ::: stonepy.ResponseParseError

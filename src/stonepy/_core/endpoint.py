@@ -8,6 +8,8 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel
 
+from stonepy._core.status import StatusDomain
+
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
 
@@ -59,6 +61,8 @@ class EndpointSpec(Generic[ResponseT]):
         host_rooted: Whether ``path`` is resolved against the server host root rather than the
             configured base URL. CIAPI serves its v2 session and account endpoints from
             ``/v2`` at the host root, not under the ``/TradingAPI`` base.
+        status_domain: The business-status vocabulary used by this endpoint's acknowledgement.
+            ``NONE`` disables business-status checking for informational/read responses.
     """
 
     name: str
@@ -71,3 +75,4 @@ class EndpointSpec(Generic[ResponseT]):
     request_model: type | None = None
     params: tuple[Param, ...] = field(default_factory=tuple)
     host_rooted: bool = False
+    status_domain: StatusDomain = StatusDomain.NONE

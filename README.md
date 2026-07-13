@@ -155,7 +155,8 @@ except StoneXError as exc:
 ```
 
 Important subclasses include `AuthenticationError`, `RateLimitError`,
-`OrderRejectedError`, `ResponseParseError`, `StoneXAPIError`, and `TransportError`.
+`OrderRejectedError`, `OrderStatusUnknownError`, `ResponseParseError`, `StoneXAPIError`, and
+`TransportError`.
 
 ## Pagination
 

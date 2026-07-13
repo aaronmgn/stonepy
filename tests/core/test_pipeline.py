@@ -20,6 +20,7 @@ from stonepy._core.endpoint import AuthPolicy, EndpointSpec
 from stonepy._core.errors import (
     AuthenticationError,
     OrderRejectedError,
+    OrderStatusUnknownError,
     RateLimitError,
     ResponseParseError,
     StoneXAPIError,
@@ -36,7 +37,7 @@ from stonepy._core.pipeline import (
 from stonepy._core.ratelimit import BucketedSlidingWindowLimiter, SlidingWindowLimiter
 from stonepy._core.retry import RetryPolicy
 from stonepy._core.session import AsyncSessionManager, SessionManager
-from stonepy._core.status import default_status_decoder
+from stonepy._core.status import StatusDomain, default_status_decoder
 from stonepy._core.transport import Request
 
 
@@ -51,6 +52,12 @@ class _AmountResp(ResponseModel):
 class _StatusResp(ResponseModel):
     status: int = Field(alias="Status")
     status_reason: int | None = Field(default=None, alias="StatusReason")
+
+
+class _InstructionResp(ResponseModel):
+    status: int = Field(alias="Status")
+    status_reason: int | None = Field(default=None, alias="StatusReason")
+    orders: list[_StatusResp] = Field(default_factory=list, alias="Orders")
 
 
 class _Body(RequestModel):
@@ -295,7 +302,11 @@ def _body_spec() -> EndpointSpec[_Resp]:
     )
 
 
-def _status_spec(*, bucket: str = "order") -> EndpointSpec[_StatusResp]:
+def _status_spec(
+    *,
+    bucket: str = "order",
+    status_domain: StatusDomain = StatusDomain.ORDER,
+) -> EndpointSpec[_StatusResp]:
     return EndpointSpec(
         name="Status",
         method="POST",
@@ -304,6 +315,20 @@ def _status_spec(*, bucket: str = "order") -> EndpointSpec[_StatusResp]:
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket=bucket,
         response_model=_StatusResp,
+        status_domain=status_domain,
+    )
+
+
+def _instruction_spec() -> EndpointSpec[_InstructionResp]:
+    return EndpointSpec(
+        name="InstructionStatus",
+        method="POST",
+        path="/instruction-status",
+        idempotent=False,
+        auth_policy=AuthPolicy.SESSION,
+        rate_limit_bucket="order",
+        response_model=_InstructionResp,
+        status_domain=StatusDomain.INSTRUCTION,
     )
 
 
@@ -1288,10 +1313,10 @@ def test_invoke_rejects_business_status_by_default() -> None:
     assert exc_info.value.reason == "OrdersinOCOPairmustbeeitherStoporLimit"
 
 
-def test_default_business_status_decoder_ignores_non_order_specs() -> None:
+def test_status_domain_none_skips_read_response_business_status() -> None:
     t = FakeTransport([httpx.Response(200, json={"Status": 5, "StatusReason": 42})])
 
-    out = _ctx(t, []).ctx.invoke(_status_spec(bucket="market"))
+    out = _ctx(t, []).ctx.invoke(_status_spec(status_domain=StatusDomain.NONE))
 
     assert out.status == 5
     assert out.status_reason == 42
@@ -1358,6 +1383,7 @@ def test_check_business_status_ignores_success_text_status() -> None:
     check_business_status(
         {"RequestId": "r1", "Status": "Success"},
         default_status_decoder,
+        status_domain=StatusDomain.EXECUTION_TEXT,
         method="POST",
         path="/v2/order",
         http_status=200,
@@ -1369,6 +1395,7 @@ def test_check_business_status_raises_on_failure_text_status() -> None:
         check_business_status(
             {"RequestId": "r1", "Status": "Failure", "Reason": "Insufficient funds"},
             default_status_decoder,
+            status_domain=StatusDomain.EXECUTION_TEXT,
             method="POST",
             path="/v2/order",
             http_status=200,
@@ -1378,24 +1405,170 @@ def test_check_business_status_raises_on_failure_text_status() -> None:
     assert exc_info.value.status_reason is None
 
 
-def test_check_business_status_ignores_unknown_text_status_with_warning(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    # Unknown text statuses must not raise: a false rejection could prompt a caller
-    # to resubmit and double an order. They must still be visible, not silent success.
-    with caplog.at_level("WARNING", logger="stonepy.pipeline"):
-        check_business_status({"Status": "Queued"}, default_status_decoder)
-    assert any("unknown text business status 'Queued'" in r.getMessage() for r in caplog.records)
+def test_check_business_status_unknown_text_status_is_indeterminate() -> None:
+    with pytest.raises(OrderStatusUnknownError) as exc_info:
+        check_business_status(
+            {"Status": "Queued"},
+            default_status_decoder,
+            status_domain=StatusDomain.EXECUTION_TEXT,
+        )
+
+    assert exc_info.value.status == "Queued"
+    assert not isinstance(exc_info.value, OrderRejectedError)
 
 
-def test_check_business_status_success_text_status_does_not_warn(
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    with caplog.at_level("WARNING", logger="stonepy.pipeline"):
-        check_business_status({"Status": " SUCCESS "}, default_status_decoder)
-    assert not caplog.records
+def test_check_business_status_success_text_status_is_case_and_whitespace_insensitive() -> None:
+    check_business_status(
+        {"Status": " SUCCESS "},
+        default_status_decoder,
+        status_domain=StatusDomain.EXECUTION_TEXT,
+    )
 
 
 def test_check_business_status_numeric_string_still_decodes() -> None:
     with pytest.raises(OrderRejectedError):
         check_business_status({"Status": "5"}, default_status_decoder)
+
+
+def test_instruction_red_card_uses_instruction_status_reason() -> None:
+    # The worked example in Docs/reference/messages.md uses top-level InstructionStatus=2 and
+    # InstructionStatusReason=75. Code 75 exists in multiple reason enums, so this also pins the
+    # required InstructionStatusReason-first lookup order.
+    t = FakeTransport([httpx.Response(200, json={"Status": 2, "StatusReason": 75})])
+
+    with pytest.raises(OrderRejectedError) as exc_info:
+        _ctx(t, []).ctx.invoke(_instruction_spec())
+
+    assert exc_info.value.status == 2
+    assert exc_info.value.reason == "VenueRejection"
+
+
+def test_instruction_error_status_raises() -> None:
+    t = FakeTransport([httpx.Response(200, json={"Status": 4, "StatusReason": 7})])
+
+    with pytest.raises(OrderRejectedError) as exc_info:
+        _ctx(t, []).ctx.invoke(_instruction_spec())
+
+    assert exc_info.value.status == 4
+    assert exc_info.value.reason == "UnexpectedError"
+
+
+@pytest.mark.parametrize("status", [3, 5])
+def test_instruction_yellow_card_and_pending_return_acknowledgement(status: int) -> None:
+    # Docs/reference/guides/Trades.md says YellowCard is sent to dealer approval and can later be
+    # accepted or rejected. It is not a final rejection and must not prompt a resubmission.
+    t = FakeTransport([httpx.Response(200, json={"Status": status, "StatusReason": 1})])
+
+    out = _ctx(t, []).ctx.invoke(_instruction_spec())
+
+    assert out.status == status
+
+
+def test_instruction_unknown_status_is_indeterminate() -> None:
+    t = FakeTransport([httpx.Response(200, json={"Status": 999, "StatusReason": 1})])
+
+    with pytest.raises(OrderStatusUnknownError) as exc_info:
+        _ctx(t, []).ctx.invoke(_instruction_spec())
+
+    assert exc_info.value.status == 999
+    assert exc_info.value.method == "POST"
+    assert exc_info.value.path == "/instruction-status"
+    assert "MAY OR MAY NOT have been placed" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("nested_status", [5, 10])
+def test_accepted_instruction_checks_nested_order_rejection(nested_status: int) -> None:
+    t = FakeTransport(
+        [
+            httpx.Response(
+                200,
+                json={
+                    "Status": 1,
+                    "StatusReason": 1,
+                    "Orders": [{"Status": nested_status, "StatusReason": 42}],
+                },
+            )
+        ]
+    )
+
+    with pytest.raises(OrderRejectedError) as exc_info:
+        _ctx(t, []).ctx.invoke(_instruction_spec())
+
+    assert exc_info.value.status == nested_status
+    assert exc_info.value.reason == "OrdersinOCOPairmustbeeitherStoporLimit"
+
+
+def test_fixed_margin_instruction_checks_explicit_order_status_fields() -> None:
+    with pytest.raises(OrderRejectedError) as exc_info:
+        check_business_status(
+            {
+                "InstructionStatusId": 1,
+                "InstructionStatusReasonId": 1,
+                "OrderStatusId": 5,
+                "OrderStatusReasonId": 42,
+            },
+            default_status_decoder,
+            status_domain=StatusDomain.INSTRUCTION,
+        )
+
+    assert exc_info.value.status == 5
+    assert exc_info.value.reason == "OrdersinOCOPairmustbeeitherStoporLimit"
+
+
+def test_custom_decoder_replaces_instruction_top_level_numeric_logic() -> None:
+    seen: list[tuple[int, int | None]] = []
+
+    def accept(status: int, status_reason: int | None) -> BusinessStatus:
+        seen.append((status, status_reason))
+        return BusinessStatus(False)
+
+    t = FakeTransport([httpx.Response(200, json={"Status": 999, "StatusReason": 75})])
+
+    out = _ctx(t, [], status_decoder=accept).ctx.invoke(_instruction_spec())
+
+    assert out.status == 999
+    assert seen == [(999, 75)]
+
+
+def test_custom_decoder_does_not_replace_nested_order_check() -> None:
+    t = FakeTransport(
+        [
+            httpx.Response(
+                200,
+                json={
+                    "Status": 2,
+                    "StatusReason": 75,
+                    "Orders": [{"Status": 5, "StatusReason": 42}],
+                },
+            )
+        ]
+    )
+
+    with pytest.raises(OrderRejectedError) as exc_info:
+        _ctx(t, [], status_decoder=lambda status, reason: BusinessStatus(False)).ctx.invoke(
+            _instruction_spec()
+        )
+
+    assert exc_info.value.status == 5
+    assert exc_info.value.reason == "OrdersinOCOPairmustbeeitherStoporLimit"
+
+
+def test_execution_text_numeric_status_is_indeterminate_before_model_validation() -> None:
+    from stonepy.models import ExecutionResponseDTO
+
+    spec = EndpointSpec(
+        name="SaveOrder v2",
+        method="POST",
+        path="/v2/order",
+        idempotent=False,
+        auth_policy=AuthPolicy.SESSION,
+        rate_limit_bucket="order",
+        response_model=ExecutionResponseDTO,
+        status_domain=StatusDomain.EXECUTION_TEXT,
+    )
+    t = FakeTransport([httpx.Response(200, json={"Status": 5})])
+
+    with pytest.raises(OrderStatusUnknownError) as exc_info:
+        _ctx(t, []).ctx.invoke(spec)
+
+    assert exc_info.value.status == 5

@@ -33,6 +33,7 @@ All exceptions inherit from `StoneXError`:
 - `ConfigurationError` - the client has no credentials configured for session refresh.
 - `RateLimitError` - the API returned a rate-limit response; inspect `retry_after`.
 - `OrderRejectedError` - the request was accepted but the order was rejected.
+- `OrderStatusUnknownError` - a write acknowledgement was indeterminate; verify order state before resubmitting.
 - `StoneXAPIError` - a non-success API response; exposes `http_status`, `error_code`, and `error_message`.
 - `ResponseParseError` - the response body did not match the expected schema.
 - `TransportError` - the request never completed (connection or timeout error).

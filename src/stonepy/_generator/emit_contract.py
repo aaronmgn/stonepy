@@ -20,6 +20,7 @@ from stonepy._generator.emit_endpoints import (
     _PARAM_LOCATION_OVERRIDES,
     endpoint_spec_name,
     resolved_path,
+    resolved_status_domain,
     target_module,
 )
 from stonepy._generator.emit_endpoints import _is_idempotent as _endpoint_is_idempotent
@@ -170,6 +171,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
                 idempotent=_endpoint_is_idempotent(rec, (rec.method or "GET").upper()),
                 auth_policy=_auth_policy(rec),
                 rate_limit_bucket=target_module(rec.target),
+                status_domain=resolved_status_domain(rec).name,
                 request_model=_request_model_name(rec, catalog),
                 params=_param_fields(rec),
             )
@@ -202,6 +204,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
             f"{case.idempotent}, "
             f"{json.dumps(case.auth_policy)}, "
             f"{json.dumps(case.rate_limit_bucket)}, "
+            f"{json.dumps(case.status_domain)}, "
             f"{_string_or_none_literal(case.request_model)}, "
             f"{_params_literal(case.params)}, "
             f"id={json.dumps(case.endpoint_name)}"
@@ -214,7 +217,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
             [
                 "@pytest.mark.parametrize(\n",
                 '    "spec, method, path, has_declared_response, idempotent, auth_policy, "\n',
-                '    "rate_limit_bucket, request_model, params",\n',
+                '    "rate_limit_bucket, status_domain, request_model, params",\n',
                 "    ENDPOINT_CASES,\n",
                 ")\n",
                 "def test_generated_endpoint_spec_matches_catalog(\n",
@@ -225,6 +228,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
                 "    idempotent: bool,\n",
                 "    auth_policy: str,\n",
                 "    rate_limit_bucket: str,\n",
+                "    status_domain: str,\n",
                 "    request_model: str | None,\n",
                 "    params: tuple[tuple[str, str, str], ...],\n",
                 ") -> None:\n",
@@ -233,6 +237,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
                 "    assert spec.idempotent is idempotent\n",
                 "    assert spec.auth_policy.name == auth_policy\n",
                 "    assert spec.rate_limit_bucket == rate_limit_bucket\n",
+                "    assert spec.status_domain.name == status_domain\n",
                 "    if request_model is None:\n",
                 "        assert spec.request_model is None\n",
                 "    else:\n",
@@ -353,6 +358,7 @@ class _EndpointCase:
         idempotent: bool,
         auth_policy: str,
         rate_limit_bucket: str,
+        status_domain: str,
         request_model: str | None,
         params: tuple[tuple[str, str, str], ...],
     ) -> None:
@@ -365,6 +371,7 @@ class _EndpointCase:
         self.idempotent = idempotent
         self.auth_policy = auth_policy
         self.rate_limit_bucket = rate_limit_bucket
+        self.status_domain = status_domain
         self.request_model = request_model
         self.params = params
 

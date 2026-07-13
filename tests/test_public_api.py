@@ -14,6 +14,7 @@ def test_public_exports() -> None:
         "AuthenticationError",
         "RateLimitError",
         "OrderRejectedError",
+        "OrderStatusUnknownError",
         "ResponseParseError",
         "TransportError",
         "__version__",
@@ -32,6 +33,8 @@ def test_public_exports() -> None:
     assert issubclass(stonepy.AuthenticationError, stonepy.StoneXError)
     assert issubclass(stonepy.RateLimitError, stonepy.StoneXError)
     assert issubclass(stonepy.OrderRejectedError, stonepy.StoneXError)
+    assert issubclass(stonepy.OrderStatusUnknownError, stonepy.StoneXError)
+    assert not issubclass(stonepy.OrderStatusUnknownError, stonepy.OrderRejectedError)
     assert issubclass(stonepy.ResponseParseError, stonepy.StoneXError)
     assert issubclass(stonepy.TransportError, stonepy.StoneXError)
 
@@ -42,3 +45,4 @@ def test_public_errors_module_reexports_exception_hierarchy() -> None:
     assert errors.StoneXError.__name__ == "StoneXError"
     assert errors.TransportError.__name__ == "TransportError"
     assert "ResponseParseError" in errors.__all__
+    assert "OrderStatusUnknownError" in errors.__all__

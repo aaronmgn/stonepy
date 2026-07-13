@@ -204,6 +204,55 @@ class OrderRejectedError(StoneXError):
         )
 
 
+class OrderStatusUnknownError(StoneXError):
+    """Indeterminate order acknowledgement with optional endpoint context.
+
+    Raised when a non-idempotent order write returns an undocumented or wrong-domain business
+    status, so stonepy cannot determine whether the instruction succeeded. This is deliberately
+    not an [`OrderRejectedError`][stonepy.OrderRejectedError]: rejection handlers must not assume
+    the write is safe to repeat. `response` is retained for diagnostics and may contain sensitive
+    response data; it is intentionally omitted from `repr()`.
+
+    Attributes:
+        status: The unrecognized status value.
+        status_reason: The accompanying numeric reason, if one could be read.
+        response: The parsed response model or mapping (may be sensitive).
+        method: The HTTP method of the originating request, if known.
+        path: The request path of the originating request, if known.
+        http_status: The HTTP status code of the response, if known.
+    """
+
+    def __init__(
+        self,
+        *,
+        status: int | str,
+        status_reason: int | None,
+        response: object,
+        method: str | None = None,
+        path: str | None = None,
+        http_status: int | None = None,
+    ) -> None:
+        self.status = status
+        self.status_reason = status_reason
+        self.response = response
+        self.method = method
+        self.path = path
+        self.http_status = http_status
+        endpoint = f"{method} {path} -> HTTP {http_status}: " if method and path else ""
+        super().__init__(
+            f"{endpoint}Unknown order status {status!r}. The order MAY OR MAY NOT have been "
+            "placed; verify order state before resubmitting."
+        )
+
+    def __repr__(self) -> str:
+        """Return a repr that omits the retained response payload."""
+        return (
+            f"{type(self).__name__}(status={self.status!r}, "
+            f"status_reason={self.status_reason}, method={self.method!r}, "
+            f"path={self.path!r}, http_status={self.http_status})"
+        )
+
+
 class TransportError(StoneXError):
     """Network-level failure (connect, read, or timeout) after retries are exhausted.
 
