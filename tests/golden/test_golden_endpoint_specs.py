@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from stonepy._core.endpoint import AuthPolicy
+from importlib import import_module
+from typing import Any
+
+from stonepy import _endpoints
+from stonepy._core.endpoint import AuthPolicy, EndpointSpec
+from stonepy._core.status import StatusDomain
 from stonepy._endpoints.client_preference import GET_CLIENT_PREFERENCES_LIST_SPEC
 from stonepy._endpoints.market import GET_MARKET_INFORMATION_SPEC
 from stonepy._endpoints.order import (
@@ -17,6 +22,31 @@ from stonepy.models import (
     ListActiveOrdersRequestDTO,
     ListActiveOrdersResponseDTO,
 )
+
+_STATUS_DOMAINS = {
+    ("fixedmargin", "TradeFM"): StatusDomain.INSTRUCTION,
+    ("fixedmargin", "UpdateTradeFM"): StatusDomain.INSTRUCTION,
+    ("order", "CancelOrder"): StatusDomain.INSTRUCTION,
+    ("order", "GetActiveStopLimitOrder v2"): StatusDomain.NONE,
+    ("order", "GetOpenPosition v2"): StatusDomain.NONE,
+    ("order", "GetOrderHistory v2"): StatusDomain.NONE,
+    ("order", "GetOrders v2"): StatusDomain.NONE,
+    ("order", "ListActiveStopLimitOrders"): StatusDomain.NONE,
+    ("order", "ListOpenPositions"): StatusDomain.NONE,
+    ("order", "ListStopLimitOrderHistory"): StatusDomain.NONE,
+    ("order", "Order"): StatusDomain.INSTRUCTION,
+    ("order", "SaveOrder v2"): StatusDomain.EXECUTION_TEXT,
+    ("order", "SimulateCancelOrder"): StatusDomain.ORDER,
+    ("order", "SimulateOrder"): StatusDomain.ORDER,
+    ("order", "SimulateTrade"): StatusDomain.ORDER,
+    ("order", "SimulateUpdateOrder"): StatusDomain.ORDER,
+    ("order", "SimulateUpdateTrade"): StatusDomain.ORDER,
+    ("order", "Trade"): StatusDomain.INSTRUCTION,
+    ("order", "UpdateOrder"): StatusDomain.INSTRUCTION,
+    ("order", "UpdateTrade"): StatusDomain.INSTRUCTION,
+    ("order_including_closed", "GetOrderIncludingClosed v2"): StatusDomain.NONE,
+    ("pm", "GetHistoricalOrders"): StatusDomain.NONE,
+}
 
 
 def test_get_market_information_spec_matches_docs() -> None:
@@ -90,3 +120,18 @@ def test_get_client_preferences_list_spec_has_no_synthetic_string_param() -> Non
         ("Keys", "query"),
         ("ClientAccountId", "query"),
     ]
+
+
+def test_every_generated_endpoint_has_the_reviewed_status_domain() -> None:
+    actual: dict[tuple[str, str], EndpointSpec[Any]] = {}
+    for module_name in _endpoints.__all__:
+        module = import_module(f"stonepy._endpoints.{module_name}")
+        for value in vars(module).values():
+            if isinstance(value, EndpointSpec):
+                actual[(module_name, value.name)] = value
+
+    # The generator's status-bearing-model guard catches a new carrier DTO; this explicit table
+    # pins every currently reviewed carrier endpoint, including reads intentionally set to NONE.
+    assert _STATUS_DOMAINS.keys() <= actual.keys()
+    for key, spec in actual.items():
+        assert spec.status_domain is _STATUS_DOMAINS.get(key, StatusDomain.NONE), key

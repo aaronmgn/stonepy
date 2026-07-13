@@ -1,5 +1,6 @@
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.models import ResponseModel
+from stonepy._core.status import StatusDomain
 
 
 class _R(ResponseModel):
@@ -18,6 +19,7 @@ def test_spec_is_frozen_and_holds_metadata() -> None:
         params=(Param("OrderId", "path", "order_id"),),
     )
     assert spec.idempotent is True
+    assert spec.status_domain is StatusDomain.NONE
     assert spec.params[0].location == "path"
     try:
         spec.name = "x"  # type: ignore[misc]

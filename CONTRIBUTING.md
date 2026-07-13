@@ -63,17 +63,22 @@ Models, endpoint bindings, contract tests, `client.py`, resource `__init__.py` f
 regenerate them instead:
 
 ```bash
-STONEPY_CATALOG=/path/to/stonex_api_docs/Docs uv run python -m stonepy._generator all
+export STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog
+uv run python -m stonepy._generator all
 ```
 
-The catalog lives in a separate repository; `CATALOG_VERSION` records the pinned revision.
+The catalog lives in a separate repository; `CATALOG_VERSION` records the pinned revision. The
+generator has no machine-specific catalog fallback. Set `STONEPY_CATALOG` as above, or pass
+`--catalog-root /path/to/stonex_api_docs/Docs/catalog` on each catalog-consuming command; the CLI
+flag takes precedence over the environment variable.
 
 ## Adding Resource Methods
 
 Scaffold a new resource method:
 
 ```bash
-uv run python -m stonepy._generator scaffold session ChangePassword
+STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog \
+  uv run python -m stonepy._generator scaffold session ChangePassword
 ```
 
 The command refuses to overwrite existing files; use `--force` only when you intend to replace
@@ -82,7 +87,7 @@ payload and request values, remove the skip marker, regenerate the client, and r
 test:
 
 ```bash
-STONEPY_CATALOG=/path/to/stonex_api_docs/Docs uv run python -m stonepy._generator all
+STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog uv run python -m stonepy._generator all
 uv run pytest tests/resources/session/test_change_password.py
 ```
 

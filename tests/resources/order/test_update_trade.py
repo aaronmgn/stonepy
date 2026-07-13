@@ -9,7 +9,7 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiTradeOrderResponseDTO, UpdateTradeOrderRequestDTO
 
-_RESPONSE_BODY = '{"Status":2,"StatusReason":1,"OrderId":1,"Orders":[{"OrderId":1,"StatusReason":1,"Status":1,"OrderTypeId":1,"Price":"1.23","Quantity":"1.23","TriggerPrice":"1.23","CommissionCharge":"1.23","IfDone":null,"GuaranteedPremium":"1.23","OCO":null,"AssociatedOrders":null,"Associated":false}],"Quote":{"QuoteId":1,"Status":1,"StatusReason":1},"Actions":[{"ActionedOrderId":1,"ActioningOrderId":1,"Quantity":"1.23","ProfitAndLoss":"1.23","ProfitAndLossCurrency":"x","OrderActionTypeId":1}],"ErrorMessage":"x"}'  # noqa: E501
+_RESPONSE_BODY = '{"Status":1,"StatusReason":1,"OrderId":1,"Orders":[{"OrderId":1,"StatusReason":1,"Status":1,"OrderTypeId":1,"Price":"1.23","Quantity":"1.23","TriggerPrice":"1.23","CommissionCharge":"1.23","IfDone":null,"GuaranteedPremium":"1.23","OCO":null,"AssociatedOrders":null,"Associated":false}],"Quote":{"QuoteId":1,"Status":1,"StatusReason":1},"Actions":[{"ActionedOrderId":1,"ActioningOrderId":1,"Quantity":"1.23","ProfitAndLoss":"1.23","ProfitAndLossCurrency":"x","OrderActionTypeId":1}],"ErrorMessage":"x"}'  # noqa: E501
 
 
 @respx.mock

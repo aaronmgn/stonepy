@@ -8,6 +8,8 @@ from typing import Generic, Literal, TypeVar
 
 from pydantic import BaseModel
 
+from stonepy._core.status import StatusDomain
+
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
 
@@ -52,13 +54,16 @@ class EndpointSpec(Generic[ResponseT]):
         path: The URL path template, which may contain ``{placeholder}`` segments.
         idempotent: Whether the call is safe to retry automatically.
         auth_policy: Whether the call requires a session token.
-        rate_limit_bucket: The limiter bucket this endpoint shares with its siblings.
+        rate_limit_bucket: Generated resource-group label passed to the limiter. All labels share
+            the client's aggregate CIAPI rate-limit window.
         response_model: The Pydantic model the response body is validated against.
         request_model: The Pydantic model for the request body, if any.
         params: The ordered path, query, and body parameter bindings.
         host_rooted: Whether ``path`` is resolved against the server host root rather than the
             configured base URL. CIAPI serves its v2 session and account endpoints from
             ``/v2`` at the host root, not under the ``/TradingAPI`` base.
+        status_domain: The business-status vocabulary used by this endpoint's acknowledgement.
+            ``NONE`` disables business-status checking for informational/read responses.
     """
 
     name: str
@@ -71,3 +76,4 @@ class EndpointSpec(Generic[ResponseT]):
     request_model: type | None = None
     params: tuple[Param, ...] = field(default_factory=tuple)
     host_rooted: bool = False
+    status_domain: StatusDomain = StatusDomain.NONE

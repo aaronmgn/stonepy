@@ -164,17 +164,17 @@ The clients use a `BucketedSlidingWindowLimiter` (`src/stonepy/_core/ratelimit.p
 
 | `ClientConfig` field | Default | Meaning |
 | --- | --- | --- |
-| `rate_limit_max` | `500` | Maximum requests allowed per window, **per bucket**. |
+| `rate_limit_max` | `500` | Maximum aggregate requests allowed per window across all endpoints. |
 | `rate_limit_window_seconds` | `5.0` | Length of the sliding window in seconds. |
 
 How it works:
 
-- Requests are partitioned into **buckets** by `spec.rate_limit_bucket` (a fixed label baked into each generated `EndpointSpec`, for example `"order"`). Each bucket gets its own independent `SlidingWindowLimiter` with the same `rate_limit_max` and `rate_limit_window_seconds`. The limit is therefore applied **per bucket**, not globally across all endpoints.
-- Before every send, the pipeline calls `acquire(bucket)`. The limiter keeps a deque of recent request timestamps, evicts any older than `window_seconds`, and:
+- CIAPI documents one server-side budget: 500 requests over a 5-second window. Generated `EndpointSpec` objects retain their `rate_limit_bucket` resource-group labels for compatibility, but every label maps to one shared `SlidingWindowLimiter`. The configured limit is therefore aggregate across all endpoints used by a client instance.
+- Before every send, the pipeline calls `acquire(bucket)`. The shared limiter keeps a deque of recent request timestamps, evicts any older than `window_seconds`, and:
   - if fewer than `rate_limit_max` events remain in the window, it records "now" and returns immediately;
   - otherwise it sleeps until the oldest in-window event ages out (`oldest + window - now`), then re-checks.
 
-This is a true sliding window (not a fixed bucket reset), so it smooths bursts rather than allowing a full burst at every window boundary. It is best-effort and local to the process - it does not coordinate across multiple client instances or machines.
+This is a true sliding window (not a fixed bucket reset), so it smooths bursts rather than allowing a full burst at every window boundary. It is best-effort and local to a client instance - it does not coordinate across multiple client instances, processes, or machines.
 
 ### Server-side 429 handling
 
@@ -211,7 +211,7 @@ except RateLimitError as exc:
 ```python
 from stonepy import ClientConfig
 
-# Tighter local throttle: at most 100 requests per 2s window, per bucket.
+# Tighter local throttle: at most 100 aggregate requests per 2s window.
 config = ClientConfig(
     base_url="https://ciapi.cityindex.com/TradingAPI",
     rate_limit_max=100,
@@ -228,9 +228,9 @@ config = ClientConfig(
 
 For a single call, the order of events inside the pipeline loop is:
 
-1. Acquire a slot from the client-side limiter for the endpoint's bucket (may sleep proactively).
+1. Acquire a slot from the client-side aggregate limiter (may sleep proactively).
 2. Send one HTTP attempt, bounded by the four timeouts.
 3. On a transport error or a retryable status (`502/503/504`), or a `429`, decide whether to retry based on idempotency, `max_retries`, and `retry_budget_seconds`; sleep using the backoff/`Retry-After` delay; then loop.
 4. When no retry is possible, raise the mapped error (`TransportError`, `RateLimitError`, `AuthenticationError`, or `StoneXAPIError`).
 
-Each layer is independent: timeouts bound a single attempt, the limiter shapes outgoing request rate per bucket, and the retry budget bounds the total wall-clock time spent retrying across attempts.
+Each layer is independent: timeouts bound a single attempt, the limiter shapes aggregate outgoing request rate, and the retry budget bounds the total wall-clock time spent retrying across attempts.

@@ -31,8 +31,12 @@ class ClientConfig:
 
     `base_url` is required and points at the CIAPI root. `app_key`, `username`, and
     `password` enable automatic session refresh. Timeout, retry, rate-limit, TLS, proxy,
-    plugin, and status-decoder fields tune transport behavior. Use `from_env()` to read the
-    `STONEX_*` environment variables with optional keyword overrides.
+    plugin, and status-decoder fields tune transport behavior. A custom `status_decoder` fully
+    replaces stonepy's top-level numeric logic for instruction- and order-domain endpoint specs;
+    it receives ``(status, status_reason)`` for both domains. SaveOrder's text status and nested
+    order statuses retain stonepy's built-in checks. Passing ``None`` disables all business-status
+    checks. Use `from_env()` to read the `STONEX_*` environment variables with optional keyword
+    overrides.
     """
 
     base_url: str
@@ -54,6 +58,7 @@ class ClientConfig:
     rate_limit_window_seconds: float = 5.0
     proactive_refresh_seconds: float = 1080.0
     status_decoder: StatusDecoder | None = default_status_decoder
+    """Optional replacement for top-level numeric instruction/order status decoding."""
     enable_plugins: bool = False
     allow_overrides: tuple[str, ...] = ()
 

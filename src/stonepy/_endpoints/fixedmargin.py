@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.pipeline import CallContext
+from stonepy._core.status import StatusDomain
 from stonepy.models import (
     ApiFreeCashToTradeResponseDTO,
     FixedMarginOrderResponseDTO,
@@ -43,6 +44,7 @@ TRADE_FM_SPEC: EndpointSpec[FixedMarginOrderResponseDTO] = EndpointSpec(
     name="TradeFM",
     method="POST",
     path="/fixedmargin/newtradeorder",
+    status_domain=StatusDomain.INSTRUCTION,
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="fixedmargin",
@@ -70,6 +72,7 @@ UPDATE_TRADE_FM_SPEC: EndpointSpec[FixedMarginOrderResponseDTO] = EndpointSpec(
     name="UpdateTradeFM",
     method="POST",
     path="/fixedmargin/updatetradeorder",
+    status_domain=StatusDomain.INSTRUCTION,
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="fixedmargin",

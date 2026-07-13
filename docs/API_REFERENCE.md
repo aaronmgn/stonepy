@@ -33,6 +33,7 @@ All exceptions inherit from `StoneXError`:
 - `ConfigurationError` - the client has no credentials configured for session refresh.
 - `RateLimitError` - the API returned a rate-limit response; inspect `retry_after`.
 - `OrderRejectedError` - the request was accepted but the order was rejected.
+- `OrderStatusUnknownError` - a write acknowledgement was indeterminate; verify order state before resubmitting.
 - `StoneXAPIError` - a non-success API response; exposes `http_status`, `error_code`, and `error_message`.
 - `ResponseParseError` - the response body did not match the expected schema.
 - `TransportError` - the request never completed (connection or timeout error).
@@ -77,3 +78,6 @@ For endpoint semantics, request bodies, and response bodies, the upstream
 [StoneX CIAPI v2 documentation](https://docs.labs.gaincapital.com/) remains authoritative.
 `stonepy` tracks that contract through its generated catalog; the pinned catalog revision is
 recorded in [`CATALOG_VERSION`](https://github.com/aaronmgn/stonepy/blob/main/CATALOG_VERSION).
+Contributors regenerating catalog-derived files must either set
+`STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog` or pass the same directory with the
+generator's `--catalog-root` option. The CLI option takes precedence when both are present.

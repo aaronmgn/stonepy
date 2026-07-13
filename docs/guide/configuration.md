@@ -48,7 +48,7 @@ with StoneXClient(config) as client:
 | --- | --- | --- | --- |
 | `max_retries` | `int` | `3` | Maximum number of retry attempts for retryable requests. |
 | `retry_budget_seconds` | `float` | `30.0` | Total time budget (in seconds) for all retries of a single request. |
-| `rate_limit_max` | `int` | `500` | Maximum number of requests allowed within the rate-limit window. |
+| `rate_limit_max` | `int` | `500` | Maximum aggregate requests across all endpoints within the rate-limit window. |
 | `rate_limit_window_seconds` | `float` | `5.0` | Length (in seconds) of the rolling rate-limit window. |
 
 ## Transport & security
@@ -66,7 +66,7 @@ with StoneXClient(config) as client:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `status_decoder` | `StatusDecoder \| None` | `default_status_decoder` | Callable that maps API status codes to outcomes. Pass `None` to disable status decoding. |
+| `status_decoder` | `StatusDecoder \| None` | `default_status_decoder` | Replaces top-level numeric instruction/order decoding. Text execution and nested-order checks stay built in; pass `None` to disable all business-status checks. |
 | `enable_plugins` | `bool` | `False` | Whether plugin hooks are enabled. |
 | `allow_overrides` | `tuple[str, ...]` | `()` | Tuple of field names that plugins are permitted to override. |
 

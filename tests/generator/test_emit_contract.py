@@ -128,7 +128,7 @@ def test_endpoint_contract_uses_module_qualified_specs_to_avoid_shadowing(
     assert "_ep_preference.GET_SPEC" in rendered
     assert '"/preference/get"' in rendered
     assert '"preference"' in rendered
-    assert '"rate_limit_bucket, request_model, params"' in rendered
+    assert '"rate_limit_bucket, status_domain, request_model, params"' in rendered
 
 
 def test_endpoint_contract_rejects_empty_fallback_for_declared_response(
@@ -164,8 +164,8 @@ def test_endpoint_contract_records_full_spec_metadata(tmp_path: Path) -> None:
     catalog = Catalog(
         endpoints=[
             EndpointRecord(
-                name="SubmitOrder",
-                logical_name="SubmitOrder",
+                name="Trade",
+                logical_name="Trade",
                 version="v1",
                 description=None,
                 method="POST",
@@ -187,7 +187,7 @@ def test_endpoint_contract_records_full_spec_metadata(tmp_path: Path) -> None:
                 source_url=None,
                 source_file=None,
                 last_updated=None,
-                raw={"name": "SubmitOrder"},
+                raw={"name": "Trade"},
             )
         ],
         datatypes=[],
@@ -204,11 +204,13 @@ def test_endpoint_contract_records_full_spec_metadata(tmp_path: Path) -> None:
     assert '"order"' in rendered
     assert "False" in rendered
     assert '"SESSION"' in rendered
+    assert '"INSTRUCTION"' in rendered
     assert '"NewTradeOrderRequestDTO"' in rendered
     assert '(("order", "body", "order"),)' in rendered
     assert "assert spec.idempotent is idempotent" in rendered
     assert "assert spec.auth_policy.name == auth_policy" in rendered
     assert "assert spec.rate_limit_bucket == rate_limit_bucket" in rendered
+    assert "assert spec.status_domain.name == status_domain" in rendered
     assert "assert spec.request_model.__name__ == request_model" in rendered
     assert "assert param_fields == params" in rendered
 

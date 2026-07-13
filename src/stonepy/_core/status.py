@@ -1,11 +1,25 @@
-"""Business-status decoder types shared by config and pipeline."""
+"""Business-status domains and decoder types shared by config and pipeline."""
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from enum import IntEnum
+from enum import Enum, IntEnum
 from typing import TypeAlias
+
+
+class StatusDomain(Enum):
+    """The business-status vocabulary carried by an endpoint response.
+
+    ``NONE`` responses are informational and are never interpreted as placement
+    acknowledgements. ``INSTRUCTION`` and ``ORDER`` are numeric lookup-code domains;
+    ``EXECUTION_TEXT`` is SaveOrder's closed ``Success``/``Failure`` text domain.
+    """
+
+    NONE = "none"
+    INSTRUCTION = "instruction"
+    ORDER = "order"
+    EXECUTION_TEXT = "execution_text"
 
 
 @dataclass(frozen=True)
@@ -31,44 +45,91 @@ not), a ``str`` (rejected, with that reason), or ``None`` (not a rejection).
 StatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
 """A callable mapping ``(status, status_reason)`` to a
 [`StatusDecision`][stonepy._core.status.StatusDecision]. Override
-``ClientConfig.status_decoder`` to customize order-rejection semantics.
+``ClientConfig.status_decoder`` to customize top-level numeric acknowledgement semantics.
 """
 
 
+class _UnknownInstructionStatus(ValueError):
+    """Internal signal that an instruction acknowledgement used an undocumented code."""
+
+    def __init__(self, status: int) -> None:
+        self.status = status
+        super().__init__(f"unknown InstructionStatus code: {status}")
+
+
 _OK_STATUS_REASONS = {None, 1}
-# OrderStatus values that mean the order was rejected/blocked (OrderStatus.Rejected=5,
-# OrderStatus.RedCard=10). Every other lifecycle state — Pending(1), Accepted(2), Open(3),
-# Cancelled(4), Suspended(6), YellowCard(8), Closed(9), Triggered(11) — is a normal, working,
-# or closed outcome, not a rejection. The Status is authoritative; the StatusReason only
-# supplies the human-readable reason when a rejection is raised. Keeping this set narrow avoids
-# false rejections, which in a trading client could prompt a caller to resubmit and double an
-# order. Callers needing different semantics can override ``ClientConfig.status_decoder``.
-_REJECTION_STATUSES = {5, 10}
+
+# Docs/reference/lookup-codes.md defines InstructionStatus as a closed five-value enum.
+# RedCard (2) and Error (4) are terminal rejection/error acknowledgements. YellowCard (3) is
+# deliberately not a rejection: Docs/reference/guides/Trades.md says a yellow-carded trade is
+# sent to the approval queue and may subsequently be accepted or rejected. Treating that interim
+# acknowledgement as rejected could prompt a duplicate resubmission while dealer approval is
+# still pending. Accepted (1) and Pending (5) likewise pass through.
+_INSTRUCTION_STATUSES = frozenset({1, 2, 3, 4, 5})
+_INSTRUCTION_REJECTION_STATUSES = frozenset({2, 4})
+
+# Docs/reference/lookup-codes.md defines these OrderStatus values as rejected/blocked. Every
+# other lifecycle state -- Pending(1), Accepted(2), Open(3), Cancelled(4), Suspended(6),
+# YellowCard(8), Closed(9), Triggered(11), and any future numeric state -- is informational.
+# Keeping this set narrow avoids false rejections that could prompt a caller to double an order.
+_ORDER_REJECTION_STATUSES = frozenset({5, 10})
 
 
 def default_status_decoder(status: int, status_reason: int | None) -> StatusDecision:
-    """Decode an order ``Status``/``StatusReason`` pair into a rejection decision.
+    """Decode an OrderStatus/OrderStatusReason pair into a rejection decision.
 
-    Treats only ``Rejected`` (5) and ``RedCard`` (10) as rejections; every other lifecycle
-    state is a normal outcome. The reason is resolved from the ``StatusReason`` enums when a
-    meaningful reason is present (not ``None`` and not the generic OK code ``1``); otherwise it
-    falls back to the status name. Kept deliberately narrow so a working order is never mistaken
-    for a rejection (which could prompt a caller to resubmit and double up).
+    This callable retains its historical two-argument, order-domain behavior for custom-decoder
+    compatibility. The pipeline separately selects instruction-domain decoding for endpoint
+    specs marked [`StatusDomain.INSTRUCTION`][stonepy._core.status.StatusDomain].
+
+    Only ``Rejected`` (5) and ``RedCard`` (10) are rejections. Unknown numeric order-lifecycle
+    codes are informational rather than rejections. A meaningful reason is resolved from
+    ``OrderStatusReason`` first and then the other status-reason enums; otherwise the status name
+    is used.
     """
-    if status not in _REJECTION_STATUSES:
+    return _decode_order_status(status, status_reason)
+
+
+def _decode_default_status(
+    domain: StatusDomain, status: int, status_reason: int | None
+) -> BusinessStatus:
+    """Decode a numeric status with stonepy's domain-specific defaults."""
+
+    if domain is StatusDomain.INSTRUCTION:
+        return _decode_instruction_status(status, status_reason)
+    if domain is StatusDomain.ORDER:
+        return _decode_order_status(status, status_reason)
+    raise ValueError(f"numeric status decoder cannot handle {domain.value!r}")
+
+
+def _decode_instruction_status(status: int, status_reason: int | None) -> BusinessStatus:
+    if status not in _INSTRUCTION_STATUSES:
+        raise _UnknownInstructionStatus(status)
+    if status not in _INSTRUCTION_REJECTION_STATUSES:
         return BusinessStatus(False)
     reason = (
-        _decode_status_reason(status_reason)
+        _decode_status_reason(status_reason, StatusDomain.INSTRUCTION)
         if status_reason not in _OK_STATUS_REASONS
-        else _decode_status(status)
+        else _decode_status(status, StatusDomain.INSTRUCTION)
     )
     return BusinessStatus(True, reason)
 
 
-def _decode_status_reason(status_reason: int | None) -> str | None:
+def _decode_order_status(status: int, status_reason: int | None) -> BusinessStatus:
+    if status not in _ORDER_REJECTION_STATUSES:
+        return BusinessStatus(False)
+    reason = (
+        _decode_status_reason(status_reason, StatusDomain.ORDER)
+        if status_reason not in _OK_STATUS_REASONS
+        else _decode_status(status, StatusDomain.ORDER)
+    )
+    return BusinessStatus(True, reason)
+
+
+def _decode_status_reason(status_reason: int | None, domain: StatusDomain) -> str | None:
     if status_reason is None:
         return None
-    for enum_cls in _status_reason_enums():
+    for enum_cls in _status_reason_enums(domain):
         try:
             return enum_cls(status_reason).name
         except ValueError:
@@ -76,18 +137,22 @@ def _decode_status_reason(status_reason: int | None) -> str | None:
     return str(status_reason)
 
 
-def _status_reason_enums() -> tuple[type[IntEnum], ...]:
+def _status_reason_enums(domain: StatusDomain) -> tuple[type[IntEnum], ...]:
     from stonepy.models.enums import (
         InstructionStatusReason,
         OrderStatusReason,
         QuoteStatusReason,
     )
 
-    return (OrderStatusReason, InstructionStatusReason, QuoteStatusReason)
+    if domain is StatusDomain.INSTRUCTION:
+        return (InstructionStatusReason, OrderStatusReason, QuoteStatusReason)
+    if domain is StatusDomain.ORDER:
+        return (OrderStatusReason, InstructionStatusReason, QuoteStatusReason)
+    raise ValueError(f"numeric status reasons cannot use {domain.value!r}")
 
 
-def _decode_status(status: int) -> str | None:
-    for enum_cls in _status_enums():
+def _decode_status(status: int, domain: StatusDomain) -> str:
+    for enum_cls in _status_enums(domain):
         try:
             return enum_cls(status).name
         except ValueError:
@@ -95,11 +160,11 @@ def _decode_status(status: int) -> str | None:
     return str(status)
 
 
-def _status_enums() -> tuple[type[IntEnum], ...]:
-    from stonepy.models.enums import (
-        InstructionStatus,
-        OrderStatus,
-        QuoteStatus,
-    )
+def _status_enums(domain: StatusDomain) -> tuple[type[IntEnum], ...]:
+    from stonepy.models.enums import InstructionStatus, OrderStatus, QuoteStatus
 
-    return (OrderStatus, QuoteStatus, InstructionStatus)
+    if domain is StatusDomain.INSTRUCTION:
+        return (InstructionStatus, OrderStatus, QuoteStatus)
+    if domain is StatusDomain.ORDER:
+        return (OrderStatus, InstructionStatus, QuoteStatus)
+    raise ValueError(f"numeric statuses cannot use {domain.value!r}")

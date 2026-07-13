@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec
 from stonepy._core.pipeline import CallContext
+from stonepy._core.status import StatusDomain
 from stonepy.models import (
     ActiveSignalsResponseDTO,
     ApiSaveSignalPreferencesResponseDTO,
@@ -19,6 +20,7 @@ GET_HISTORICAL_ORDERS_SPEC: EndpointSpec[HistoricalOrdersResponseDTO] = Endpoint
     name="GetHistoricalOrders",
     method="GET",
     path="/pm/orders/historical",
+    status_domain=StatusDomain.NONE,
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="pm",

@@ -5,12 +5,14 @@ from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.pipeline import CallContext
+from stonepy._core.status import StatusDomain
 from stonepy.models import SingleActiveStopLimitOrderResponseDTO
 
 GET_ORDER_INCLUDING_CLOSED_SPEC: EndpointSpec[SingleActiveStopLimitOrderResponseDTO] = EndpointSpec(
     name="GetOrderIncludingClosed v2",
     method="GET",
     path="/v2/orderIncludingClosed/{orderId}?clientAccountId={clientAccountId}",
+    status_domain=StatusDomain.NONE,
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="order_including_closed",

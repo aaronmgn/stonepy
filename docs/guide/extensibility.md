@@ -180,7 +180,9 @@ config = ClientConfig(
 
 ## 3. Supplying a custom `status_decoder`
 
-After a successful HTTP response is parsed, the pipeline can raise `OrderRejectedError` based on a business `Status` field in the payload. The decision is made by `ClientConfig.status_decoder`, whose type is:
+After a successful HTTP response is parsed, the pipeline can raise `OrderRejectedError` based on
+the status domain declared by the endpoint spec. `ClientConfig.status_decoder` can replace the
+top-level numeric decision, and has this backward-compatible type:
 
 ```python
 # src/stonepy/_core/status.py
@@ -188,23 +190,35 @@ StatusDecision: TypeAlias = BusinessStatus | bool | str | None
 StatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
 ```
 
-A decoder receives `(status, status_reason)` (the `status_reason` may be `None`) and returns a `StatusDecision`. The pipeline (`_decode_rejection`) interprets the return value as follows:
+A decoder receives `(status, status_reason)` (the `status_reason` may be `None`) and returns a
+`StatusDecision`. It is called for the top-level status on both `INSTRUCTION` and `ORDER` specs;
+the signature does not include the domain. The pipeline interprets its return value as follows:
 
 - `BusinessStatus(is_rejection=..., reason=...)` - used directly.
 - `bool` - `True` means rejected with no reason; `False` means accepted.
 - `str` - treated as rejected, with the string used as the rejection reason.
 - `None` - treated as accepted.
 
-The default is `default_status_decoder`, which treats only `OrderStatus.Rejected` (5) and `OrderStatus.RedCard` (10) as rejections and returns `BusinessStatus(False)` for everything else.
+When `ClientConfig` keeps the default callable, the pipeline selects its built-in logic by domain:
+
+- Instruction acknowledgements reject `RedCard` (2) and `Error` (4). An undocumented numeric
+  instruction status raises `OrderStatusUnknownError`.
+- Order/simulation acknowledgements reject `Rejected` (5) and `RedCard` (10); unknown numeric
+  lifecycle values are informational.
+
+Supplying any other callable fully replaces that top-level numeric logic, including the unknown
+instruction-code safeguard. The custom callable therefore needs a policy that is valid for both
+numeric vocabularies, even though some numbers have different meanings between them.
 
 ### Where the check runs
 
-The pipeline narrows when the check fires based on whether you kept the default decoder (`_should_check_business_status` in `src/stonepy/_core/pipeline.py`):
+Business-status checking runs only for endpoint specs with an explicit non-`NONE` `StatusDomain`.
+A custom decoder does not broaden checking to read endpoints that merely echo stored status.
 
-- With the **default** decoder, the business-status check runs **only** for endpoints whose `rate_limit_bucket == "order"`.
-- With **any custom** decoder, the check runs for **every** parsed response that carries a `Status` field.
-
-So installing a custom decoder broadens the scope of business-status checking to all responses, not just order endpoints. Keep that in mind if your decoder is strict.
+The custom decoder replaces only the top-level numeric decision. SaveOrder's closed text
+`Success`/`Failure` check and instruction responses' nested `Orders[]` checks remain built in;
+fixed-margin responses likewise retain their `OrderStatusId` check. Nested quote statuses are out
+of scope.
 
 ### Writing one
 
@@ -215,8 +229,9 @@ from stonepy._core.status import BusinessStatus, StatusDecision
 
 
 def strict_decoder(status: int, status_reason: int | None) -> StatusDecision:
-    # Treat anything that is not a clean "Accepted" as a rejection.
-    if status == OrderStatus.Accepted:
+    # Example custom policy: require an OrderStatus-style Accepted code. This same numeric rule
+    # also receives instruction statuses, so use it only when that cross-domain policy is wanted.
+    if status == int(OrderStatus.Accepted):
         return BusinessStatus(False)
     return BusinessStatus(True, reason=f"status={status} reason={status_reason}")
 
@@ -229,19 +244,21 @@ config = ClientConfig(
 
 ### Disabling business-status checks
 
-`status_decoder` is `StatusDecoder | None`. Setting it to `None` disables the business-status check entirely - `_parse_success` skips `check_business_status` when the decoder is `None`, so no `OrderRejectedError` is ever raised from a 2xx response:
+`status_decoder` is `StatusDecoder | None`. Setting it to `None` disables all business-status
+checks, including execution-text and nested-order checks, so no `OrderRejectedError` or
+`OrderStatusUnknownError` is raised from a 2xx response:
 
 ```python
 from stonepy import ClientConfig
 
 config = ClientConfig(
     base_url="https://ciapi.cityindex.com/TradingAPI",
-    status_decoder=None,  # never raise OrderRejectedError on 2xx
+    status_decoder=None,  # never raise a business-status exception on 2xx
 )
 ```
 
 !!! warning
-    Setting `status_decoder=None` means a 2xx response whose body reports an order rejection will be returned as a normal result rather than raising `OrderRejectedError`. Inspect the `Status` field yourself before acting on the order, especially in any flow that places or cancels live orders.
+    Setting `status_decoder=None` means a 2xx response whose body reports a rejection or an indeterminate acknowledgement will be returned as a normal result. Inspect the status fields yourself before acting, especially in any flow that places or cancels live orders.
 
 !!! note
     `ClientConfig.from_env()` treats `status_decoder` specially: it is only overridden when you pass it explicitly as a keyword. Omitting it keeps `default_status_decoder`; passing `status_decoder=None` is honored as an explicit disable.

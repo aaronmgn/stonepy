@@ -10,6 +10,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any
 
+from stonepy._core.status import StatusDomain
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
@@ -19,6 +20,7 @@ __all__ = [
     "is_host_rooted",
     "render_binding",
     "resolved_path",
+    "resolved_status_domain",
     "target_module",
 ]
 
@@ -67,6 +69,81 @@ _RESPONSE_MODEL_OVERRIDES: dict[tuple[str, str], str] = {
     # AccountInformationResponseDTO v2 expects, so the wrapper always parsed to all-None.
     ("user_account", "GetClientAndTradingAccount v2"): "AccountResult",
 }
+
+# Per-endpoint business-status domains. These are explicit rather than inferred from target or
+# field names because CIAPI reuses "Status" for incompatible vocabularies. Keyed like
+# _PATH_OVERRIDES by (target_module, catalog endpoint name), including explicit NONE entries for
+# reads that merely echo stored lifecycle state.
+_STATUS_DOMAIN_OVERRIDES: dict[tuple[str, str], StatusDomain] = {
+    # Docs/reference/messages.md identifies ApiTradeOrderResponseDTO's top-level Status and
+    # StatusReason as InstructionStatus/InstructionStatusReason, while Orders[] uses
+    # OrderStatus/OrderStatusReason. The five catalog write endpoints below all return that DTO.
+    ("order", "CancelOrder"): StatusDomain.INSTRUCTION,
+    ("order", "Order"): StatusDomain.INSTRUCTION,
+    ("order", "Trade"): StatusDomain.INSTRUCTION,
+    ("order", "UpdateOrder"): StatusDomain.INSTRUCTION,
+    ("order", "UpdateTrade"): StatusDomain.INSTRUCTION,
+    # ApiTradeOrderResponseDTO also backs the hand-authored place_order alias for Order.
+    # Docs/reference/data-types/ApiSimulateTradeOrderResponseDTO.md calls both its top-level
+    # Status and its ApiSimulateOrderResponseDTO children simulated *order* statuses (Pending,
+    # Accepted, Open, etc.), matching the OrderStatus table in reference/lookup-codes.md.
+    ("order", "SimulateCancelOrder"): StatusDomain.ORDER,
+    ("order", "SimulateOrder"): StatusDomain.ORDER,
+    ("order", "SimulateTrade"): StatusDomain.ORDER,
+    ("order", "SimulateUpdateOrder"): StatusDomain.ORDER,
+    ("order", "SimulateUpdateTrade"): StatusDomain.ORDER,
+    # Docs/reference/data-types/FixedMarginOrderResponseDTO.md explicitly separates its
+    # InstructionStatusId/InstructionStatusReasonId acknowledgement from the resulting
+    # OrderStatusId/OrderStatusReasonId. The pipeline checks them in that order.
+    ("fixedmargin", "TradeFM"): StatusDomain.INSTRUCTION,
+    ("fixedmargin", "UpdateTradeFM"): StatusDomain.INSTRUCTION,
+    # Docs/reference/data-types/ExecutionResponseDTO.md defines this as the closed text enum
+    # "either Success or Failure".
+    ("order", "SaveOrder v2"): StatusDomain.EXECUTION_TEXT,
+    # These query DTOs expose stored OrderStatus lifecycle fields. They are reads, not placement
+    # acknowledgements, so a historical/current Rejected value must be returned as data. See the
+    # corresponding DTO pages under Docs/reference/data-types/ and reference/parameters.md.
+    ("order", "GetActiveStopLimitOrder v2"): StatusDomain.NONE,
+    # The compact generator fixture carries the same endpoint without its version suffix.
+    ("order", "GetActiveStopLimitOrder"): StatusDomain.NONE,
+    ("order", "GetOpenPosition v2"): StatusDomain.NONE,
+    # A scaffold unit fixture uses the logical unversioned name for the same response DTO.
+    ("order", "GetOpenPosition"): StatusDomain.NONE,
+    ("order", "GetOrderHistory v2"): StatusDomain.NONE,
+    ("order", "GetOrders v2"): StatusDomain.NONE,
+    ("order", "ListActiveStopLimitOrders"): StatusDomain.NONE,
+    ("order", "ListOpenPositions"): StatusDomain.NONE,
+    ("order", "ListStopLimitOrderHistory"): StatusDomain.NONE,
+    ("order_including_closed", "GetOrderIncludingClosed v2"): StatusDomain.NONE,
+    ("pm", "GetHistoricalOrders"): StatusDomain.NONE,
+}
+
+# Guard the explicit table against catalog drift. ApiAdvisoryTradeOrderResponseDTO and its
+# ApiManagedInstructionResponseDTO children are documented instruction acknowledgements, but the
+# frozen catalog currently exposes no endpoint returning either model; keeping them here makes a
+# future endpoint fail generation until its domain and nested shape are reviewed. Quote response
+# statuses are intentionally excluded from checking, as documented by check_business_status.
+_STATUS_BEARING_RESPONSE_MODELS = frozenset(
+    {
+        "ApiAdvisoryTradeOrderResponseDTO",
+        "ApiManagedInstructionResponseDTO",
+        "ApiOrderResponseDTO",
+        "ApiSimulateOrderResponseDTO",
+        "ApiSimulateTradeOrderResponseDTO",
+        "ApiTradeOrderResponseDTO",
+        "ExecutionResponseDTO",
+        "FixedMarginOrderResponseDTO",
+        "GetActiveStopLimitOrderResponseDTOv2",
+        "GetOpenPositionResponseDTOv2",
+        "HistoricalOrdersResponseDTO",
+        "ListActiveStopLimitOrderResponseDTO",
+        "ListOpenPositionsResponseDTO",
+        "ListStopLimitOrderHistoryResponseDTO",
+        "OrderHistoryDTO",
+        "EnrichedOrderDTO",
+        "SingleActiveStopLimitOrderResponseDTO",
+    }
+)
 
 # Endpoints whose success body is a bare top-level JSON array of `response_model` items (verified
 # live: GetOrders / GetOrderHistory return e.g. `[]`, not an object). For these the generator wraps
@@ -200,6 +277,30 @@ def is_host_rooted(rec: EndpointRecord) -> bool:
     return (target_module(rec.target), rec.name) in _HOST_ROOTED_ENDPOINTS
 
 
+def resolved_status_domain(rec: EndpointRecord) -> StatusDomain:
+    """Return *rec*'s explicit business-status domain, defaulting to ``NONE``.
+
+    Generation fails if a known status-bearing response model appears on a new endpoint without
+    an explicit table entry. That forces catalog changes to make an acknowledgement-vs-read
+    decision rather than silently inheriting numeric order semantics.
+    """
+
+    override = _status_domain_override(rec)
+    return StatusDomain.NONE if override is None else override
+
+
+def _status_domain_override(rec: EndpointRecord) -> StatusDomain | None:
+    key = (target_module(rec.target), rec.name)
+    override = _STATUS_DOMAIN_OVERRIDES.get(key)
+    response_type = _RESPONSE_MODEL_OVERRIDES.get(key, rec.response_type)
+    response_model = python_name(response_type) if response_type is not None else None
+    if response_model in _STATUS_BEARING_RESPONSE_MODELS and override is None:
+        raise ValueError(
+            f"status-bearing endpoint {key!r} ({response_model}) needs an explicit status domain"
+        )
+    return override
+
+
 def target_module(name: str | None) -> str:
     """Return the generated endpoint module name for a catalog target."""
 
@@ -294,6 +395,7 @@ class _Binding:
         method: str,
         path: str,
         host_rooted: bool,
+        status_domain: StatusDomain | None,
         rate_limit_bucket: str,
         auth_policy: str,
         idempotent: bool,
@@ -316,6 +418,7 @@ class _Binding:
         self.method = method
         self.path = path
         self.host_rooted = host_rooted
+        self.status_domain = status_domain
         self.rate_limit_bucket = rate_limit_bucket
         self.auth_policy = auth_policy
         self.idempotent = idempotent
@@ -389,6 +492,7 @@ def _binding(
         method=method,
         path=path,
         host_rooted=is_host_rooted(rec),
+        status_domain=_status_domain_override(rec),
         rate_limit_bucket=target_module(rec.target),
         auth_policy=_auth_policy(rec),
         idempotent=_is_idempotent(rec, method),
@@ -474,6 +578,8 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
     if any(binding.params for binding in bindings):
         endpoint_imports.append("Param")
     lines.append(f"from stonepy._core.endpoint import {', '.join(endpoint_imports)}\n")
+    if any(binding.status_domain is not None for binding in bindings):
+        lines.append("from stonepy._core.status import StatusDomain\n")
     core_model_imports = sorted(
         {name for binding in bindings for name in binding.core_model_imports}
     )
@@ -505,6 +611,8 @@ def _binding_lines(binding: _Binding) -> list[str]:
     ]
     if binding.host_rooted:
         lines.append("    host_rooted=True,\n")
+    if binding.status_domain is not None:
+        lines.append(f"    status_domain=StatusDomain.{binding.status_domain.name},\n")
     lines += [
         f"    idempotent={binding.idempotent},\n",
         f"    auth_policy=AuthPolicy.{binding.auth_policy},\n",

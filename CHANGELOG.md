@@ -7,14 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** The proactive client-side rate limit now applies one aggregate
+  `rate_limit_max` / `rate_limit_window_seconds` window across all endpoint resource groups,
+  matching CIAPI's documented server-wide 500-request/5-second budget. Resource groups no longer
+  receive independent windows that can multiply aggregate traffic.
+- **BREAKING:** An undocumented instruction status, unknown `save_order` text status, or numeric
+  `save_order` status now raises the new `OrderStatusUnknownError` instead of warning and returning
+  an indeterminate response. The exception is not an `OrderRejectedError`: the order may or may
+  not have been placed, and callers must verify order state before resubmitting.
+- **BREAKING:** Business-status rejection checking now runs only on endpoints with an explicit
+  placement/simulation acknowledgement domain. Read endpoints no longer raise
+  `OrderRejectedError` merely because returned current or historical data contains a rejected
+  stored order status.
+
 ### Fixed
 
-- `save_order` no longer crashes with `ValueError` when the API returns its text
-  `Status` ("Success"/"Failure"); a `"Failure"` status now raises `OrderRejectedError`, and
-  an unrecognized text status is logged as a warning rather than passing silently.
+- Trade/order placement responses now decode top-level `ApiTradeOrderResponseDTO.Status` and
+  `StatusReason` as `InstructionStatus`/`InstructionStatusReason`; only nested `Orders[]` uses
+  `OrderStatus`/`OrderStatusReason`. This prevents instruction `RedCard` (2) from being mistaken
+  for an accepted order lifecycle value, and instruction `Pending` (5) from raising a false
+  `OrderRejectedError` (which could prompt a resubmit and a doubled order).
+- `save_order` no longer crashes with `ValueError` when the API returns its documented text
+  `Status`; `Success` returns and `Failure` raises `OrderRejectedError` with the response reason.
 - The client-side rate limiter is now thread-safe.
 - A throttled (HTTP 429) retry without a `Retry-After` header now waits at least the one
   second the CIAPI basics guide requires before resending.
+- The generator no longer silently falls back to a developer-specific catalog path;
+  catalog-consuming commands now require `--catalog-root` or `STONEPY_CATALOG`.
 - `get_client_preferences_list` no longer requires a meaningless `string` argument and no
   longer sends the keys filter twice (a breaking signature fix).
 - Logging out via `delete_session` now clears the locally stored session token, but only

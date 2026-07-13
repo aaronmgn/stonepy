@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from stonepy._core.status import StatusDomain
 from stonepy._generator.__main__ import main
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord
 from stonepy._generator.emit_endpoints import (
@@ -11,6 +12,7 @@ from stonepy._generator.emit_endpoints import (
     is_host_rooted,
     render_binding,
     resolved_path,
+    resolved_status_domain,
     target_module,
 )
 
@@ -121,6 +123,38 @@ def test_resolved_path_applies_v2_route_overrides() -> None:
     )
     user_pref = _endpoint(name="GetUserPreference v2", target="preference", path="/v2/Preferences")
     assert resolved_path(user_pref) == "/v2/Preference"
+
+
+def test_status_domains_are_explicit_for_acknowledgements_and_status_reads() -> None:
+    trade = _endpoint(
+        name="Trade",
+        logical_name="Trade",
+        method="POST",
+        response_type="ApiTradeOrderResponseDTO",
+    )
+    read = _endpoint(
+        name="GetActiveStopLimitOrder",
+        logical_name="GetActiveStopLimitOrder",
+        response_type="GetActiveStopLimitOrderResponseDTOv2",
+    )
+
+    assert resolved_status_domain(trade) is StatusDomain.INSTRUCTION
+    assert resolved_status_domain(read) is StatusDomain.NONE
+    rendered = render_binding(trade)
+    assert "from stonepy._core.status import StatusDomain" in rendered
+    assert "status_domain=StatusDomain.INSTRUCTION" in rendered
+
+
+def test_new_status_bearing_endpoint_requires_reviewed_domain() -> None:
+    rec = _endpoint(
+        name="FutureTrade",
+        logical_name="FutureTrade",
+        method="POST",
+        response_type="ApiTradeOrderResponseDTO",
+    )
+
+    with pytest.raises(ValueError, match="needs an explicit status domain"):
+        render_binding(rec)
 
 
 def test_render_binding_emits_wrapper_docstring_from_description() -> None:
