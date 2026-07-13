@@ -33,6 +33,23 @@ def test_get_client_preferences_list_returns_response() -> None:
 
 
 @respx.mock
+def test_get_client_preferences_list_multi_key_sends_one_comma_delimited_param() -> None:
+    # GetClientPreferencesList v2 docs: Keys is a "Comma delimited list of strings" - multiple
+    # keys must serialize as a single query key, not repeated keys= parameters.
+    route = respx.get("https://api.example/v2/clientPreference/list").mock(
+        return_value=httpx.Response(200, content=_RESPONSE_BODY)
+    )
+    client = StoneXClient(ClientConfig(base_url="https://api.example"))
+    try:
+        client._ctx.session.set_token("TOKEN", "user")
+        client.client_preference.get_client_preferences_list(["first", "second"], 1)
+        params = route.calls[0].request.url.params
+        assert params.get_list("keys") == ["first,second"]
+    finally:
+        client.close()
+
+
+@respx.mock
 def test_get_client_preferences_list_async() -> None:
     async def run() -> None:
         route = respx.get("https://api.example/v2/clientPreference/list").mock(
