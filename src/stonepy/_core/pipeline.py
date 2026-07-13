@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
@@ -41,6 +42,12 @@ from stonepy._core.status import (
     default_status_decoder,
 )
 from stonepy._core.transport import Request, build_request
+
+logger = logging.getLogger("stonepy.pipeline")
+
+# CIAPI basics guide: when throttling activates (HTTP 429), "the client UI application must
+# wait 1 second before sending further API requests".
+_MIN_THROTTLE_DELAY_SECONDS = 1.0
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
@@ -224,7 +231,7 @@ class CallContext:
 
             if _is_rate_limited(resp, error_info):
                 retry_after = _parse_retry_after(resp)
-                delay = self._backoff_delay(attempt, retry_after)
+                delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     self.clock.sleep(delay)
                     attempt += 1
@@ -322,7 +329,7 @@ class CallContext:
 
             if _is_rate_limited(resp, error_info):
                 retry_after = _parse_retry_after(resp)
-                delay = self._backoff_delay(attempt, retry_after)
+                delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     await self._asleep(delay)
                     attempt += 1
@@ -366,6 +373,18 @@ class CallContext:
     def _backoff_delay(self, attempt: int, retry_after: float | None) -> float:
         jitter = 1.0 if retry_after is not None else self.jitter()
         return backoff_delay(attempt, retry_after, jitter=jitter)
+
+    def _throttle_delay(self, attempt: int, retry_after: float | None) -> float:
+        """Delay before retrying a throttled (429) call.
+
+        Without a ``Retry-After`` header, the delay is floored at the one second the CIAPI
+        basics guide requires after throttling; jittered backoff alone can wait less on the
+        first retry. An explicit ``Retry-After`` is honored as-is.
+        """
+        delay = self._backoff_delay(attempt, retry_after)
+        if retry_after is None:
+            return max(delay, _MIN_THROTTLE_DELAY_SECONDS)
+        return delay
 
     def _sync_transport(self) -> _Transport:
         if isinstance(self.transport, _Transport):
@@ -542,7 +561,14 @@ def _check_text_status(
     Unknown text statuses are deliberately not rejections: a false rejection could prompt a
     caller to resubmit and double an order.
     """
-    if status_text.strip().lower() not in _TEXT_REJECTION_STATUSES:
+    normalized = status_text.strip().lower()
+    if normalized not in _TEXT_REJECTION_STATUSES:
+        if normalized != "success":
+            # Not treated as a rejection (see above), but loud enough that an unexpected
+            # status like "Failed" or "Queued" is never a *silent* success.
+            logger.warning(
+                "ignoring unknown text business status %r on %s %s", status_text, method, path
+            )
         return
     reason_value = _field_value(model, ("Reason", "reason", "StatusReason", "status_reason"))
     reason = str(reason_value) if reason_value is not None else status_text
