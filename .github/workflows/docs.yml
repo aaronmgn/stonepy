@@ -20,7 +20,64 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.classify.outputs.mode }}
+      version: ${{ steps.classify.outputs.version }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - name: Classify docs deployment
+        id: classify
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          MODE="dev"
+          VERSION=""
+
+          if [ -n "${INPUT_VERSION}" ]; then
+            MODE="release"
+            VERSION="${INPUT_VERSION}"
+          elif [ "${REF_TYPE}" = "tag" ]; then
+            MODE="release"
+            VERSION="${REF_NAME#v}"
+          elif [ "${EVENT_NAME}" = "push" ] && [ "${REF_TYPE}" = "branch" ]; then
+            ZERO_SHA="0000000000000000000000000000000000000000"
+            if [ -n "${BEFORE_SHA}" ] && [ "${BEFORE_SHA}" != "${ZERO_SHA}" ]; then
+              version_at() {
+                git show "${1}:src/stonepy/__init__.py" |
+                  sed -n 's/^__version__ = "\([^"]*\)"$/\1/p'
+              }
+
+              BEFORE_VERSION="$(version_at "${BEFORE_SHA}")"
+              CURRENT_VERSION="$(version_at "${CURRENT_SHA}")"
+              if [ -z "${BEFORE_VERSION}" ] || [ -z "${CURRENT_VERSION}" ]; then
+                echo "could not read __version__ from the push commits" >&2
+                exit 1
+              fi
+              if [ "${BEFORE_VERSION}" != "${CURRENT_VERSION}" ]; then
+                MODE="skip"
+              fi
+            fi
+          fi
+
+          if [[ "${VERSION}" == *$'\n'* || "${VERSION}" == *$'\r'* ]]; then
+            echo "release version must be a single line" >&2
+            exit 1
+          fi
+          printf 'mode=%s\nversion=%s\n' "${MODE}" "${VERSION}" >> "${GITHUB_OUTPUT}"
+
   deploy:
+    needs: plan
+    if: needs.plan.outputs.mode != 'skip'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -37,24 +94,27 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
       - name: Build versioned docs with mike
         env:
-          REF_TYPE: ${{ github.ref_type }}
-          REF_NAME: ${{ github.ref_name }}
-          INPUT_VERSION: ${{ github.event.inputs.version }}
+          MODE: ${{ needs.plan.outputs.mode }}
+          VERSION: ${{ needs.plan.outputs.version }}
         run: |
           set -euo pipefail
-          if [ -n "${INPUT_VERSION}" ]; then
-            VERSION="${INPUT_VERSION}"
-          elif [ "${REF_TYPE}" = "tag" ]; then
-            VERSION="${REF_NAME#v}"
-          else
-            VERSION=""
-          fi
-          if [ -n "${VERSION}" ]; then
-            uv run mike deploy --push --update-aliases "${VERSION}" latest
-            uv run mike set-default --push latest
-          else
-            uv run mike deploy --push dev
-          fi
+          case "${MODE}" in
+            release)
+              if [ -z "${VERSION}" ]; then
+                echo "release docs deployment requires a version" >&2
+                exit 1
+              fi
+              uv run mike deploy --push --update-aliases "${VERSION}" latest
+              uv run mike set-default --push latest
+              ;;
+            dev)
+              uv run mike deploy --push dev
+              ;;
+            *)
+              echo "unsupported docs deployment mode: ${MODE}" >&2
+              exit 1
+              ;;
+          esac
       - name: Materialize the gh-pages site
         run: |
           set -euo pipefail
