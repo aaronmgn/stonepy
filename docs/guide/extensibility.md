@@ -58,7 +58,9 @@ class CfdExtrasResource(BaseResource):
     # Optional version-compat contract; see section on requires_stonepy below.
     requires_stonepy = ">=0.1.0"
 
-    def list_markets(self, client_account_id: int, *, max_results: int = 20) -> ListCfdMarketsResponseDTO:
+    def list_markets(
+        self, client_account_id: int, *, max_results: int = 20
+    ) -> ListCfdMarketsResponseDTO:
         return self._ctx.invoke(
             _LIST_MARKETS,
             query={"ClientAccountId": client_account_id, "maxResults": max_results},
@@ -75,9 +77,7 @@ The loader discovers plugins from the entry-point group **`stonepy.resources`**.
 ```python
 # src/stonepy/_core/plugins.py
 discovered = (
-    entry_points
-    if entry_points is not None
-    else metadata_entry_points(group="stonepy.resources")
+    entry_points if entry_points is not None else metadata_entry_points(group="stonepy.resources")
 )
 ```
 
@@ -142,6 +142,7 @@ tradingadvisor, user_account, watchlist
 
     ```python
     import logging
+
     logging.getLogger("stonepy.plugins").setLevel(logging.WARNING)
     logging.basicConfig()
     ```

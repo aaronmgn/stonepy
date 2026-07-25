@@ -116,9 +116,9 @@ def test_sync_flow() -> None:
     logon_route = respx.post("https://ciapi.cityindex.com/v2/session").mock(
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
-    market_route = respx.get(
-        f"{BASE_URL}/v2/market/99498/information"
-    ).mock(return_value=httpx.Response(200, json=MARKET_BODY))
+    market_route = respx.get(f"{BASE_URL}/v2/market/99498/information").mock(
+        return_value=httpx.Response(200, json=MARKET_BODY)
+    )
 
     config = ClientConfig(base_url=BASE_URL)
     with StoneXClient(config) as client:
@@ -161,9 +161,9 @@ def test_async_flow() -> None:
     respx.post("https://ciapi.cityindex.com/v2/session").mock(
         return_value=httpx.Response(200, json=LOGON_BODY)
     )
-    market_route = respx.get(
-        f"{BASE_URL}/v2/market/99498/information"
-    ).mock(return_value=httpx.Response(200, json=MARKET_BODY))
+    market_route = respx.get(f"{BASE_URL}/v2/market/99498/information").mock(
+        return_value=httpx.Response(200, json=MARKET_BODY)
+    )
 
     async def run() -> None:
         config = ClientConfig(base_url=BASE_URL)

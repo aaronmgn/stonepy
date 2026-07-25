@@ -45,7 +45,7 @@ httpx.Client(
     verify=config.verify_tls,
     proxy=config.proxy,
     timeout=httpx.Timeout(
-        config.read_timeout,            # default timeout
+        config.read_timeout,  # default timeout
         connect=config.connect_timeout,
         read=config.read_timeout,
         write=config.write_timeout,

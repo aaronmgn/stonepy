@@ -91,15 +91,15 @@ config = ClientConfig.from_env()
 
 with StoneXClient(config) as client:
     results = client.market.list_market_search_paginated(
-        "GBP/USD",   # query
-        True,        # search_by_market_code
-        True,        # search_by_market_name
-        True,        # spread_product_type
-        True,        # cfd_product_type
-        False,       # binary_product_type
-        True,        # ascending_order
-        False,       # include_options
-        123456,      # client_account_id
+        "GBP/USD",  # query
+        True,  # search_by_market_code
+        True,  # search_by_market_name
+        True,  # spread_product_type
+        True,  # cfd_product_type
+        False,  # binary_product_type
+        True,  # ascending_order
+        False,  # include_options
+        123456,  # client_account_id
         page=0,
         page_size=10,
         order_by="Name",
