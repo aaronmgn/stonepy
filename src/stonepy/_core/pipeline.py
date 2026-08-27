@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
@@ -25,6 +26,7 @@ from stonepy._core.errors import (
     RateLimitError,
     ResponseParseError,
     StoneXAPIError,
+    StoneXError,
     TransportError,
 )
 from stonepy._core.models import ResponseModel
@@ -49,6 +51,7 @@ from stonepy._core.transport import Request, build_request
 # CIAPI basics guide: when throttling activates (HTTP 429), "the client UI application must
 # wait 1 second before sending further API requests".
 _MIN_THROTTLE_DELAY_SECONDS = 1.0
+logger = logging.getLogger("stonepy.pipeline")
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
@@ -188,7 +191,12 @@ class CallContext:
             else:
                 seen_generation = self.session.generation
                 if self.session.needs_proactive_refresh():
-                    self.session.refresh(seen_generation, self.logon)
+                    try:
+                        self.session.refresh(seen_generation, self.logon)
+                    except StoneXError:
+                        logger.warning(
+                            "proactive session refresh failed; continuing with existing token"
+                        )
 
                 seen_generation = self.session.generation
                 auth_headers = self.session.auth_headers(spec.auth_policy)
@@ -286,7 +294,12 @@ class CallContext:
             else:
                 seen_generation = await self._ageneration()
                 if await self._aneeds_proactive_refresh():
-                    await self._arefresh(seen_generation)
+                    try:
+                        await self._arefresh(seen_generation)
+                    except StoneXError:
+                        logger.warning(
+                            "proactive session refresh failed; continuing with existing token"
+                        )
 
                 seen_generation = await self._ageneration()
                 auth_headers = await self._aauth_headers(spec.auth_policy)
@@ -379,14 +392,11 @@ class CallContext:
     def _throttle_delay(self, attempt: int, retry_after: float | None) -> float:
         """Delay before retrying a throttled (429) call.
 
-        Without a ``Retry-After`` header, the delay is floored at the one second the CIAPI
-        basics guide requires after throttling; jittered backoff alone can wait less on the
-        first retry. An explicit ``Retry-After`` is honored as-is.
+        Every delay is floored at the one second the CIAPI basics guide requires after
+        throttling, including zero, expired, or sub-second ``Retry-After`` values.
         """
         delay = self._backoff_delay(attempt, retry_after)
-        if retry_after is None:
-            return max(delay, _MIN_THROTTLE_DELAY_SECONDS)
-        return delay
+        return max(delay, _MIN_THROTTLE_DELAY_SECONDS)
 
     def _sync_transport(self) -> _Transport:
         if isinstance(self.transport, _Transport):

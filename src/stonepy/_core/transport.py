@@ -338,7 +338,7 @@ class AsyncTransport:
     """Asynchronous HTTP transport wrapping an ``httpx.AsyncClient``.
 
     The awaitable twin of [`SyncTransport`][stonepy._core.transport.SyncTransport], with the
-    same two construction forms.
+    same two construction forms. The underlying pool is allocated lazily on the first request.
     """
 
     @overload
@@ -363,33 +363,46 @@ class AsyncTransport:
         if isinstance(base_url, ClientConfig):
             if verify is not None or timeout is not None or proxy is not None:
                 raise TypeError("ClientConfig transport construction does not accept overrides")
-            self._client = httpx.AsyncClient(
-                base_url=base_url.base_url,
-                verify=base_url.verify_tls,
-                proxy=base_url.proxy,
-                timeout=httpx.Timeout(
-                    base_url.read_timeout,
-                    connect=base_url.connect_timeout,
-                    read=base_url.read_timeout,
-                    write=base_url.write_timeout,
-                    pool=base_url.pool_timeout,
-                ),
-                limits=httpx.Limits(max_connections=base_url.max_connections),
+            self._base_url = base_url.base_url
+            self._verify = base_url.verify_tls
+            self._proxy = base_url.proxy
+            self._timeout: httpx.Timeout | float = httpx.Timeout(
+                base_url.read_timeout,
+                connect=base_url.connect_timeout,
+                read=base_url.read_timeout,
+                write=base_url.write_timeout,
+                pool=base_url.pool_timeout,
             )
+            self._limits: httpx.Limits | None = httpx.Limits(
+                max_connections=base_url.max_connections
+            )
+            self._client: httpx.AsyncClient | None = None
             return
 
         if verify is None or timeout is None:
             raise TypeError("verify and timeout are required when constructing from primitives")
-        self._client = httpx.AsyncClient(
-            base_url=base_url,
-            verify=verify,
-            timeout=timeout,
-            proxy=proxy,
-        )
+        self._base_url = base_url
+        self._verify = verify
+        self._proxy = proxy
+        self._timeout = timeout
+        self._limits = None
+        self._client = None
 
     async def asend(self, req: Request) -> httpx.Response:
         """Send *req* and return the raw ``httpx.Response``."""
-        return await self._client.request(
+        client = self._client
+        if client is None:
+            client_kwargs: dict[str, Any] = {
+                "base_url": self._base_url,
+                "verify": self._verify,
+                "proxy": self._proxy,
+                "timeout": self._timeout,
+            }
+            if self._limits is not None:
+                client_kwargs["limits"] = self._limits
+            client = httpx.AsyncClient(**client_kwargs)
+            self._client = client
+        return await client.request(
             req.method,
             req.url,
             headers=req.headers,
@@ -399,4 +412,5 @@ class AsyncTransport:
 
     async def aclose(self) -> None:
         """Close the underlying async HTTP client and its connection pool."""
-        await self._client.aclose()
+        if self._client is not None:
+            await self._client.aclose()

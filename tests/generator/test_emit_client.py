@@ -40,6 +40,12 @@ def test_emit_client_writes_sync_async_resources_and_typed_client(tmp_path: Path
     assert "transport = AsyncTransport(config)" in client_text
     assert "class StoneXClient:" in client_text
     assert '"""Synchronous StoneX CIAPI v2 client.' in client_text
+    assert "        try:\n            self._plugins: dict[str, BaseResource] = {\n" in client_text
+    assert (
+        "        except BaseException:\n"
+        "            self._transport.close()\n"
+        "            raise\n" in client_text
+    )
     assert "def session(self) -> SessionResource:" in client_text
     assert '"""Close the underlying synchronous HTTP transport."""' in client_text
     assert "class AsyncStoneXClient:" in client_text

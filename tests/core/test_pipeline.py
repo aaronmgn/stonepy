@@ -11,6 +11,7 @@ from typing import cast
 import httpx
 import pytest
 from pydantic import Field
+from pytest import LogCaptureFixture
 
 from stonepy import __version__
 from stonepy._core import codec
@@ -741,6 +742,100 @@ def test_proactive_refresh_runs_before_building_session_headers() -> None:
     assert t.sent[0].headers["Session"] == "NEW"
 
 
+def test_sync_proactive_refresh_transport_error_warns_and_uses_existing_token(
+    caplog: LogCaptureFixture,
+) -> None:
+    t = FakeTransport([httpx.Response(200, json={"OrderId": 7})])
+    parts = _ctx(t, [])
+
+    def fail_refresh() -> str:
+        raise TransportError(
+            "PASSWORD-SECRET failed",
+            method="POST",
+            path="/v2/session",
+            attempt=0,
+        )
+
+    parts.ctx.logon = fail_refresh
+    parts.clock.advance(1080.0)
+
+    with caplog.at_level("WARNING", logger="stonepy.pipeline"):
+        out = parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+
+    records = [record for record in caplog.records if record.name == "stonepy.pipeline"]
+    assert out.order_id == 7
+    assert t.sent[0].headers["Session"] == "OLD"
+    assert len(records) == 1
+    assert records[0].getMessage() == (
+        "proactive session refresh failed; continuing with existing token"
+    )
+    assert "PASSWORD-SECRET" not in caplog.text
+    assert "OLD" not in caplog.text
+
+
+def test_async_proactive_refresh_transport_error_warns_and_uses_existing_token(
+    caplog: LogCaptureFixture,
+) -> None:
+    async def run() -> None:
+        t = AsyncFakeTransport([httpx.Response(200, json={"OrderId": 7})])
+        parts = await _actx(t, [])
+
+        async def fail_refresh() -> str:
+            raise TransportError(
+                "PASSWORD-SECRET failed",
+                method="POST",
+                path="/v2/session",
+                attempt=0,
+            )
+
+        parts.ctx.alogon = fail_refresh
+        parts.clock.advance(1080.0)
+
+        with caplog.at_level("WARNING", logger="stonepy.pipeline"):
+            out = await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 7})
+
+        records = [record for record in caplog.records if record.name == "stonepy.pipeline"]
+        assert out.order_id == 7
+        assert t.sent[0].headers["Session"] == "OLD"
+        assert len(records) == 1
+        assert records[0].getMessage() == (
+            "proactive session refresh failed; continuing with existing token"
+        )
+        assert "PASSWORD-SECRET" not in caplog.text
+        assert "OLD" not in caplog.text
+
+    asyncio.run(run())
+
+
+def test_sync_proactive_refresh_does_not_swallow_keyboard_interrupt() -> None:
+    parts = _ctx(FakeTransport([]), [])
+
+    def interrupt_refresh() -> str:
+        raise KeyboardInterrupt
+
+    parts.ctx.logon = interrupt_refresh
+    parts.clock.advance(1080.0)
+
+    with pytest.raises(KeyboardInterrupt):
+        parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+
+
+def test_async_proactive_refresh_does_not_swallow_keyboard_interrupt() -> None:
+    async def run() -> None:
+        parts = await _actx(AsyncFakeTransport([]), [])
+
+        async def interrupt_refresh() -> str:
+            raise KeyboardInterrupt
+
+        parts.ctx.alogon = interrupt_refresh
+        parts.clock.advance(1080.0)
+
+        with pytest.raises(KeyboardInterrupt):
+            await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 7})
+
+    asyncio.run(run())
+
+
 def test_proactive_refresh_uses_generation_captured_before_stale_check() -> None:
     t = FakeTransport([httpx.Response(200, json={"OrderId": 7})])
     clk = FakeClock()
@@ -1037,6 +1132,80 @@ def test_429_without_retry_after_waits_at_least_one_second() -> None:
     assert parts.clock.now() >= 1.0
 
 
+@pytest.mark.parametrize(
+    "retry_after",
+    [
+        pytest.param("0", id="explicit-zero"),
+        pytest.param("0.25", id="sub-second"),
+        pytest.param(
+            format_datetime(datetime(2000, 1, 1, tzinfo=UTC), usegmt=True),
+            id="past-http-date",
+        ),
+    ],
+)
+def test_429_retry_after_values_wait_at_least_one_second(retry_after: str) -> None:
+    t = FakeTransport(
+        [
+            httpx.Response(
+                429,
+                headers={"Retry-After": retry_after},
+                json={"ErrorCode": 5002, "ErrorMessage": "busy"},
+            ),
+            httpx.Response(200, json={"OrderId": 7}),
+        ]
+    )
+    parts = _ctx(t, [], retry=RetryPolicy(1), jitter=lambda: 0.0)
+
+    out = parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+
+    assert out.order_id == 7
+    assert len(t.sent) == 2
+    assert parts.clock.now() >= 1.0
+
+
+def test_429_retry_after_25_sleeps_and_retries() -> None:
+    t = FakeTransport(
+        [
+            httpx.Response(
+                429,
+                headers={"Retry-After": "25"},
+                json={"ErrorCode": 5002, "ErrorMessage": "busy"},
+            ),
+            httpx.Response(200, json={"OrderId": 7}),
+        ]
+    )
+    parts = _ctx(t, [], retry=RetryPolicy(1))
+
+    out = parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+
+    assert out.order_id == 7
+    assert len(t.sent) == 2
+    assert parts.clock.now() == 25.0
+
+
+def test_async_429_retry_after_25_sleeps_and_retries() -> None:
+    async def run() -> None:
+        t = AsyncFakeTransport(
+            [
+                httpx.Response(
+                    429,
+                    headers={"Retry-After": "25"},
+                    json={"ErrorCode": 5002, "ErrorMessage": "busy"},
+                ),
+                httpx.Response(200, json={"OrderId": 7}),
+            ]
+        )
+        parts = await _actx(t, [], retry=RetryPolicy(1))
+
+        out = await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 7})
+
+        assert out.order_id == 7
+        assert len(t.sent) == 2
+        assert parts.clock.now() == 25.0
+
+    asyncio.run(run())
+
+
 def test_rate_limit_buckets_share_global_window() -> None:
     t = FakeTransport(
         [
@@ -1111,20 +1280,22 @@ def test_rate_limit_raises_when_retry_budget_is_exhausted() -> None:
         [
             httpx.Response(
                 429,
-                headers={"Retry-After": "2"},
+                headers={"Retry-After": "60"},
                 json={"ErrorCode": 5002, "ErrorMessage": "busy", "HttpStatus": 429},
             )
         ]
     )
-    cfg = ClientConfig(base_url="https://api.example", retry_budget_seconds=1.0)
+    cfg = ClientConfig(base_url="https://api.example")
+    parts = _ctx(t, [], retry=RetryPolicy(1), config=cfg)
     with pytest.raises(RateLimitError) as exc_info:
-        _ctx(t, [], retry=RetryPolicy(1), config=cfg).ctx.invoke(
+        parts.ctx.invoke(
             _spec(),
             path_params={"OrderId": 7},
         )
 
-    assert exc_info.value.retry_after == 2.0
+    assert exc_info.value.retry_after == 60.0
     assert len(t.sent) == 1
+    assert parts.clock.now() == 0.0
 
 
 def test_async_rate_limit_raises_when_retry_budget_is_exhausted() -> None:
@@ -1133,7 +1304,7 @@ def test_async_rate_limit_raises_when_retry_budget_is_exhausted() -> None:
             [
                 httpx.Response(
                     429,
-                    headers={"Retry-After": "2"},
+                    headers={"Retry-After": "60"},
                     json={"ErrorCode": 5002, "ErrorMessage": "busy", "HttpStatus": 429},
                 )
             ]
@@ -1142,14 +1313,15 @@ def test_async_rate_limit_raises_when_retry_budget_is_exhausted() -> None:
             t,
             [],
             retry=RetryPolicy(1),
-            config=ClientConfig(base_url="https://api.example", retry_budget_seconds=1.0),
+            config=ClientConfig(base_url="https://api.example"),
         )
 
         with pytest.raises(RateLimitError) as exc_info:
             await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 7})
 
-        assert exc_info.value.retry_after == 2.0
+        assert exc_info.value.retry_after == 60.0
         assert len(t.sent) == 1
+        assert parts.clock.now() == 0.0
 
     asyncio.run(run())
 
@@ -1202,6 +1374,51 @@ def test_async_idempotent_503_uses_retry_policy_backoff() -> None:
         assert out.order_id == 7
         assert len(t.sent) == 2
         assert parts.clock.now() == 1.0
+
+    asyncio.run(run())
+
+
+def test_retryable_503_server_delay_over_budget_fails_without_sleep() -> None:
+    t = FakeTransport(
+        [
+            httpx.Response(
+                503,
+                headers={"Retry-After": "60"},
+                json={"ErrorCode": 5030, "ErrorMessage": "retry"},
+            ),
+            httpx.Response(200, json={"OrderId": 7}),
+        ]
+    )
+    parts = _ctx(t, [], retry=RetryPolicy(1))
+
+    with pytest.raises(StoneXAPIError) as exc_info:
+        parts.ctx.invoke(_spec(), path_params={"OrderId": 7})
+
+    assert exc_info.value.http_status == 503
+    assert len(t.sent) == 1
+    assert parts.clock.now() == 0.0
+
+
+def test_async_retryable_503_server_delay_over_budget_fails_without_sleep() -> None:
+    async def run() -> None:
+        t = AsyncFakeTransport(
+            [
+                httpx.Response(
+                    503,
+                    headers={"Retry-After": "60"},
+                    json={"ErrorCode": 5030, "ErrorMessage": "retry"},
+                ),
+                httpx.Response(200, json={"OrderId": 7}),
+            ]
+        )
+        parts = await _actx(t, [], retry=RetryPolicy(1))
+
+        with pytest.raises(StoneXAPIError) as exc_info:
+            await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 7})
+
+        assert exc_info.value.http_status == 503
+        assert len(t.sent) == 1
+        assert parts.clock.now() == 0.0
 
     asyncio.run(run())
 

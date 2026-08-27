@@ -71,6 +71,12 @@ def test_parse_iso8601_v2_date() -> None:
     )
 
 
+def test_parse_offsetless_iso8601_v2_date_as_utc() -> None:
+    assert codec.parse_wcf_date("2026-06-29T21:05:00") == datetime(
+        2026, 6, 29, 21, 5, 0, tzinfo=UTC
+    )
+
+
 def test_parse_unrecognized_string_raises() -> None:
     with pytest.raises(ValueError, match="not a WCF date"):
         codec.parse_wcf_date("definitely not a date")

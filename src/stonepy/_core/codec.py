@@ -52,6 +52,8 @@ def parse_wcf_date(value: Any) -> datetime | None:
                 parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
                 raise ValueError(f"not a WCF date: {value!r}") from None
+            if parsed.utcoffset() is None:
+                parsed = parsed.replace(tzinfo=UTC)
             return _ensure_timezone_aware(parsed)
     else:
         raise ValueError(f"not a WCF date: {value!r}")
