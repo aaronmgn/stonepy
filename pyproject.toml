@@ -80,6 +80,7 @@ files = ["src", "tests"]
 [tool.pytest.ini_options]
 addopts = "-q"
 testpaths = ["tests"]
+filterwarnings = ["error"]
 markers = [
     "live: exercises endpoints against the real CIAPI demo account (needs STONEX_* creds; skipped otherwise)",
 ]

@@ -23,6 +23,11 @@ jobs:
           repository: aaronmgn/stonex_api_docs
           path: stonex_api_docs
           token: ${{ secrets.DOCS_TOKEN }}
+          persist-credentials: false
+      - name: catalog-backed consistency lint
+        env:
+          STONEPY_CATALOG: ${{ github.workspace }}/stonex_api_docs/Docs/catalog
+        run: uv run python scripts/consistency_lint.py
       - name: generator drift gate
         env:
           STONEPY_CATALOG: ${{ github.workspace }}/stonex_api_docs/Docs/catalog
