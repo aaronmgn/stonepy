@@ -33,6 +33,7 @@ class AlertNotification(IntEnum):
     triggered.
     """
 
+    None_ = 0
     Email = 1
     Sms = 2
     EMailAndSms = 3

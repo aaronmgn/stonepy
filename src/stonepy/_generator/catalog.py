@@ -46,6 +46,18 @@ _PRIMITIVE_TYPE_NAMES: Final[frozenset[str]] = frozenset(
         "string",
     }
 )
+_ENUM_MEMBER_ADDITIONS: Final[dict[str, tuple[JsonObject, ...]]] = {
+    # PriceAlertDTO documents AlertNotification.None = 0, which the catalog enum omits.
+    "AlertNotification": (
+        {
+            "name": "None",
+            "type": "0",
+            "format": None,
+            "ref": None,
+            "description": "Do not send a notification.",
+        },
+    ),
+}
 _ARRAY_PROPERTY_OVERRIDES: Final[frozenset[tuple[str, str]]] = frozenset(
     {
         ("AllocationProfileDTO", "Entries"),
@@ -54,7 +66,15 @@ _ARRAY_PROPERTY_OVERRIDES: Final[frozenset[tuple[str, str]]] = frozenset(
         ("ApiBandedSpreadsDTO", "SpreadBands"),
         ("ApiClientApplicationMessageTranslationResponseDTO", "TranslationKeyValuePairs"),
         ("ApiConnectUserDetailsDTO", "UserTradingAccounts"),
+        # Catalog prose says this is a list. Live-probe candidate.
+        ("ApiGetCommunityActionsResponseDTO", "CommunityActions"),
+        # Catalog prose says this is a list. Live-probe candidate.
+        ("ApiGetMultipleUsersDetailsResponseDTO", "CiConnectUsersDetails"),
         ("ApiGetPreferencesResponseDTO", "Preferences"),
+        # Catalog prose says this is a list. Live-probe candidate.
+        ("ApiGetWallItemsForUsersResponseDTO", "WallItemsForUsers"),
+        # Catalog prose says this is a list. Live-probe candidate.
+        ("ApiGetWallSubItemsResponseDTO", "WallItems"),
         ("ApiLookupResponseDTO", "ApiCultureLookupDTOList"),
         ("ApiLookupResponseDTO", "ApiLookupDTOList"),
         ("ApiManagedClientAccountsMarginResponseDTO", "ClientAccountsMargin"),
@@ -67,6 +87,17 @@ _ARRAY_PROPERTY_OVERRIDES: Final[frozenset[tuple[str, str]]] = frozenset(
         ("ApiOrderResponseDTO", "IfDone"),
         ("ApiProductInformationDTO", "AdditionalMarketSpreads"),
         ("ApiProductInformationDTO", "Bands"),
+        # Catalog prose says this is a list whose element self-describes as "List entry".
+        # Live-probe candidate.
+        ("ApiListFollowedUsersResponseDTO", "FollowingUsers"),
+        # Catalog prose says this is a list whose element self-describes as "List entry".
+        # Live-probe candidate.
+        ("ApiListFollowingUsersResponseDTO", "FollowedUsers"),
+        # Catalog prose says this is a list. Live-probe candidate.
+        ("ApiListTopholdersDTO", "Users"),
+        # Catalog prose says this is a list whose element self-describes as "List entry".
+        # Live-probe candidate.
+        ("ApiListTopholdersForMarketsResponseDTO", "TopHolders"),
         ("ApiSaveClientPreferenceRequestDTO", "ClientPreference"),
         ("ApiSavePreferencesRequestDTO", "Preferences"),
         ("ApiSimulateTradeOrderResponseDTO", "Orders"),
@@ -337,7 +368,7 @@ def _type_record(raw: JsonObject) -> TypeRecord:
 
 def _normalized_properties(catalog_name: str, properties: list[JsonObject]) -> list[JsonObject]:
     owner = python_name(catalog_name)
-    normalized: list[JsonObject] = []
+    normalized = [dict(member) for member in _ENUM_MEMBER_ADDITIONS.get(owner, ())]
     for prop in properties:
         name = _string_or_none(prop.get("name"))
         type_name = _string_or_none(prop.get("type"))

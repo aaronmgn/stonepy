@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import shutil
 import subprocess
 from pathlib import Path
@@ -12,6 +13,8 @@ from stonepy._generator.catalog import (
     python_name,
     python_type,
 )
+from stonepy._generator.emit_contract import emit_contract_tests
+from stonepy._generator.render import render_enum
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -50,6 +53,44 @@ def test_detects_enum_shaped_dto() -> None:
     alert = next(d for d in cat.datatypes if d.name == "AlertDirection")
 
     assert is_enum_record(alert) is True
+
+
+def test_alert_notification_none_member_is_shared_by_model_and_contract_emission(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "endpoints.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "lookup-codes.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "data-types.json").write_text(
+        json.dumps(
+            [
+                {
+                    "name": "AlertNotification",
+                    "properties": [
+                        {
+                            "name": "Email",
+                            "type": "1",
+                            "format": None,
+                            "ref": None,
+                        }
+                    ],
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    cat = load_catalog(tmp_path)
+    alert_notification = cat.datatypes[0]
+    rendered_enum = render_enum(alert_notification)
+    emit_contract_tests(cat, tmp_path / "generated")
+    rendered_contract = (tmp_path / "generated/tests/contract/test_datatype_enums.py").read_text(
+        encoding="utf-8"
+    )
+
+    assert alert_notification.properties[0]["name"] == "None"
+    assert alert_notification.properties[0]["type"] == "0"
+    assert "None_ = 0" in rendered_enum
+    assert '{"Email": 1, "None_": 0}' in rendered_contract
 
 
 def test_decimal_maps_to_decimal() -> None:
@@ -121,6 +162,47 @@ def test_load_catalog_restores_known_array_property_markers(tmp_path: Path) -> N
         python_type(response.properties[0], {rec.name for rec in cat.datatypes})
         == "list[PriceTickDTO]"
     )
+
+
+def test_load_catalog_restores_audit_list_shape_overrides(tmp_path: Path) -> None:
+    overrides = {
+        ("ApiGetCommunityActionsResponseDTO", "CommunityActions"): "ApiCommunityActionDTO",
+        (
+            "ApiGetWallItemsForUsersResponseDTO",
+            "WallItemsForUsers",
+        ): "ApiWallItemsForUsersDTO",
+        ("ApiGetWallSubItemsResponseDTO", "WallItems"): "ApiWallItemDTO",
+        ("ApiListFollowedUsersResponseDTO", "FollowingUsers"): "ApiUserFollowersDTO",
+        ("ApiListFollowingUsersResponseDTO", "FollowedUsers"): "ApiUserFollowedUsersDTO",
+        ("ApiListTopholdersDTO", "Users"): "ApiTopholderDTO",
+        ("ApiListTopholdersForMarketsResponseDTO", "TopHolders"): "ApiListTopholdersDTO",
+        (
+            "ApiGetMultipleUsersDetailsResponseDTO",
+            "CiConnectUsersDetails",
+        ): "ApiCiConnectMultipleUsersDetailsDTO",
+    }
+    owners = [
+        {
+            "name": owner,
+            "properties": [
+                {"name": field, "type": element_type, "format": None, "ref": element_type}
+            ],
+        }
+        for (owner, field), element_type in overrides.items()
+    ]
+    element_types = sorted(set(overrides.values()) - {owner for owner, _field in overrides})
+    datatypes = [*owners, *({"name": name, "properties": []} for name in element_types)]
+    (tmp_path / "endpoints.json").write_text("[]", encoding="utf-8")
+    (tmp_path / "lookup-codes.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "data-types.json").write_text(json.dumps(datatypes), encoding="utf-8")
+
+    cat = load_catalog(tmp_path)
+    records = {rec.name: rec for rec in cat.datatypes}
+    known_names = set(records)
+
+    for (owner, field), element_type in overrides.items():
+        prop = next(prop for prop in records[owner].properties if prop["name"] == field)
+        assert python_type(prop, known_names) == f"list[{element_type}]"
 
 
 def test_load_catalog_collects_unresolved_property_types() -> None:

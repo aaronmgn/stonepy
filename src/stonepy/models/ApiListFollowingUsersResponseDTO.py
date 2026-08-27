@@ -26,7 +26,9 @@ class ApiListFollowingUsersResponseDTO(ResponseModel):
     registered with CI Connect are returned.
     """
 
-    followed_users: ApiUserFollowedUsersDTO | None = Field(default=None, alias="FollowedUsers")
+    followed_users: list[ApiUserFollowedUsersDTO] | None = Field(
+        default=None, alias="FollowedUsers"
+    )
     """The list of users following the supplied screen names."""
 
 

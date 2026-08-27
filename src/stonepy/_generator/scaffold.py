@@ -9,7 +9,12 @@ from pathlib import Path
 from typing import TypeAlias
 
 from stonepy._generator.catalog import Catalog, EndpointRecord
-from stonepy._generator.emit_endpoints import render_binding, target_module
+from stonepy._generator.emit_endpoints import (
+    is_host_rooted,
+    render_binding,
+    resolved_path,
+    target_module,
+)
 from stonepy._generator.render import field_name, format_python
 
 __all__ = ["scaffold"]
@@ -132,7 +137,7 @@ def _render_test_stub(
     imports = _imports_for_function(wrapper, known_model_names, include_return=False)
     response_json = "{}"
     method = (rec.method or "GET").lower()
-    url = "https://api.example" + _stub_path(rec.path or rec.uri_template or "")
+    url = _stub_url(rec)
     setup_lines, call_args = _test_call_setup(wrapper, known_model_names)
     lines = [
         "from __future__ import annotations\n\n",
@@ -152,7 +157,7 @@ def _render_test_stub(
             f'    respx.{method}("{url}").mock(\n',
             f"        return_value=httpx.Response(200, json={response_json})\n",
             "    )\n",
-            '    client = StoneXClient(ClientConfig(base_url="https://api.example"))\n',
+            '    client = StoneXClient(ClientConfig(base_url="https://api.example/TradingAPI"))\n',
             "    try:\n",
         ]
     )
@@ -352,3 +357,8 @@ def _docstring_lines(text: str) -> str:
 def _stub_path(path: str) -> str:
     path_only = path.partition("?")[0]
     return _PATH_PLACEHOLDER_RE.sub("1", path_only)
+
+
+def _stub_url(rec: EndpointRecord) -> str:
+    root = "https://api.example" if is_host_rooted(rec) else "https://api.example/TradingAPI"
+    return root.rstrip("/") + _stub_path(resolved_path(rec))

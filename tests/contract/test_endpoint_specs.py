@@ -765,7 +765,7 @@ ENDPOINT_CASES = [
         "GET",
         "/message/ClientCommunicationMessageResponse",
         True,
-        True,
+        False,
         "SESSION",
         "message",
         "NONE",

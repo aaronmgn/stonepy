@@ -23,15 +23,15 @@ class ApiUserDynamicProfileDTO(ResponseModel):
     """Date and time in UTC of the last trade made by this user."""
     last_trade_direction: str | None = Field(default=None, alias="LastTradeDirection")
     """Direction of the last trade."""
-    last_traded_market_id: str | None = Field(default=None, alias="LastTradedMarketId")
+    last_traded_market_id: int | None = Field(default=None, alias="LastTradedMarketId")
     """The identifier of the market last traded by this user."""
     last_traded_market_name: str | None = Field(default=None, alias="LastTradedMarketName")
     """Name of the last market traded by this user."""
     last_traded_underlying_type: str | None = Field(default=None, alias="LastTradedUnderlyingType")
     """The type of the underlying for the market last traded by the user."""
-    number_followed: bool | None = Field(default=None, alias="NumberFollowed")
+    number_followed: int | None = Field(default=None, alias="NumberFollowed")
     """Number of other CI Connect users followed by this user."""
-    number_following: str | None = Field(default=None, alias="NumberFollowing")
+    number_following: int | None = Field(default=None, alias="NumberFollowing")
     """Number of CI Connect users following this user."""
 
 

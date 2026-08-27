@@ -24,7 +24,7 @@ class ApiListTopholdersDTO(ResponseModel):
 
     market_id: int | None = Field(default=None, alias="MarketID")
     """The market ID."""
-    users: ApiTopholderDTO | None = Field(default=None, alias="Users")
+    users: list[ApiTopholderDTO] | None = Field(default=None, alias="Users")
     """List of the CI Connect user names that are the top holders for the specified market."""
 
 

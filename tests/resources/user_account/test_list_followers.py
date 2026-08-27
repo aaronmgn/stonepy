@@ -9,7 +9,7 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiListFollowingUsersResponseDTO
 
-_RESPONSE_BODY = '{"FollowedUsers":{}}'
+_RESPONSE_BODY = '{"FollowedUsers":[{"ScreenName":"x","FollowedUsers":[]}]}'
 
 
 @respx.mock
@@ -23,6 +23,8 @@ def test_list_followers_returns_response() -> None:
         screen_names = "x"
         resp = client.user_account.list_followers(screen_names)
         assert isinstance(resp, ApiListFollowingUsersResponseDTO)
+        assert resp.followed_users is not None
+        assert resp.followed_users[0].screen_name == "x"
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/followers"
@@ -43,6 +45,8 @@ def test_list_followers_async() -> None:
             screen_names = "x"
             resp = await client.user_account.list_followers(screen_names)
             assert isinstance(resp, ApiListFollowingUsersResponseDTO)
+            assert resp.followed_users is not None
+            assert resp.followed_users[0].screen_name == "x"
             assert route.called
             assert route.calls[0].request.method == "GET"
             assert dict(route.calls[0].request.url.params) == {"screenNames": "x"}

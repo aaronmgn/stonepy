@@ -24,7 +24,7 @@ class ApiGetMultipleUsersDetailsResponseDTO(ResponseModel):
     is for the use of the CI Connect social trading platform.
     """
 
-    ci_connect_users_details: ApiCiConnectMultipleUsersDetailsDTO | None = Field(
+    ci_connect_users_details: list[ApiCiConnectMultipleUsersDetailsDTO] | None = Field(
         default=None, alias="CiConnectUsersDetails"
     )
     """The user details for each of the users sent in the parameter of the call."""

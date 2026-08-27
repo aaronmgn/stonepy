@@ -20,7 +20,7 @@ def test_get_orders_returns_response() -> None:
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
-        client_account_id = "1"
+        client_account_id = 1
         resp = client.order.get_orders(client_account_id, limit=1)
         assert isinstance(resp, list)
         assert isinstance(resp[0], EnrichedOrderDTO)
@@ -41,7 +41,7 @@ def test_get_orders_async() -> None:
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
-            client_account_id = "1"
+            client_account_id = 1
             resp = await client.order.get_orders(client_account_id, limit=1)
             assert isinstance(resp, list)
             assert isinstance(resp[0], EnrichedOrderDTO)

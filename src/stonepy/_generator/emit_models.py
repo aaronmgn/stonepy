@@ -35,6 +35,11 @@ _FORCE_OPTIONAL_FIELDS: dict[str, set[str]] = {
         "MaxResults",
         "CultureId",
     },
+    # The NewTradeOrderRequestDTO catalog descriptions mark both fields "(Optional)".
+    "NewTradeOrderRequestDTO": {
+        "OrderReference",
+        "Source",
+    },
 }
 
 

@@ -26,7 +26,7 @@ class ApiListFollowedUsersResponseDTO(ResponseModel):
     Connect are returned.
     """
 
-    following_users: ApiUserFollowersDTO | None = Field(default=None, alias="FollowingUsers")
+    following_users: list[ApiUserFollowersDTO] | None = Field(default=None, alias="FollowingUsers")
     """The list of users followed by the supplied screen names."""
 
 

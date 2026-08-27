@@ -9,7 +9,7 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiListTopholdersForMarketsResponseDTO
 
-_RESPONSE_BODY = '{"TopHolders":{}}'
+_RESPONSE_BODY = '{"TopHolders":[{"MarketID":1,"Users":[{"ScreenName":"x"}]}]}'
 
 
 @respx.mock
@@ -23,6 +23,10 @@ def test_list_topholders_for_markets_returns_response() -> None:
         market_i_ds = 1
         resp = client.user_account.list_topholders_for_markets(market_i_ds)
         assert isinstance(resp, ApiListTopholdersForMarketsResponseDTO)
+        assert resp.top_holders is not None
+        assert resp.top_holders[0].market_id == 1
+        assert resp.top_holders[0].users is not None
+        assert resp.top_holders[0].users[0].screen_name == "x"
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/gettopholdersformarkets"
@@ -43,6 +47,10 @@ def test_list_topholders_for_markets_async() -> None:
             market_i_ds = 1
             resp = await client.user_account.list_topholders_for_markets(market_i_ds)
             assert isinstance(resp, ApiListTopholdersForMarketsResponseDTO)
+            assert resp.top_holders is not None
+            assert resp.top_holders[0].market_id == 1
+            assert resp.top_holders[0].users is not None
+            assert resp.top_holders[0].users[0].screen_name == "x"
             assert route.called
             assert route.calls[0].request.method == "GET"
             assert dict(route.calls[0].request.url.params) == {"marketIDs": "1"}
