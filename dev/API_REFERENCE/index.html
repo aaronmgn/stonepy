@@ -9296,7 +9296,7 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <code>price_alert</code>, <code>session</code>, <code>spread</code>, <code>tradingadvisor</code>, <code>user_account</code>, and <code>watchlist</code>.</p>
 <p>Each method maps to a single CIAPI v2 endpoint:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span><span class="n">request_dto</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span><span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span><span class="s2">"gold"</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 </code></pre></div>
 <p><code>client.order.place_order(...)</code> is the clearer alias for the generated <code>client.order.order(...)</code>
 call; both remain available.</p>
