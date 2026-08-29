@@ -1,7 +1,8 @@
 name: live
 # Contract tests against the real CIAPI demo account. Runs nightly and on demand only - never on
 # pull requests, so the paper-account secrets are never exposed to fork PR workflows. A failure
-# here means an endpoint drifted from the client; xfailed model mismatches are tracked in #24.
+# here may mean an endpoint drifted from the client, but can also be a credentials, demo-API
+# availability, runner, or test-harness problem; xfailed model mismatches are tracked in #24.
 on:
   schedule:
     - cron: "0 6 * * *" # 06:00 UTC daily
