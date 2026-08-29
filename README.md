@@ -12,14 +12,16 @@ Python client for the StoneX (CIAPI) v2 trading API.
 
 ## Features
 
-- **Fully typed.** Every request and response is a [Pydantic](https://docs.pydantic.dev/) v2
-  model, and the package ships a `py.typed` marker, so editors autocomplete fields and `mypy`
-  checks your calls.
+- **Fully typed.** Request and response DTO bodies are
+  [Pydantic](https://docs.pydantic.dev/) v2 models; some methods take primitive parameters or
+  return bare scalars or lists. The package ships a `py.typed` marker, so editors autocomplete
+  fields and `mypy` checks your calls.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
 - **Complete coverage.** All 128 documented CIAPI endpoints across 19 resource groups, using the
   v2 variant of every endpoint that has one.
 - **Batteries included.** Automatic session refresh, configurable retries, client-side rate
-  limiting, secret redaction in logs, and a clear exception hierarchy.
+  limiting, masking for app key, password, session, authorization, and proxy values in
+  client-owned object representations, and a clear exception hierarchy.
 
 > **Project status:** `stonepy` is pre-1.0 (alpha). The public API may change between minor
 > releases until 1.0; pin a version for production use.
@@ -76,18 +78,24 @@ and `STONEX_PASSWORD`. `STONEX_BASE_URL` is required unless `base_url=` is passe
 
 ## Authentication and Sessions
 
-Calling `client.session.log_on(...)` establishes the authenticated session token that the
-client attaches to every subsequent request. The token is held by the client for the life of
-its context manager.
+Calling `client.session.log_on(...)` establishes the authenticated session token. The client
+attaches the current token to subsequent endpoints that use session authentication. Refresh can
+replace the token, and `client.session.delete_session(...)` clears it.
 
-If you supply `app_key`, `username`, and `password` on `ClientConfig` (directly or via
-`ClientConfig.from_env()`), the client also refreshes the session automatically: it
-re-authenticates as a synchronous pre-request step once the stored token reaches
-`ClientConfig.proactive_refresh_seconds` (default `1080.0`, i.e. 18 minutes), and transparently
-re-logs-on if a request is rejected with an expired-session error. If proactive refresh fails
-with a stonepy error, the client logs a warning and tries the request with the existing token so
-the reactive `401` path can still recover it. Without configured credentials you must call
-`log_on` yourself and manage re-authentication.
+Automatic refresh is enabled either by supplying `app_key`, `username`, and `password` on
+`ClientConfig` (directly or via `ClientConfig.from_env()`), or by a successful manual `log_on()`,
+which installs a replay refresh callable. Proactive refresh runs inline, immediately before the
+request that needs it - synchronously in `StoneXClient` and awaited in `AsyncStoneXClient`, with
+no background task - once the stored token reaches `ClientConfig.proactive_refresh_seconds`
+(default `1080.0`, i.e. 18 minutes). This threshold is based on token age; no server expiry
+timestamp is consulted.
+
+After HTTP `401` or `ErrorCode` `4011` (never `4010`) on an authenticated endpoint, the client
+refreshes the session once and replays the request once. This applies to every endpoint,
+including non-idempotent order calls, because this authentication rejection means the server did
+not process the request. Transport, `5xx`, and `429` retries remain idempotency-gated. If
+proactive refresh fails with a stonepy error, the client logs a warning and tries the request
+with the existing token so reactive authentication recovery can still run.
 
 ```python
 config = ClientConfig(
@@ -123,7 +131,8 @@ Use `aclose()` for async clients when not using `async with`; use `close()` for 
 
 ## Error Handling
 
-All library exceptions inherit from `StoneXError`.
+`StoneXError` is the base of the public runtime error hierarchy. Configuration validation and
+plugin setup can also raise builtin `TypeError` or `ValueError` exceptions.
 
 ```python
 from stonepy import (

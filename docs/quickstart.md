@@ -8,8 +8,9 @@ pip install stonepy
 
 ## Create a client and log on
 
-The client is a context manager. Log on once, then call any resource group; the session token is
-attached to every subsequent request automatically.
+The client is a context manager. Log on once, then call any resource group; the current session
+token is attached automatically to endpoints that use session authentication. Refresh can
+replace the token, and `client.session.delete_session(...)` clears it.
 
 === "Sync"
 
@@ -95,8 +96,10 @@ with StoneXClient(config) as client:
 `ClientConfig.from_env()` reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`, and
 `STONEX_PASSWORD`. `STONEX_BASE_URL` is required unless you pass `base_url=`.
 
-If you supply credentials (directly or via `from_env()`), the client also refreshes the session
-automatically before the token expires - see [Authentication & sessions](guide/authentication.md).
+If you supply credentials (directly or via `from_env()`), the client can refresh the session
+without an explicit `log_on()`. Proactive refresh is age-based: it runs when the stored token
+reaches `proactive_refresh_seconds`, and no server expiry timestamp is consulted. See
+[Authentication & sessions](guide/authentication.md).
 
 ## Next steps
 

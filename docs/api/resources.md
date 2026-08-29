@@ -1,8 +1,9 @@
 # Resource groups
 
-Each property on a client returns a typed resource group whose methods map one-to-one onto CIAPI
-endpoints. The synchronous classes are documented below; every method has an `async` twin on the
-matching `Async*Resource` class (for example `AsyncSessionResource.log_on`).
+Each property on a client returns a typed resource group. Generated methods provide one method per
+CIAPI endpoint, plus the documented `place_order` alias for the generated `order` method. The
+synchronous classes are documented below; every method has an `async` twin on the matching
+`Async*Resource` class (for example `AsyncSessionResource.log_on`).
 
 ::: stonepy.resources.session.SessionResource
 

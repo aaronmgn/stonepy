@@ -65,8 +65,8 @@ A few things to know before reading it:
 - `log_on` issues a `POST` to `{host}/v2/session` (the host root, not under the
   `base_url` path) and returns an
   `ApiLogOnResponseDTOv2`. On success `stonepy` stores the returned session token
-  and automatically attaches it as a `Session` header on every later request, so
-  your data-call assertions can check for it.
+  and automatically attaches it as a `Session` header on later endpoints that use
+  session authentication, so your data-call assertions can check for it.
 - `get_market_information(market_id, client_account_id)` issues a `GET` to
   `{base_url}/v2/market/{market_id}/information` with
   `clientAccountId` as a query parameter, and returns a
@@ -190,12 +190,12 @@ def test_async_flow() -> None:
 ## Mocking without log_on
 
 If the code under test only exercises a single data call, you can mock just that
-one endpoint. You still need a session token in place so `stonepy` attaches the
-`Session` header. The simplest approach is to mock `log_on` and call it, exactly
-as above. The `stonepy` test suite seeds the token directly via the internal
-`client._ctx.session.set_token(...)` (async: `aset_token`), but that touches a
-private attribute and may change between releases. Prefer mocking and calling
-`log_on` in adopter tests so you depend only on the public API.
+one endpoint. A session token is needed only when you want to assert authentication
+behavior, such as the `Session` header; without one, the request is sent with empty
+authentication headers. To test authenticated behavior through the public API, mock
+`log_on` and call it, exactly as above. The `stonepy` test suite sometimes seeds the
+token directly via the internal `client._ctx.session.set_token(...)` (async:
+`aset_token`), but that touches a private attribute and may change between releases.
 
 ## Asserting on requests
 
@@ -214,9 +214,10 @@ private attribute and may change between releases. Prefer mocking and calling
 ## Simulating error responses
 
 To exercise your error handling, return a non-2xx response. `stonepy` decodes API
-error envelopes into its typed exceptions (`AuthenticationError`,
-`RateLimitError`, `OrderRejectedError`, `StoneXAPIError`, and so on), so you can
-assert your code reacts correctly:
+error envelopes into `AuthenticationError`, `RateLimitError`, or `StoneXAPIError`,
+as appropriate, so you can assert your code reacts correctly. `OrderRejectedError`
+and `OrderStatusUnknownError` instead arise from business-status checks on 2xx
+responses.
 
 ```python
 import pytest
@@ -253,10 +254,13 @@ def test_logon_failure_raises() -> None:
 ```
 
 !!! note
-    `stonepy` retries idempotent requests and can transparently re-authenticate on
-    a `401` when credentials are configured. If a single mocked response is not
-    enough, use `respx`'s `side_effect=[...]` to queue a sequence of responses
-    (for example a `401` followed by a `200`) so each retry receives the next one.
+    `stonepy` retries idempotent transport, retryable `5xx`, and `429` failures. With a refresh
+    callable from config credentials or a successful manual `log_on()`, it also
+    refreshes once and replays once after HTTP `401` or `ErrorCode` `4011` (never
+    `4010`) on an authenticated endpoint, regardless of idempotency. If a single
+    mocked response is not enough, use `respx`'s `side_effect=[...]` to queue a
+    sequence of responses (for example a `401` followed by a `200`) so each retry
+    receives the next one.
 
 !!! warning
     Endpoints that place or cancel live orders (for example

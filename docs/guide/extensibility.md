@@ -155,7 +155,11 @@ tradingadvisor, user_account, watchlist
 - If present but not a `str`, loading raises `ValueError("plugin resource '<name>' has invalid requires_stonepy")`.
 - If present and the current stonepy version does not satisfy it, loading raises `ValueError("plugin resource '<name>' requires stonepy <req>, but current version is <ver>")`.
 
-The requirement string is a comma-separated list of simple constraints. Each part must match operator + version, where the operator is one of `>=`, `<=`, `>`, `<`, `==`, and the version is one to three dotted numeric components (for example `">=0.1.0"`, `">=0.1,<0.2"`). A part that does not match this shape raises `ValueError("invalid requires_stonepy requirement: <req>")`.
+The requirement string is a comma-separated list of simple constraints. Empty parts are skipped;
+each non-empty part must match operator + version, where the operator is one of `>=`, `<=`, `>`,
+`<`, `==`, and the version is one to three dotted numeric components (for example `">=0.1.0"`,
+`">=0.1,<0.2"`). A non-empty part that does not match this shape raises
+`ValueError("invalid requires_stonepy requirement: <req>")`.
 
 Version comparison uses only the first three dotted components; any non-numeric component is treated as `0` and missing components are padded with `0`. The current version comes from `importlib.metadata.version("stonepy")`, falling back to `"0.1.0"` if the package metadata is not found.
 

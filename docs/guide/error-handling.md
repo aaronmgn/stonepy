@@ -1,8 +1,9 @@
 # Error handling
 
-All library exceptions inherit from `StoneXError`, so a single `except StoneXError` catches
-everything stonepy can raise. Catch the more specific subclasses when you need to react to a
-particular failure.
+`StoneXError` is the base of stonepy's public runtime error hierarchy, so a single
+`except StoneXError` catches those runtime failures. Configuration validation and plugin setup
+can also raise builtin `TypeError` or `ValueError`. Catch the more specific subclasses when you
+need to react to a particular runtime failure.
 
 ```python
 from stonepy import (
