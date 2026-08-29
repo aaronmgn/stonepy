@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Python 3.14 is now tested in CI and declared in the package classifiers.
+
+### Changed
+
+- `simplejson` is now allowed up to (but excluding) 5.0; simplejson 4.x keeps the Python-level
+  API unchanged and passes the full suite.
+- The `hatchling` build backend is bounded to `>=1.32,<2` so builds are reproducible across
+  metadata-version changes.
+- Locked development and documentation dependencies were refreshed (including the
+  `cryptography`, `pymdown-extensions`, and `setuptools` security updates), and every workflow
+  now uses `astral-sh/setup-uv` v10.0.1.
+
 ## [0.4.0] - 2026-08-29
 
 ### Changed

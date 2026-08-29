@@ -10,3 +10,12 @@ build/
 .coverage
 htmlcov/
 site/
+AUDIT_*_CODEX.md
+AUDIT_*_CLAUDE.md
+AUDIT_*_FINAL.md
+.codex-session.json
+PLAN_*_CODEX.md
+PLAN_*_CLAUDE.md
+REVIEW_*_CODEX.md
+REVIEW_*_CLAUDE.md
+IMPLEMENTATION_PLAN_*.md

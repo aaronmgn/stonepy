@@ -4,7 +4,7 @@
 
 ## Requirements
 
-- **Python `>=3.11`** - declared as `requires-python = ">=3.11"` in `pyproject.toml`. Tested against CPython 3.11, 3.12, and 3.13.
+- **Python `>=3.11`** - declared as `requires-python = ">=3.11"` in `pyproject.toml`. Tested against CPython 3.11, 3.12, 3.13, and 3.14.
 - A working internet connection at runtime to reach the CIAPI endpoints.
 
 ## Install

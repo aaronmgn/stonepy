@@ -102,7 +102,7 @@ def test_uv_lock_is_committable_and_ci_uses_frozen_sync() -> None:
 def test_ci_builds_and_checks_distribution_artifacts() -> None:
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
-    assert 'python-version: ["3.11", "3.12", "3.13"]' in ci
+    assert 'python-version: ["3.11", "3.12", "3.13", "3.14"]' in ci
     assert "uv build" in ci
     assert "twine check dist/*" in ci
 

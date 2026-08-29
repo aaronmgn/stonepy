@@ -18,7 +18,7 @@ uv sync --extra dev
 
 ## Running Checks
 
-CI runs the following on Python 3.11-3.13. Run them locally before opening a pull request:
+CI runs the following on Python 3.11-3.14. Run them locally before opening a pull request:
 
 ```bash
 uv run ruff check .
