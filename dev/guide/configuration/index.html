@@ -9438,13 +9438,13 @@
 <td><code>enable_plugins</code></td>
 <td><code>bool</code></td>
 <td><code>False</code></td>
-<td>Whether plugin hooks are enabled.</td>
+<td>Whether to discover and instantiate resource classes registered through package entry points.</td>
 </tr>
 <tr>
 <td><code>allow_overrides</code></td>
 <td><code>tuple[str, ...]</code></td>
 <td><code>()</code></td>
-<td>Tuple of field names that plugins are permitted to override.</td>
+<td>Resource-group names whose plugins may shadow built-in names; the plugin remains available through <code>client.plugin(name)</code>.</td>
 </tr>
 </tbody>
 </table>
