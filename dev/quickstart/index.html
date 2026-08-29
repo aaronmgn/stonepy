@@ -9163,8 +9163,9 @@
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>stonepy
 </code></pre></div>
 <h2 id="create-a-client-and-log-on">Create a client and log on<a class="headerlink" href="#create-a-client-and-log-on" title="Permanent link">&para;</a></h2>
-<p>The client is a context manager. Log on once, then call any resource group; the session token is
-attached to every subsequent request automatically.</p>
+<p>The client is a context manager. Log on once, then call any resource group; the current session
+token is attached automatically to endpoints that use session authentication. Refresh can
+replace the token, and <code>client.session.delete_session(...)</code> clears it.</p>
 <div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Sync</label><label for="__tabbed_1_2">Async</label></div>
 <div class="tabbed-content">
 <div class="tabbed-block">
@@ -9244,8 +9245,10 @@ attached to every subsequent request automatically.</p>
 </code></pre></div>
 <p><code>ClientConfig.from_env()</code> reads <code>STONEX_BASE_URL</code>, <code>STONEX_APP_KEY</code>, <code>STONEX_USERNAME</code>, and
 <code>STONEX_PASSWORD</code>. <code>STONEX_BASE_URL</code> is required unless you pass <code>base_url=</code>.</p>
-<p>If you supply credentials (directly or via <code>from_env()</code>), the client also refreshes the session
-automatically before the token expires - see <a href="../guide/authentication/">Authentication &amp; sessions</a>.</p>
+<p>If you supply credentials (directly or via <code>from_env()</code>), the client can refresh the session
+without an explicit <code>log_on()</code>. Proactive refresh is age-based: it runs when the stored token
+reaches <code>proactive_refresh_seconds</code>, and no server expiry timestamp is consulted. See
+<a href="../guide/authentication/">Authentication &amp; sessions</a>.</p>
 <h2 id="next-steps">Next steps<a class="headerlink" href="#next-steps" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../guide/authentication/">Authentication &amp; sessions</a></li>

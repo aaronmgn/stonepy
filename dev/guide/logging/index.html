@@ -9263,8 +9263,9 @@
 <h1 id="logging-and-secret-redaction">Logging and Secret Redaction<a class="headerlink" href="#logging-and-secret-redaction" title="Permanent link">&para;</a></h1>
 <p>stonepy is deliberately quiet. It does not log your HTTP requests, responses,
 headers, or payloads. It writes warnings for plugin discovery and failed proactive
-session refresh, and credentials are stripped from object reprs before they can
-ever reach a log line, a traceback, or your console.</p>
+session refresh. Its own object representations mask values keyed as app key,
+password, session, authorization, or proxy. Usernames are not masked, and logging
+from the external HTTP stack is not sanitized by stonepy.</p>
 <p>This guide covers two distinct mechanisms:</p>
 <ol>
 <li>The stdlib <code>logging</code> usage (two loggers, warnings only).</li>
@@ -9319,10 +9320,10 @@ you want a single switch that will also pick up any future stonepy loggers.</p>
 </div>
 <h2 id="how-secrets-are-redacted">How secrets are redacted<a class="headerlink" href="#how-secrets-are-redacted" title="Permanent link">&para;</a></h2>
 <p>Redaction in stonepy happens when an object is converted to its string
-representation, not inside a logging handler. This means a credential is hidden
-whether it appears in a deliberate <code>log.info(config)</code>, an f-string, a <code>print()</code>,
-or an exception that captures the object. The helpers live in
-<code>stonepy._core.logging</code>.</p>
+representation, not inside a logging handler. Values under the recognized keys
+are therefore hidden in a deliberate <code>log.info(config)</code>, an f-string, a <code>print()</code>,
+or an exception that captures the object. Other values, including usernames, are
+not masked. The helpers live in <code>stonepy._core.logging</code>.</p>
 <p>The core primitive replaces any non-empty value with a fixed mask (it does not
 truncate or partially reveal the value):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">redact</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>

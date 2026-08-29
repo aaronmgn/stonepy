@@ -9469,7 +9469,11 @@
 <li>If present but not a <code>str</code>, loading raises <code>ValueError("plugin resource '&lt;name&gt;' has invalid requires_stonepy")</code>.</li>
 <li>If present and the current stonepy version does not satisfy it, loading raises <code>ValueError("plugin resource '&lt;name&gt;' requires stonepy &lt;req&gt;, but current version is &lt;ver&gt;")</code>.</li>
 </ul>
-<p>The requirement string is a comma-separated list of simple constraints. Each part must match operator + version, where the operator is one of <code>&gt;=</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&lt;</code>, <code>==</code>, and the version is one to three dotted numeric components (for example <code>"&gt;=0.1.0"</code>, <code>"&gt;=0.1,&lt;0.2"</code>). A part that does not match this shape raises <code>ValueError("invalid requires_stonepy requirement: &lt;req&gt;")</code>.</p>
+<p>The requirement string is a comma-separated list of simple constraints. Empty parts are skipped;
+each non-empty part must match operator + version, where the operator is one of <code>&gt;=</code>, <code>&lt;=</code>, <code>&gt;</code>,
+<code>&lt;</code>, <code>==</code>, and the version is one to three dotted numeric components (for example <code>"&gt;=0.1.0"</code>,
+<code>"&gt;=0.1,&lt;0.2"</code>). A non-empty part that does not match this shape raises
+<code>ValueError("invalid requires_stonepy requirement: &lt;req&gt;")</code>.</p>
 <p>Version comparison uses only the first three dotted components; any non-numeric component is treated as <code>0</code> and missing components are padded with <code>0</code>. The current version comes from <code>importlib.metadata.version("stonepy")</code>, falling back to <code>"0.1.0"</code> if the package metadata is not found.</p>
 <h2 id="2-allow_overrides-semantics">2. <code>allow_overrides</code> semantics<a class="headerlink" href="#2-allow_overrides-semantics" title="Permanent link">&para;</a></h2>
 <p><code>ClientConfig.allow_overrides</code> is a <code>tuple[str, ...]</code> (default <code>()</code>). It is the allow-list of names that a plugin is permitted to share with a built-in resource. It only affects the collision check described above:</p>

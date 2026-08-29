@@ -9491,9 +9491,10 @@
 
 
 <h1 id="resource-groups">Resource groups<a class="headerlink" href="#resource-groups" title="Permanent link">&para;</a></h1>
-<p>Each property on a client returns a typed resource group whose methods map one-to-one onto CIAPI
-endpoints. The synchronous classes are documented below; every method has an <code>async</code> twin on the
-matching <code>Async*Resource</code> class (for example <code>AsyncSessionResource.log_on</code>).</p>
+<p>Each property on a client returns a typed resource group. Generated methods provide one method per
+CIAPI endpoint, plus the documented <code>place_order</code> alias for the generated <code>order</code> method. The
+synchronous classes are documented below; every method has an <code>async</code> twin on the matching
+<code>Async*Resource</code> class (for example <code>AsyncSessionResource.log_on</code>).</p>
 
 
 <div class="doc doc-object doc-class">

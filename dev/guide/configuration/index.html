@@ -9337,13 +9337,15 @@
 <td><code>proactive_refresh_seconds</code></td>
 <td><code>float</code></td>
 <td><code>1080.0</code></td>
-<td>Age (in seconds) after which the session is proactively refreshed before it expires.</td>
+<td>Token age (in seconds) at which the session is proactively refreshed; no server expiry timestamp is consulted.</td>
 </tr>
 </tbody>
 </table>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
-<p>Set <code>app_key</code>, <code>username</code>, and <code>password</code> together to enable automatic session refresh. Leaving them empty disables proactive refresh, in which case you manage the session yourself.</p>
+<p>Set <code>app_key</code>, <code>username</code>, and <code>password</code> together to enable automatic session refresh
+without an explicit <code>log_on()</code>. A successful manual <code>log_on()</code> also installs a refresh
+callable, so proactive and reactive refresh work for manual sessions.</p>
 </div>
 <h2 id="resilience">Resilience<a class="headerlink" href="#resilience" title="Permanent link">&para;</a></h2>
 <table>
@@ -9366,7 +9368,7 @@
 <td><code>retry_budget_seconds</code></td>
 <td><code>float</code></td>
 <td><code>30.0</code></td>
-<td>Total time budget (in seconds) for all retries of a single request.</td>
+<td>Pre-sleep admission budget: a retry is skipped when its upcoming sleep would exceed this elapsed-time threshold; in-flight attempts and proactive limiter waits can run past it.</td>
 </tr>
 <tr>
 <td><code>rate_limit_max</code></td>
@@ -9483,7 +9485,9 @@
 </table>
 <p>Behavior:</p>
 <ul>
-<li>Keyword overrides take precedence over environment variables. For example, <code>ClientConfig.from_env(app_key="abc")</code> uses <code>"abc"</code> regardless of <code>STONEX_APP_KEY</code>.</li>
+<li>Non-<code>None</code> keyword overrides take precedence over environment variables. <code>None</code> is ignored
+  except for <code>status_decoder</code>, where an explicit <code>None</code> disables business-status checks. For
+  example, <code>ClientConfig.from_env(app_key="abc")</code> uses <code>"abc"</code> regardless of <code>STONEX_APP_KEY</code>.</li>
 <li>It raises <code>ValueError</code> if <code>base_url</code> resolves to an empty (or whitespace-only) value after applying the <code>STONEX_BASE_URL</code> variable and any override.</li>
 <li>It raises <code>TypeError</code> if you pass an override whose name is not a <code>ClientConfig</code> field.</li>
 <li>Only the four variables above are read from the environment. Every other field uses its dataclass default unless supplied as a keyword override.</li>

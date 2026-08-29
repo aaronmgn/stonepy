@@ -9293,8 +9293,8 @@ DTOs. Save it as <code>test_stonepy_mock.py</code> and run it with <code>pytest<
 <li><code>log_on</code> issues a <code>POST</code> to <code>{host}/v2/session</code> (the host root, not under the
   <code>base_url</code> path) and returns an
   <code>ApiLogOnResponseDTOv2</code>. On success <code>stonepy</code> stores the returned session token
-  and automatically attaches it as a <code>Session</code> header on every later request, so
-  your data-call assertions can check for it.</li>
+  and automatically attaches it as a <code>Session</code> header on later endpoints that use
+  session authentication, so your data-call assertions can check for it.</li>
 <li><code>get_market_information(market_id, client_account_id)</code> issues a <code>GET</code> to
   <code>{base_url}/v2/market/{market_id}/information</code> with
   <code>clientAccountId</code> as a query parameter, and returns a
@@ -9411,12 +9411,12 @@ with <code>asyncio.run</code> (the <code>stonepy</code> suite uses this style; i
 </code></pre></div>
 <h2 id="mocking-without-log_on">Mocking without log_on<a class="headerlink" href="#mocking-without-log_on" title="Permanent link">&para;</a></h2>
 <p>If the code under test only exercises a single data call, you can mock just that
-one endpoint. You still need a session token in place so <code>stonepy</code> attaches the
-<code>Session</code> header. The simplest approach is to mock <code>log_on</code> and call it, exactly
-as above. The <code>stonepy</code> test suite seeds the token directly via the internal
-<code>client._ctx.session.set_token(...)</code> (async: <code>aset_token</code>), but that touches a
-private attribute and may change between releases. Prefer mocking and calling
-<code>log_on</code> in adopter tests so you depend only on the public API.</p>
+one endpoint. A session token is needed only when you want to assert authentication
+behavior, such as the <code>Session</code> header; without one, the request is sent with empty
+authentication headers. To test authenticated behavior through the public API, mock
+<code>log_on</code> and call it, exactly as above. The <code>stonepy</code> test suite sometimes seeds the
+token directly via the internal <code>client._ctx.session.set_token(...)</code> (async:
+<code>aset_token</code>), but that touches a private attribute and may change between releases.</p>
 <h2 id="asserting-on-requests">Asserting on requests<a class="headerlink" href="#asserting-on-requests" title="Permanent link">&para;</a></h2>
 <p><code>respx</code> records every matched call. Useful assertions:</p>
 <ul>
@@ -9432,9 +9432,10 @@ private attribute and may change between releases. Prefer mocking and calling
 </ul>
 <h2 id="simulating-error-responses">Simulating error responses<a class="headerlink" href="#simulating-error-responses" title="Permanent link">&para;</a></h2>
 <p>To exercise your error handling, return a non-2xx response. <code>stonepy</code> decodes API
-error envelopes into its typed exceptions (<code>AuthenticationError</code>,
-<code>RateLimitError</code>, <code>OrderRejectedError</code>, <code>StoneXAPIError</code>, and so on), so you can
-assert your code reacts correctly:</p>
+error envelopes into <code>AuthenticationError</code>, <code>RateLimitError</code>, or <code>StoneXAPIError</code>,
+as appropriate, so you can assert your code reacts correctly. <code>OrderRejectedError</code>
+and <code>OrderStatusUnknownError</code> instead arise from business-status checks on 2xx
+responses.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">pytest</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">respx</span>
@@ -9469,10 +9470,13 @@ assert your code reacts correctly:</p>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p><code>stonepy</code> retries idempotent requests and can transparently re-authenticate on
-a <code>401</code> when credentials are configured. If a single mocked response is not
-enough, use <code>respx</code>'s <code>side_effect=[...]</code> to queue a sequence of responses
-(for example a <code>401</code> followed by a <code>200</code>) so each retry receives the next one.</p>
+<p><code>stonepy</code> retries idempotent transport, retryable <code>5xx</code>, and <code>429</code> failures. With a refresh
+callable from config credentials or a successful manual <code>log_on()</code>, it also
+refreshes once and replays once after HTTP <code>401</code> or <code>ErrorCode</code> <code>4011</code> (never
+<code>4010</code>) on an authenticated endpoint, regardless of idempotency. If a single
+mocked response is not enough, use <code>respx</code>'s <code>side_effect=[...]</code> to queue a
+sequence of responses (for example a <code>401</code> followed by a <code>200</code>) so each retry
+receives the next one.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>

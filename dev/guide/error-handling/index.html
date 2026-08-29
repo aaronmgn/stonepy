@@ -9117,9 +9117,10 @@
 
 
 <h1 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h1>
-<p>All library exceptions inherit from <code>StoneXError</code>, so a single <code>except StoneXError</code> catches
-everything stonepy can raise. Catch the more specific subclasses when you need to react to a
-particular failure.</p>
+<p><code>StoneXError</code> is the base of stonepy's public runtime error hierarchy, so a single
+<code>except StoneXError</code> catches those runtime failures. Configuration validation and plugin setup
+can also raise builtin <code>TypeError</code> or <code>ValueError</code>. Catch the more specific subclasses when you
+need to react to a particular runtime failure.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="n">ClientConfig</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    <span class="n">ConfigurationError</span><span class="p">,</span>

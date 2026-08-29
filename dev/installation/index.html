@@ -9261,7 +9261,9 @@ This prints the installed version (for example <code>0.4.0</code>).</p>
 </tr>
 </tbody>
 </table>
-<p>That is the entire footprint - no native build steps and no heavyweight transitive trees beyond what these three require.</p>
+<p>That is the entire footprint - there are no native build steps on platforms with a compatible
+prebuilt <code>pydantic-core</code> wheel; source installations may require a Rust toolchain. There are no
+heavyweight transitive trees beyond what these three require.</p>
 <div class="admonition note">
 <p class="admonition-title">No extras for normal use</p>
 <p>There are <strong>no</strong> optional extras to install for typical usage. <code>pip install stonepy</code> (or the <code>uv</code> equivalent above) gives you everything needed to authenticate and trade. The extras below are only for people working <em>on</em> the library.</p>

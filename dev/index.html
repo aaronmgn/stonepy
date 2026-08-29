@@ -9164,8 +9164,9 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <a href="https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml/badge.svg" /></a></p>
 <h2 id="why-stonepy">Why stonepy<a class="headerlink" href="#why-stonepy" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Fully typed.</strong> Every request and response is a <a href="https://docs.pydantic.dev/">Pydantic</a> model,
-  so your editor autocompletes fields and <code>mypy</code> checks your calls.</li>
+<li><strong>Fully typed.</strong> Request and response DTO bodies are
+  <a href="https://docs.pydantic.dev/">Pydantic</a> models; some methods take primitive parameters or return
+  bare scalars or lists. Your editor autocompletes model fields and <code>mypy</code> checks your calls.</li>
 <li><strong>Sync and async.</strong> Identical APIs on <code>StoneXClient</code> and <code>AsyncStoneXClient</code>.</li>
 <li><strong>Complete coverage.</strong> All 128 documented CIAPI endpoints are bound, using the v2 variant of
   every endpoint that has one.</li>
