@@ -9205,9 +9205,8 @@
 
 
 <h1 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">&para;</a></h1>
-<p>Short, copy-paste task snippets across the StoneX (CIAPI v2) resource groups. Every
-method name, argument, and DTO below is verified against the source. Each snippet defines
-its own variables so you can paste and adapt it directly.</p>
+<p>Short, copy-paste task snippets across the StoneX (CIAPI v2) resource groups. Each snippet
+defines its own variables so you can paste and adapt it directly.</p>
 <p>All snippets use the synchronous <code>StoneXClient</code>. The <code>AsyncStoneXClient</code> exposes the same
 resource groups and method names with <code>async</code>/<code>await</code> and <code>async with</code>.</p>
 <div class="admonition note">
@@ -9218,57 +9217,61 @@ your own. The <code>base_url</code> points at your CIAPI v2 root.</p>
 <h2 id="log-on-and-reuse-the-session">Log on and reuse the session<a class="headerlink" href="#log-on-and-reuse-the-session" title="Permanent link">&para;</a></h2>
 <p>Build a <code>ClientConfig</code>, open the client as a context manager, and call
 <code>client.session.log_on(...)</code> with an <code>ApiLogOnRequestDTO</code>. The client stores the returned
-session token internally, so every later call on the same client reuses it.</p>
+session token internally and attaches it to later endpoints that use session authentication.
+A successful manual log-on also installs the callable used for proactive and reactive refresh.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApiLogOnRequestDTO</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://example.com/ciapi&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://example.com/ciapi"</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">ApiLogOnRequestDTO</span><span class="p">(</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">user_name</span><span class="o">=</span><span class="s2">&quot;my-username&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">password</span><span class="o">=</span><span class="s2">&quot;my-password&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">app_key</span><span class="o">=</span><span class="s2">&quot;my-app-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">app_version</span><span class="o">=</span><span class="s2">&quot;stonepy&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">app_comments</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">user_name</span><span class="o">=</span><span class="s2">"my-username"</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">password</span><span class="o">=</span><span class="s2">"my-password"</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">app_key</span><span class="o">=</span><span class="s2">"my-app-key"</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">app_version</span><span class="o">=</span><span class="s2">"stonepy"</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">app_comments</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="p">)</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="p">)</span>
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;session token:&quot;</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"session token:"</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">session</span><span class="p">)</span>
 <a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>    <span class="c1"># The token is now reused automatically by subsequent calls on `client`.</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>    <span class="n">positions</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">list_open_positions</span><span class="p">()</span>
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open positions:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">open_positions</span> <span class="ow">or</span> <span class="p">[]))</span>
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"open positions:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">open_positions</span> <span class="ow">or</span> <span class="p">[]))</span>
 </code></pre></div>
 <p>To log off explicitly, call <code>client.session.delete_session(user_name, session)</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete_session</span><span class="p">(</span><span class="s2">&quot;my-username&quot;</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">session</span> <span class="ow">or</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">delete_session</span><span class="p">(</span><span class="s2">"my-username"</span><span class="p">,</span> <span class="n">response</span><span class="o">.</span><span class="n">session</span> <span class="ow">or</span> <span class="s2">""</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="configure-automatic-session-refresh-from-the-environment">Configure automatic session refresh from the environment<a class="headerlink" href="#configure-automatic-session-refresh-from-the-environment" title="Permanent link">&para;</a></h2>
 <p>If you set credentials on the <code>ClientConfig</code> (directly or via <code>from_env()</code>), the client can
 recover authentication without an explicit <code>log_on()</code> call. The first authenticated request is
-sent without a token and may receive a <code>401</code>; the client then logs on, replays that request once,
-and stores the new token. A later request refreshes an old token before it is sent. <code>from_env()</code>
-reads <code>STONEX_BASE_URL</code>, <code>STONEX_APP_KEY</code>, <code>STONEX_USERNAME</code>, and <code>STONEX_PASSWORD</code>; <code>base_url</code> is
-required.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_BASE_URL</span><span class="o">=</span><span class="s2">&quot;https://example.com/ciapi&quot;</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_APP_KEY</span><span class="o">=</span><span class="s2">&quot;my-app-key&quot;</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_USERNAME</span><span class="o">=</span><span class="s2">&quot;my-username&quot;</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_PASSWORD</span><span class="o">=</span><span class="s2">&quot;my-password&quot;</span>
+sent without a token and may receive HTTP <code>401</code> or <code>ErrorCode</code> <code>4011</code> (never <code>4010</code>); the client
+then logs on, replays that request once, and stores the new token. This one-time authentication
+replay applies to every endpoint, including non-idempotent order calls, because the rejection
+means the server did not process the request. Transport, <code>5xx</code>, and <code>429</code> retries remain
+idempotency-gated. A later request refreshes an old token based on its age before it is sent.
+<code>from_env()</code> reads <code>STONEX_BASE_URL</code>, <code>STONEX_APP_KEY</code>, <code>STONEX_USERNAME</code>, and <code>STONEX_PASSWORD</code>;
+<code>base_url</code> is required.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_BASE_URL</span><span class="o">=</span><span class="s2">"https://example.com/ciapi"</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_APP_KEY</span><span class="o">=</span><span class="s2">"my-app-key"</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_USERNAME</span><span class="o">=</span><span class="s2">"my-username"</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="nb">export</span><span class="w"> </span><span class="nv">STONEX_PASSWORD</span><span class="o">=</span><span class="s2">"my-password"</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># No explicit log_on() call needed - a 401 triggers logon and one request replay.</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># No explicit log_on() call needed - a 401 or ErrorCode 4011 triggers one refresh and replay.</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="n">positions</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">list_open_positions</span><span class="p">()</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;open positions:&quot;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">open_positions</span> <span class="ow">or</span> <span class="p">[]))</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"open positions:"</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">positions</span><span class="o">.</span><span class="n">open_positions</span> <span class="ow">or</span> <span class="p">[]))</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Tip</p>
 <p><code>from_env()</code> accepts keyword overrides, e.g.
-<code>ClientConfig.from_env(proactive_refresh_seconds=600.0)</code>. Automatic refresh only
-activates when <code>username</code>, <code>password</code>, and <code>app_key</code> are all set.</p>
+<code>ClientConfig.from_env(proactive_refresh_seconds=600.0)</code>. Config credentials enable refresh
+without an explicit log-on. A successful manual <code>log_on()</code> also installs a refresh callable.</p>
 </div>
 <h2 id="search-markets-all-9-required-arguments">Search markets (all 9 required arguments)<a class="headerlink" href="#search-markets-all-9-required-arguments" title="Permanent link">&para;</a></h2>
 <p><code>list_market_search_paginated</code> takes <strong>nine</strong> required positional-or-keyword arguments
@@ -9282,7 +9285,7 @@ arguments, in order, are: <code>query</code>, <code>search_by_market_code</code>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">results</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="s2">&quot;GBP/USD&quot;</span><span class="p">,</span>  <span class="c1"># query</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>        <span class="s2">"GBP/USD"</span><span class="p">,</span>  <span class="c1"># query</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="kc">True</span><span class="p">,</span>  <span class="c1"># search_by_market_code</span>
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        <span class="kc">True</span><span class="p">,</span>  <span class="c1"># search_by_market_name</span>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>        <span class="kc">True</span><span class="p">,</span>  <span class="c1"># spread_product_type</span>
@@ -9293,9 +9296,9 @@ arguments, in order, are: <code>query</code>, <code>search_by_market_code</code>
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="mi">123456</span><span class="p">,</span>  <span class="c1"># client_account_id</span>
 <a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        <span class="n">page</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        <span class="n">page_size</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="n">order_by</span><span class="o">=</span><span class="s2">&quot;Name&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="n">order_by</span><span class="o">=</span><span class="s2">"Name"</span><span class="p">,</span>
 <a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>    <span class="p">)</span>
-<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;total matches:&quot;</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">total_number_of_results</span><span class="p">)</span>
+<a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"total matches:"</span><span class="p">,</span> <span class="n">results</span><span class="o">.</span><span class="n">total_number_of_results</span><span class="p">)</span>
 </code></pre></div>
 <p>The keyword-only options and their defaults are <code>page=0</code>, <code>page_size=10</code>,
 <code>order_by="Name"</code>, <code>use_mobile_short_name=False</code>, and <code>trading_account_id=None</code>.</p>
@@ -9321,49 +9324,50 @@ against a demo/test account, and double-check <code>market_id</code>, <code>trad
 <code>direction</code>, <code>quantity</code>, and <code>trigger_price</code> before executing. Real orders move real
 money.</p>
 </div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">ClientConfig</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">NewStopLimitOrderRequestDTO</span><span class="p">,</span> <span class="n">CancelOrderRequestDTO</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>
-<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
-<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
-<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">placed</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">place_order</span><span class="p">(</span>
-<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>        <span class="n">NewStopLimitOrderRequestDTO</span><span class="p">(</span>
-<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>            <span class="n">order_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>            <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
-<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>            <span class="n">currency</span><span class="o">=</span><span class="s2">&quot;GBP&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>            <span class="n">auto_rollover</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>            <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;buy&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>            <span class="n">position_method_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>            <span class="n">quantity</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;1&quot;</span><span class="p">),</span>
-<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>            <span class="n">bid_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
-<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>            <span class="n">offer_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">),</span>
-<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">audit_id</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>            <span class="n">trading_account_id</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
-<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>            <span class="n">applicability</span><span class="o">=</span><span class="s2">&quot;GTC&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>            <span class="n">expiry_date_time_utc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>            <span class="n">guaranteed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>            <span class="n">trigger_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">&quot;1.2500&quot;</span><span class="p">),</span>
-<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>            <span class="n">reference</span><span class="o">=</span><span class="s2">&quot;stonepy&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>            <span class="n">allocation_profile_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>            <span class="n">order_reference</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>            <span class="n">source</span><span class="o">=</span><span class="s2">&quot;stonepy&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>        <span class="p">)</span>
-<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>    <span class="p">)</span>
-<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;place status:&quot;</span><span class="p">,</span> <span class="n">placed</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">&quot;order id:&quot;</span><span class="p">,</span> <span class="n">placed</span><span class="o">.</span><span class="n">order_id</span><span class="p">)</span>
-<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>
-<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>    <span class="c1"># Cancel the order we just placed.</span>
-<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    <span class="n">cancelled</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">cancel_order</span><span class="p">(</span>
-<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>        <span class="n">CancelOrderRequestDTO</span><span class="p">(</span>
-<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>            <span class="n">order_id</span><span class="o">=</span><span class="n">placed</span><span class="o">.</span><span class="n">order_id</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
-<a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>            <span class="n">trading_account_id</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
-<a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>            <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
-<a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>            <span class="n">reference</span><span class="o">=</span><span class="s2">&quot;stonepy&quot;</span><span class="p">,</span>
-<a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>        <span class="p">)</span>
-<a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>    <span class="p">)</span>
-<a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;cancel status:&quot;</span><span class="p">,</span> <span class="n">cancelled</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">UTC</span><span class="p">,</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">decimal</span><span class="w"> </span><span class="kn">import</span> <span class="n">Decimal</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">ClientConfig</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">NewStopLimitOrderRequestDTO</span><span class="p">,</span> <span class="n">CancelOrderRequestDTO</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="o">.</span><span class="n">from_env</span><span class="p">()</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="n">placed</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">place_order</span><span class="p">(</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="n">NewStopLimitOrderRequestDTO</span><span class="p">(</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>            <span class="n">order_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>            <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>            <span class="n">currency</span><span class="o">=</span><span class="s2">"GBP"</span><span class="p">,</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>            <span class="n">auto_rollover</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>            <span class="n">direction</span><span class="o">=</span><span class="s2">"buy"</span><span class="p">,</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>            <span class="n">position_method_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>            <span class="n">quantity</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">"1"</span><span class="p">),</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>            <span class="n">bid_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">"0"</span><span class="p">),</span>
+<a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>            <span class="n">offer_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">"0"</span><span class="p">),</span>
+<a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>            <span class="n">audit_id</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+<a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>            <span class="n">trading_account_id</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
+<a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>            <span class="n">applicability</span><span class="o">=</span><span class="s2">"GTC"</span><span class="p">,</span>
+<a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>            <span class="n">expiry_date_time_utc</span><span class="o">=</span><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">UTC</span><span class="p">)</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+<a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>            <span class="n">guaranteed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>            <span class="n">trigger_price</span><span class="o">=</span><span class="n">Decimal</span><span class="p">(</span><span class="s2">"1.2500"</span><span class="p">),</span>
+<a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>            <span class="n">reference</span><span class="o">=</span><span class="s2">"stonepy"</span><span class="p">,</span>
+<a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>            <span class="n">allocation_profile_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>            <span class="n">order_reference</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
+<a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>            <span class="n">source</span><span class="o">=</span><span class="s2">"stonepy"</span><span class="p">,</span>
+<a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>        <span class="p">)</span>
+<a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>    <span class="p">)</span>
+<a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"place status:"</span><span class="p">,</span> <span class="n">placed</span><span class="o">.</span><span class="n">status</span><span class="p">,</span> <span class="s2">"order id:"</span><span class="p">,</span> <span class="n">placed</span><span class="o">.</span><span class="n">order_id</span><span class="p">)</span>
+<a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>
+<a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>    <span class="c1"># Cancel the order we just placed.</span>
+<a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>    <span class="n">cancelled</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">order</span><span class="o">.</span><span class="n">cancel_order</span><span class="p">(</span>
+<a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>        <span class="n">CancelOrderRequestDTO</span><span class="p">(</span>
+<a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>            <span class="n">order_id</span><span class="o">=</span><span class="n">placed</span><span class="o">.</span><span class="n">order_id</span> <span class="ow">or</span> <span class="mi">0</span><span class="p">,</span>
+<a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>            <span class="n">trading_account_id</span><span class="o">=</span><span class="mi">123456</span><span class="p">,</span>
+<a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>            <span class="n">market_id</span><span class="o">=</span><span class="mi">400481000</span><span class="p">,</span>
+<a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>            <span class="n">reference</span><span class="o">=</span><span class="s2">"stonepy"</span><span class="p">,</span>
+<a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>        <span class="p">)</span>
+<a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>    <span class="p">)</span>
+<a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"cancel status:"</span><span class="p">,</span> <span class="n">cancelled</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="list-and-save-a-watchlist">List and save a watchlist<a class="headerlink" href="#list-and-save-a-watchlist" title="Permanent link">&para;</a></h2>
 <p><code>get_watchlists(client_account_id)</code> returns the client's watchlists. <code>save_watchlist</code>
@@ -9391,7 +9395,7 @@ accepts a <code>SaveWatchlistRequestDTO</code> containing a single <code>ApiClie
 <a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>        <span class="n">SaveWatchlistRequestDTO</span><span class="p">(</span>
 <a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>            <span class="n">client_account_id</span><span class="o">=</span><span class="n">client_account_id</span><span class="p">,</span>
 <a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>            <span class="n">watchlist</span><span class="o">=</span><span class="n">ApiClientAccountWatchlistDTO</span><span class="p">(</span>
-<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                <span class="n">watchlist_description</span><span class="o">=</span><span class="s2">&quot;FX Majors&quot;</span><span class="p">,</span>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>                <span class="n">watchlist_description</span><span class="o">=</span><span class="s2">"FX Majors"</span><span class="p">,</span>
 <a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>                <span class="n">display_order</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
 <a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>                <span class="n">items</span><span class="o">=</span><span class="p">[</span>
 <a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>                    <span class="n">ApiClientAccountWatchlistItemDTO</span><span class="p">(</span>
@@ -9402,7 +9406,7 @@ accepts a <code>SaveWatchlistRequestDTO</code> containing a single <code>ApiClie
 <a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>            <span class="p">),</span>
 <a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>        <span class="p">)</span>
 <a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a>    <span class="p">)</span>
-<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;saved watchlist id:&quot;</span><span class="p">,</span> <span class="n">saved</span><span class="o">.</span><span class="n">watchlist_id</span><span class="p">)</span>
+<a id="__codelineno-7-33" name="__codelineno-7-33" href="#__codelineno-7-33"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"saved watchlist id:"</span><span class="p">,</span> <span class="n">saved</span><span class="o">.</span><span class="n">watchlist_id</span><span class="p">)</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>

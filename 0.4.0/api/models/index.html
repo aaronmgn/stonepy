@@ -9119,12 +9119,12 @@
 
 
 <h1 id="models-dtos">Models (DTOs)<a class="headerlink" href="#models-dtos" title="Permanent link">&para;</a></h1>
-<p>All request and response bodies are <a href="https://docs.pydantic.dev/">Pydantic</a> models exported from
-<code>stonepy.models</code>. Naming follows the upstream API:</p>
+<p>Request and response DTO bodies are <a href="https://docs.pydantic.dev/">Pydantic</a> models exported from
+<code>stonepy.models</code>. Some methods take primitive parameters, and some return bare scalars or lists.
+DTO naming follows the upstream API:</p>
 <ul>
-<li>request DTO names end in <code>RequestDTO</code>,</li>
-<li>response DTO names end in <code>ResponseDTO</code>,</li>
-<li>v2 variants end in <code>...DTOv2</code>.</li>
+<li>request DTO names end in <code>RequestDTO</code> or <code>RequestDTOv2</code>,</li>
+<li>response DTO names end in <code>ResponseDTO</code> or <code>ResponseDTOv2</code>.</li>
 </ul>
 <p>Because every model is fully typed, your editor autocompletes each field and <code>mypy</code> validates your
 payloads. Every model carries a description and per-field documentation sourced from the upstream

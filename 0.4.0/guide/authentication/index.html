@@ -9117,52 +9117,66 @@
 
 
 <h1 id="authentication-sessions">Authentication &amp; sessions<a class="headerlink" href="#authentication-sessions" title="Permanent link">&para;</a></h1>
-<p>Calling <code>client.session.log_on(...)</code> establishes the authenticated session token that the client
-attaches to every subsequent request. The token is held by the client for the life of its context
-manager.</p>
+<p>Calling <code>client.session.log_on(...)</code> establishes the authenticated session token. The client
+attaches the current token to subsequent endpoints that use session authentication. Refresh can
+replace the token, and <code>client.session.delete_session(...)</code> clears it.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span><span class="p">,</span> <span class="n">StoneXClient</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApiLogOnRequestDTO</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">)</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">)</span>
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>
 <a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="k">with</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span> <span class="k">as</span> <span class="n">client</span><span class="p">:</span>
 <a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>        <span class="n">ApiLogOnRequestDTO</span><span class="p">(</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">UserName</span><span class="o">=</span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">Password</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">AppKey</span><span class="o">=</span><span class="s2">&quot;app-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">AppVersion</span><span class="o">=</span><span class="s2">&quot;stonepy&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">AppComments</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            <span class="n">UserName</span><span class="o">=</span><span class="s2">"username"</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>            <span class="n">Password</span><span class="o">=</span><span class="s2">"password"</span><span class="p">,</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>            <span class="n">AppKey</span><span class="o">=</span><span class="s2">"app-key"</span><span class="p">,</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>            <span class="n">AppVersion</span><span class="o">=</span><span class="s2">"stonepy"</span><span class="p">,</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>            <span class="n">AppComments</span><span class="o">=</span><span class="s2">""</span><span class="p">,</span>
 <a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>        <span class="p">)</span>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>    <span class="p">)</span>
 </code></pre></div>
 <h2 id="automatic-session-refresh">Automatic session refresh<a class="headerlink" href="#automatic-session-refresh" title="Permanent link">&para;</a></h2>
-<p>If you supply <code>app_key</code>, <code>username</code>, and <code>password</code> on <code>ClientConfig</code> (directly or via
-<code>ClientConfig.from_env()</code>), the client refreshes the session automatically:</p>
+<p>Automatic refresh is enabled in either of these ways:</p>
 <ul>
-<li>it re-authenticates as a synchronous pre-request step when the stored token reaches
-  <code>ClientConfig.proactive_refresh_seconds</code> (default <code>1080.0</code>, i.e. 18 minutes), and</li>
-<li>it transparently re-logs-on if a request is rejected with an expired-session error.</li>
+<li>Supply <code>app_key</code>, <code>username</code>, and <code>password</code> on <code>ClientConfig</code>, directly or via
+  <code>ClientConfig.from_env()</code>. This lets the client refresh without an explicit <code>log_on()</code> call.</li>
+<li>Complete a manual <code>log_on()</code> successfully. It installs a replay refresh callable using that
+  request, so both proactive and reactive refresh work for the manual session.</li>
+</ul>
+<p>The client then refreshes in two situations:</p>
+<ul>
+<li>Proactive refresh runs inline, immediately before the request that needs it - synchronously in
+  <code>StoneXClient</code> and awaited in <code>AsyncStoneXClient</code>, with no background task - when the stored
+  token reaches <code>ClientConfig.proactive_refresh_seconds</code> (default <code>1080.0</code>, i.e. 18 minutes).
+  This threshold is based on token age; no server expiry timestamp is consulted.</li>
+<li>After HTTP <code>401</code> or <code>ErrorCode</code> <code>4011</code> (never <code>4010</code>) on an authenticated endpoint, the client
+  refreshes the session once and replays the request once. This applies to every endpoint,
+  including non-idempotent order calls, because this authentication rejection means the server
+  did not process the request. Transport, <code>5xx</code>, and <code>429</code> retries remain idempotency-gated.</li>
 </ul>
 <p>The proactive step is fail-soft. If it raises a stonepy error, the client logs one warning on
-<code>stonepy.pipeline</code> and sends the request with the existing token. The normal reactive <code>401</code>
+<code>stonepy.pipeline</code> and sends the request with the existing token. The reactive authentication
 refresh and one-time replay can still recover the call.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">app_key</span><span class="o">=</span><span class="s2">&quot;app-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">username</span><span class="o">=</span><span class="s2">&quot;username&quot;</span><span class="p">,</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">&quot;password&quot;</span><span class="p">,</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">app_key</span><span class="o">=</span><span class="s2">"app-key"</span><span class="p">,</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">username</span><span class="o">=</span><span class="s2">"username"</span><span class="p">,</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">"password"</span><span class="p">,</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="p">)</span>  <span class="c1"># credentials present -&gt; automatic proactive session refresh</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Without those credentials you must call <code>log_on</code> yourself and manage re-authentication.</p>
+<p>Config credentials are one way to enable refresh, not the only one. A successful manual
+<code>log_on()</code> installs the refresh callable used for that session.</p>
 </div>
 <h2 id="credential-handling">Credential handling<a class="headerlink" href="#credential-handling" title="Permanent link">&para;</a></h2>
 <p><code>stonepy</code> transmits your credentials (username, password, app key, session token) to the
-configured API host and redacts them from its logs and exception output. You remain responsible
-for storing them securely - for example in environment variables or a secrets manager - and never
-committing them to source control.</p>
+configured API host. Its own <code>ClientConfig</code> and request representations mask values keyed as app
+key, password, session, authorization, or proxy. Usernames are not masked, and logging from the
+external HTTP stack is not sanitized by stonepy. You remain responsible for storing credentials
+securely - for example in environment variables or a secrets manager - and never committing them
+to source control.</p>
 
 
 

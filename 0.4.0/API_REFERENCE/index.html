@@ -9273,12 +9273,12 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 </tr>
 <tr>
 <td><code>StoneXError</code></td>
-<td>Base class for every exception raised by the library.</td>
+<td>Base class for the public runtime error hierarchy. Configuration, validation, and plugin setup can also raise builtin <code>TypeError</code> or <code>ValueError</code>.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="error-hierarchy">Error Hierarchy<a class="headerlink" href="#error-hierarchy" title="Permanent link">&para;</a></h3>
-<p>All exceptions inherit from <code>StoneXError</code>:</p>
+<p>The public runtime exceptions inherit from <code>StoneXError</code>:</p>
 <ul>
 <li><code>AuthenticationError</code> - log-on failed or the session could not be refreshed.</li>
 <li><code>ConfigurationError</code> - the client has no credentials configured for session refresh.</li>
@@ -9294,9 +9294,10 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <p><code>cfd</code>, <code>client_preference</code>, <code>clientapplication</code>, <code>clientpreference</code>, <code>fixedmargin</code>, <code>margin</code>,
 <code>market</code>, <code>message</code>, <code>news</code>, <code>order</code>, <code>order_including_closed</code>, <code>pm</code>, <code>preference</code>,
 <code>price_alert</code>, <code>session</code>, <code>spread</code>, <code>tradingadvisor</code>, <code>user_account</code>, and <code>watchlist</code>.</p>
-<p>Each method maps to a single CIAPI v2 endpoint:</p>
+<p>Each generated method maps to a single CIAPI v2 endpoint. The documented <code>place_order</code> alias
+below maps to the same endpoint as the generated <code>order</code> method:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span><span class="n">request_dto</span><span class="p">)</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span><span class="s2">&quot;gold&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">page</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">list_market_search_paginated</span><span class="p">(</span><span class="s2">"gold"</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 </code></pre></div>
 <p><code>client.order.place_order(...)</code> is the clearer alias for the generated <code>client.order.order(...)</code>
 call; both remain available.</p>
@@ -9306,6 +9307,7 @@ call; both remain available.</p>
 <li>Request DTO names usually end in <code>RequestDTO</code>
   (e.g. <code>NewTradeOrderRequestDTO</code>, <code>NewStopLimitOrderRequestDTO</code>, <code>CancelOrderRequestDTO</code>).</li>
 <li>Response DTO names usually end in <code>ResponseDTO</code>.</li>
+<li>v2 forms end in <code>RequestDTOv2</code> or <code>ResponseDTOv2</code>.</li>
 </ul>
 <p>Models are <a href="https://docs.pydantic.dev/">Pydantic</a> models: they validate input and serialise to
 the JSON shapes the API expects.</p>

@@ -553,6 +553,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#authentication-refresh-replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication refresh replay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backoff-and-jitter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -564,10 +575,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-the-budget-caps-total-retry-time" class="md-nav__link">
+  <a href="#how-the-budget-admits-retry-sleeps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the budget caps total retry time
+        How the budget admits retry sleeps
       
     </span>
   </a>
@@ -9220,6 +9231,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#authentication-refresh-replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication refresh replay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#backoff-and-jitter" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9231,10 +9253,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#how-the-budget-caps-total-retry-time" class="md-nav__link">
+  <a href="#how-the-budget-admits-retry-sleeps" class="md-nav__link">
     <span class="md-ellipsis">
       
-        How the budget caps total retry time
+        How the budget admits retry sleeps
       
     </span>
   </a>
@@ -9342,17 +9364,17 @@
 <p>Every <code>StoneXClient</code> and <code>AsyncStoneXClient</code> is built from a <code>ClientConfig</code>. The resilience-related fields on that config control three independent layers:</p>
 <ol>
 <li><strong>Timeouts and connection pooling</strong> - how long a single HTTP attempt may take and how many sockets are kept open.</li>
-<li><strong>Retries</strong> - which failed attempts are transparently re-sent, with what backoff, and for how long in total.</li>
+<li><strong>Retries</strong> - which failed attempts are transparently re-sent, with what backoff, and whether the next retry sleep fits the configured admission budget.</li>
 <li><strong>Rate limiting</strong> - a proactive client-side sliding-window limiter, plus reactive handling of server-side <code>429</code> responses.</li>
 </ol>
 <p>All three are tuned the same way: construct a <code>ClientConfig</code> with the fields you want and pass it to the client. Every field shown below has a default, so you only override what you need.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span><span class="p">,</span> <span class="n">StoneXClient</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">app_key</span><span class="o">=</span><span class="s2">&quot;your-app-key&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">username</span><span class="o">=</span><span class="s2">&quot;your-username&quot;</span><span class="p">,</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">&quot;your-password&quot;</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    <span class="n">app_key</span><span class="o">=</span><span class="s2">"your-app-key"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">username</span><span class="o">=</span><span class="s2">"your-username"</span><span class="p">,</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    <span class="n">password</span><span class="o">=</span><span class="s2">"your-password"</span><span class="p">,</span>
 <a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="p">)</span>
 <a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">client</span> <span class="o">=</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 </code></pre></div>
@@ -9421,13 +9443,15 @@
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>Each timeout governs a single HTTP attempt, not the whole call. When retries are enabled, a slow endpoint can take up to <code>read_timeout</code> per attempt, and the total wall-clock time is bounded separately by <code>retry_budget_seconds</code> (see below).</p>
+<p>Each timeout governs a single HTTP attempt, not the whole call. <code>retry_budget_seconds</code> only
+gates admission of a new retry sleep. In-flight attempts and proactive rate-limit waits can
+push total elapsed time past that budget.</p>
 </div>
 <p>Tuning example - shorter connect and read budgets, more concurrency for an async fan-out:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">connect_timeout</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="n">read_timeout</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="n">write_timeout</span><span class="o">=</span><span class="mf">15.0</span><span class="p">,</span>
@@ -9459,23 +9483,35 @@
 <tr>
 <td><code>retry_budget_seconds</code></td>
 <td><code>30.0</code></td>
-<td>Hard cap on total wall-clock time (including the upcoming sleep) measured from the start of the call.</td>
+<td>Pre-sleep admission threshold measured from the start of the call. A retry is skipped when its upcoming sleep would exceed the budget; an in-flight attempt is not aborted.</td>
 </tr>
 </tbody>
 </table>
 <h3 id="which-failures-are-retried">Which failures are retried<a class="headerlink" href="#which-failures-are-retried" title="Permanent link">&para;</a></h3>
-<p><code>RetryPolicy.should_retry</code> decides, and the rules are deliberately conservative:</p>
+<p><code>RetryPolicy.should_retry</code> decides transport and server-error retries, and the rules are
+deliberately conservative:</p>
 <ul>
 <li><strong>Attempt cap.</strong> If <code>attempt &gt;= max_retries</code>, never retry.</li>
-<li><strong>Idempotency gate.</strong> If the endpoint is <strong>not</strong> idempotent, never auto-retry. This is a trade-safety guarantee: non-idempotent calls (for example placing or cancelling orders) are never re-sent automatically, so they cannot be double-submitted.</li>
+<li><strong>Idempotency gate.</strong> Transport errors and retryable <code>5xx</code> responses are retried only for
+  idempotent endpoints. Non-idempotent calls are not re-sent through this retry path.</li>
 <li><strong>Transport errors</strong> (connect/read failures where no response was received): retried only if the endpoint is idempotent.</li>
 <li><strong>Server errors with a response</strong>: retried only for HTTP status <code>502</code>, <code>503</code>, or <code>504</code> (<code>_RETRYABLE_STATUS</code>), and only for idempotent endpoints.</li>
 <li>All other 4xx/5xx responses are <strong>not</strong> retried - they are mapped straight to an exception.</li>
 </ul>
 <p><code>429</code> responses are handled by a separate path (see rate limiting below) via <code>should_retry_rate_limit</code>, which also requires <code>attempt &lt; max_retries</code> and an idempotent endpoint.</p>
+<h3 id="authentication-refresh-replay">Authentication refresh replay<a class="headerlink" href="#authentication-refresh-replay" title="Permanent link">&para;</a></h3>
+<p>Reactive authentication recovery is separate from the retry policy above. After HTTP <code>401</code> or
+<code>ErrorCode</code> <code>4011</code> (never <code>4010</code>) on an authenticated endpoint, the client refreshes the session
+once and replays the request once. This applies to every authenticated endpoint regardless of
+idempotency, including non-idempotent order placement and cancellation calls, because this
+authentication rejection means the server did not process the request. Transport, <code>5xx</code>, and
+<code>429</code> retries remain idempotency-gated.</p>
 <div class="admonition warning">
 <p class="admonition-title">Warning</p>
-<p>Order placement and cancellation are non-idempotent and are therefore <strong>never</strong> retried automatically, even on a transport error where it is unknown whether the server received the request. If such a call raises, you must decide whether to re-send it yourself after checking order state.</p>
+<p>Order placement and cancellation are not retried after transport errors, <code>5xx</code> responses, or
+<code>429</code> responses. They can be replayed once only for the <code>401</code>/<code>4011</code> authentication recovery
+described above. After a transport error, where it is unknown whether the server received the
+request, check order state before deciding whether to re-send it yourself.</p>
 </div>
 <h3 id="backoff-and-jitter">Backoff and jitter<a class="headerlink" href="#backoff-and-jitter" title="Permanent link">&para;</a></h3>
 <p>The delay before each retry comes from <code>backoff_delay(attempt, retry_after, *, base=1.0, cap=30.0, jitter=...)</code>:</p>
@@ -9487,14 +9523,21 @@
 <li>Net effect: the actual sleep is a random value between <strong>50% and 100%</strong> of <code>raw</code>.</li>
 </ul>
 <p>Because <code>attempt</code> starts at <code>0</code>, the (un-jittered) <code>raw</code> progression is <code>1s, 2s, 4s, 8s, ...</code> capped at <code>30s</code>. So the first retry waits roughly 0.5-1.0s, the second roughly 1-2s, the third roughly 2-4s.</p>
-<h3 id="how-the-budget-caps-total-retry-time">How the budget caps total retry time<a class="headerlink" href="#how-the-budget-caps-total-retry-time" title="Permanent link">&para;</a></h3>
+<h3 id="how-the-budget-admits-retry-sleeps">How the budget admits retry sleeps<a class="headerlink" href="#how-the-budget-admits-retry-sleeps" title="Permanent link">&para;</a></h3>
 <p>Before sleeping for a retry, the pipeline checks <code>_within_retry_budget(started_at, delay)</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># From pipeline.py</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_within_retry_budget</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">started_at</span><span class="p">,</span> <span class="n">delay</span><span class="p">):</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">clock</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">+</span> <span class="n">delay</span> <span class="o">-</span> <span class="n">started_at</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">retry_budget_seconds</span>
 </code></pre></div>
-<p><code>started_at</code> is captured once at the very beginning of the call. The check includes the <strong>upcoming</strong> <code>delay</code>, so a retry is skipped if sleeping for it would push the elapsed time past <code>retry_budget_seconds</code>. When the budget is exhausted (or <code>max_retries</code> is reached, or the endpoint is non-idempotent), the loop stops retrying and raises the mapped error instead.</p>
-<p>So a call stops retrying as soon as <strong>either</strong> limit is hit: the attempt count (<code>max_retries</code>) <strong>or</strong> the time budget (<code>retry_budget_seconds</code>). An authoritative server <code>Retry-After</code> is not shortened to fit the budget. If that delay would exceed the remaining budget, the request fails immediately without sleeping or retrying.</p>
+<p><code>started_at</code> is captured once at the very beginning of the call. The check includes the
+<strong>upcoming</strong> <code>delay</code>, so a retry is skipped if sleeping for it would push the elapsed time past
+<code>retry_budget_seconds</code>. For the idempotency-gated transport, <code>5xx</code>, and <code>429</code> paths, the loop also
+stops retrying when <code>max_retries</code> is reached or the endpoint is non-idempotent, and raises the
+mapped error instead.</p>
+<p>No new retry sleep is admitted after either threshold is hit: the attempt count (<code>max_retries</code>)
+or the pre-sleep budget (<code>retry_budget_seconds</code>). An authoritative server <code>Retry-After</code> is not
+shortened to fit the budget. If that delay would exceed the remaining budget, the request fails
+immediately without sleeping or retrying.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>The retry budget does not abort an in-flight HTTP attempt; per-attempt duration is still governed by the timeouts. The budget only prevents starting a <em>new</em> retry sleep that would exceed it.</p>
@@ -9502,16 +9545,16 @@
 <h3 id="tuning-retries">Tuning retries<a class="headerlink" href="#tuning-retries" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># More aggressive: up to 5 retries within a 60s total budget.</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># More aggressive: up to 5 retries whose next sleep fits a 60s admission budget.</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">max_retries</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">retry_budget_seconds</span><span class="o">=</span><span class="mf">60.0</span><span class="p">,</span>
 <a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">)</span>
 <a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
 <a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="c1"># Disable automatic retries entirely.</span>
 <a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">no_retry</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="n">max_retries</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 <a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="p">)</span>
 </code></pre></div>
@@ -9561,17 +9604,17 @@
 <p><code>RateLimitError</code> carries the parsed value on its <code>retry_after</code> attribute (<code>float | None</code>), so callers can back off intelligently:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClientConfig</span><span class="p">,</span> <span class="n">StoneXClient</span><span class="p">,</span> <span class="n">RateLimitError</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span><span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">)</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">client</span> <span class="o">=</span> <span class="n">StoneXClient</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
 <a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="k">try</span><span class="p">:</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="n">market</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">market</span><span class="o">.</span><span class="n">get_market_information</span><span class="p">(</span>
-<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">market_id</span><span class="o">=</span><span class="s2">&quot;154297&quot;</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>        <span class="n">market_id</span><span class="o">=</span><span class="s2">"154297"</span><span class="p">,</span>
 <a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>        <span class="n">client_account_id</span><span class="o">=</span><span class="mi">400000000</span><span class="p">,</span>
 <a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="p">)</span>
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="k">except</span> <span class="n">RateLimitError</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>
 <a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="n">wait_seconds</span> <span class="o">=</span> <span class="n">exc</span><span class="o">.</span><span class="n">retry_after</span> <span class="k">if</span> <span class="n">exc</span><span class="o">.</span><span class="n">retry_after</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mf">5.0</span>
-<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Rate limited; server suggests waiting </span><span class="si">{</span><span class="n">wait_seconds</span><span class="si">}</span><span class="s2">s&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Rate limited; server suggests waiting </span><span class="si">{</span><span class="n">wait_seconds</span><span class="si">}</span><span class="s2">s"</span><span class="p">)</span>
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -9582,7 +9625,7 @@
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="c1"># Tighter local throttle: at most 100 aggregate requests per 2s window.</span>
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">config</span> <span class="o">=</span> <span class="n">ClientConfig</span><span class="p">(</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">&quot;https://ciapi.cityindex.com/TradingAPI&quot;</span><span class="p">,</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">base_url</span><span class="o">=</span><span class="s2">"https://ciapi.cityindex.com/TradingAPI"</span><span class="p">,</span>
 <a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">rate_limit_max</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span>
 <a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">rate_limit_window_seconds</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
 <a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
@@ -9595,12 +9638,22 @@
 <h2 id="how-the-three-layers-interact">How the three layers interact<a class="headerlink" href="#how-the-three-layers-interact" title="Permanent link">&para;</a></h2>
 <p>For a single call, the order of events inside the pipeline loop is:</p>
 <ol>
+<li>For an authenticated endpoint, perform an age-based proactive refresh if due, then construct
+   the authentication and request headers.</li>
 <li>Acquire a slot from the client-side aggregate limiter (may sleep proactively).</li>
 <li>Send one HTTP attempt, bounded by the four timeouts.</li>
-<li>On a transport error or a retryable status (<code>502/503/504</code>), or a <code>429</code>, decide whether to retry based on idempotency, <code>max_retries</code>, and <code>retry_budget_seconds</code>; sleep using the backoff/<code>Retry-After</code> delay; then loop.</li>
-<li>When no retry is possible, raise the mapped error (<code>TransportError</code>, <code>RateLimitError</code>, <code>AuthenticationError</code>, or <code>StoneXAPIError</code>).</li>
+<li>After the first HTTP <code>401</code> or <code>ErrorCode</code> <code>4011</code> (never <code>4010</code>) from an authenticated endpoint,
+   refresh once and loop to rebuild headers, reacquire the limiter, and replay the request once.
+   This branch applies regardless of endpoint idempotency.</li>
+<li>On a transport error, retryable status (<code>502/503/504</code>), or <code>429</code>, decide whether to retry based
+   on idempotency, <code>max_retries</code>, and the pre-sleep <code>retry_budget_seconds</code> check; sleep using the
+   backoff/<code>Retry-After</code> delay, then loop.</li>
+<li>When no replay or retry is possible, raise the mapped error (<code>TransportError</code>,
+   <code>RateLimitError</code>, <code>AuthenticationError</code>, or <code>StoneXAPIError</code>).</li>
 </ol>
-<p>Each layer is independent: timeouts bound a single attempt, the limiter shapes aggregate outgoing request rate, and the retry budget bounds the total wall-clock time spent retrying across attempts.</p>
+<p>Each layer is independent: timeouts bound a single attempt, the limiter shapes aggregate outgoing
+request rate, and the retry budget gates new retry sleeps. In-flight attempts and proactive
+rate-limit waits can push total elapsed time past the budget.</p>
 
 
 
