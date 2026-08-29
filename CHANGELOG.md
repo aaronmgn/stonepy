@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-08-29
+
+### Changed
+
+- **BREAKING:** Eight CI Connect response properties documented as lists now decode as lists
+  instead of scalar DTOs: community actions, wall items for users, wall sub-items, followed and
+  following users, top holders and their users, and multiple-user details.
+- **BREAKING:** `ApiUserDynamicProfileDTO.number_followed`, `number_following`, and
+  `last_traded_market_id` now decode as integers instead of their incorrect catalog types.
+- **BREAKING:** `order.get_orders(client_account_id=...)` now accepts an integer, matching the
+  documented client-account identifier.
+- **BREAKING:** An explicit server `Retry-After` is now authoritative and uncapped for `429` and
+  retryable `5xx` responses. Computed exponential backoff retains its 30-second cap, and a server
+  delay beyond the remaining retry budget fails immediately without sleeping.
+
+### Fixed
+
+- `AlertNotification` now includes the documented `None_ = 0` member, and
+  `NewTradeOrderRequestDTO` permits the documented optional `OrderReference` and `Source` fields
+  to be omitted.
+- `ClientCommunicationMessageUpdate` is marked retry-unsafe because it saves a client response;
+  automatic retry can no longer duplicate that write.
+- Generator override tables now fail closed when an entry is stale or unconsumed. The consistency
+  lint loudly reports when catalog checks are skipped and returns a friendly error for an invalid
+  configured catalog instead of using a developer-specific path or traceback.
+- A failed proactive session refresh now logs one secret-free `stonepy.pipeline` warning and tries
+  the request with the existing token, preserving reactive `401` recovery.
+
 ## [0.3.0] - 2026-07-13
 
 ### Changed
@@ -298,7 +326,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.0
 [0.3.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.3.0
 [0.2.6]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.6
 [0.2.5]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.5
