@@ -107,6 +107,42 @@ def test_ci_builds_and_checks_distribution_artifacts() -> None:
     assert "twine check dist/*" in ci
 
 
+def test_warning_and_workflow_policy_is_pinned() -> None:
+    pytest_config = _pyproject()["tool"]["pytest"]["ini_options"]
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    live = (ROOT / ".github" / "workflows" / "live.yml").read_text(encoding="utf-8")
+    docs = (ROOT / ".github" / "workflows" / "docs.yml").read_text(encoding="utf-8")
+    drift = (ROOT / ".github" / "workflows" / "drift.yml").read_text(encoding="utf-8")
+
+    assert pytest_config["filterwarnings"] == ["error"]
+    assert "on:\n  push:\n    branches: [main]\n  pull_request:" in ci
+    assert "permissions:\n  contents: read" in ci
+    assert (
+        "concurrency:\n"
+        "  group: ci-${{ github.event.pull_request.number || github.ref }}\n"
+        "  cancel-in-progress: true" in ci
+    )
+    repository_guard = "if: github.repository == 'aaronmgn/stonepy'"
+    assert repository_guard in drift
+    assert repository_guard in live
+    assert "permissions:\n  contents: read" in live
+    assert docs.count("contents: write") == 1
+    assert (
+        "  deploy:\n"
+        "    needs: plan\n"
+        "    if: needs.plan.outputs.mode != 'skip'\n"
+        "    runs-on: ubuntu-latest\n"
+        "    permissions:\n"
+        "      contents: write\n"
+        "      pages: write\n"
+        "      id-token: write" in docs
+    )
+    assert "permissions:\n  contents: read" in docs
+    assert "persist-credentials: false" in drift
+    assert "name: catalog-backed consistency lint" in drift
+    assert "uv run python scripts/consistency_lint.py" in drift
+
+
 def test_ruff_is_the_only_configured_formatter() -> None:
     data = _pyproject()
     dev_deps = data["project"]["optional-dependencies"]["dev"]

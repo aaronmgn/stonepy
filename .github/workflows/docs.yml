@@ -11,9 +11,7 @@ on:
         default: ""
 
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
 
 concurrency:
   group: docs-deploy
@@ -79,6 +77,10 @@ jobs:
     needs: plan
     if: needs.plan.outputs.mode != 'skip'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

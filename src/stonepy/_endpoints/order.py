@@ -355,7 +355,7 @@ GET_ORDERS_SPEC: EndpointSpec[ListResponse[EnrichedOrderDTO]] = EndpointSpec(
 
 
 def get_orders(
-    ctx: CallContext, client_account_id: str, *, limit: int | None = None
+    ctx: CallContext, client_account_id: int, *, limit: int | None = None
 ) -> list[EnrichedOrderDTO]:
     """Query for orders by a specific client account id."""
     return (
@@ -364,7 +364,7 @@ def get_orders(
 
 
 async def aget_orders(
-    ctx: CallContext, client_account_id: str, *, limit: int | None = None
+    ctx: CallContext, client_account_id: int, *, limit: int | None = None
 ) -> list[EnrichedOrderDTO]:
     """Query for orders by a specific client account id."""
     return (

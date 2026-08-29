@@ -168,33 +168,37 @@ class StoneXClient:
 
     def __init__(self, config: ClientConfig) -> None:
         self._ctx, self._transport = _build_context(config)
-        self._plugins: dict[str, BaseResource] = {
-            name: resource(self._ctx)
-            for name, resource in _load_plugin_resources(
-                config,
-                {
-                    "cfd",
-                    "client_preference",
-                    "clientapplication",
-                    "clientpreference",
-                    "fixedmargin",
-                    "margin",
-                    "market",
-                    "message",
-                    "news",
-                    "order",
-                    "order_including_closed",
-                    "pm",
-                    "preference",
-                    "price_alert",
-                    "session",
-                    "spread",
-                    "tradingadvisor",
-                    "user_account",
-                    "watchlist",
-                },
-            ).items()
-        }
+        try:
+            self._plugins: dict[str, BaseResource] = {
+                name: resource(self._ctx)
+                for name, resource in _load_plugin_resources(
+                    config,
+                    {
+                        "cfd",
+                        "client_preference",
+                        "clientapplication",
+                        "clientpreference",
+                        "fixedmargin",
+                        "margin",
+                        "market",
+                        "message",
+                        "news",
+                        "order",
+                        "order_including_closed",
+                        "pm",
+                        "preference",
+                        "price_alert",
+                        "session",
+                        "spread",
+                        "tradingadvisor",
+                        "user_account",
+                        "watchlist",
+                    },
+                ).items()
+            }
+        except BaseException:
+            self._transport.close()
+            raise
         self._cfd: CfdResource | None = None
         self._client_preference: ClientPreferenceResource | None = None
         self._clientapplication: ClientapplicationResource | None = None

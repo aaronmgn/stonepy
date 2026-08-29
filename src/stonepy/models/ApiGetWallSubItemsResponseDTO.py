@@ -22,7 +22,7 @@ class ApiGetWallSubItemsResponseDTO(ResponseModel):
     this API call response is for the use of the CI Connect social trading platform.
     """
 
-    wall_items: ApiWallItemDTO | None = Field(default=None, alias="WallItems")
+    wall_items: list[ApiWallItemDTO] | None = Field(default=None, alias="WallItems")
     """The list of wall sub-items."""
 
 

@@ -67,12 +67,12 @@ class NewTradeOrderRequestDTO(RequestModel):
     """
     allocation_profile_id: int = Field(alias="AllocationProfileId")
     """ID of the allocation profile to use if this is a Trading Advisor trade."""
-    order_reference: str = Field(alias="OrderReference")
+    order_reference: str | None = Field(default=None, alias="OrderReference")
     """
     The order reference for this new trade request - only applicable where source is set.
     (Optional) .
     """
-    source: str = Field(alias="Source")
+    source: str | None = Field(default=None, alias="Source")
     """The source of the trade order request. (Optional) ."""
     price_tolerance: int = Field(alias="PriceTolerance")
     """

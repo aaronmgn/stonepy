@@ -22,7 +22,7 @@ class ApiListTopholdersForMarketsResponseDTO(ResponseModel):
     Gives a list of the CI Connect registered topholders for the specified market(s).
     """
 
-    top_holders: ApiListTopholdersDTO | None = Field(default=None, alias="TopHolders")
+    top_holders: list[ApiListTopholdersDTO] | None = Field(default=None, alias="TopHolders")
     """
     List of the topholders for the specified market(s). Only topholders who have registered
     with the CI Connect social trading platform are returned.

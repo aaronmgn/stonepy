@@ -67,8 +67,8 @@ with StoneXClient(config) as client:
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `status_decoder` | `StatusDecoder \| None` | `default_status_decoder` | Replaces top-level numeric instruction/order decoding. Text execution and nested-order checks stay built in; pass `None` to disable all business-status checks. |
-| `enable_plugins` | `bool` | `False` | Whether plugin hooks are enabled. |
-| `allow_overrides` | `tuple[str, ...]` | `()` | Tuple of field names that plugins are permitted to override. |
+| `enable_plugins` | `bool` | `False` | Whether to discover and instantiate resource classes registered through package entry points. |
+| `allow_overrides` | `tuple[str, ...]` | `()` | Resource-group names whose plugins may shadow built-in names; the plugin remains available through `client.plugin(name)`. |
 
 ## From the environment
 

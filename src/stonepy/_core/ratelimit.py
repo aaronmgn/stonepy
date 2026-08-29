@@ -109,12 +109,12 @@ def backoff_delay(
 ) -> float:
     """Return the delay before the next retry, in seconds.
 
-    Honors a server ``retry_after`` when supplied (clamped to ``cap``); otherwise applies
+    Honors a non-negative server ``retry_after`` without applying ``cap``; otherwise applies
     capped exponential backoff (``base * 2**attempt``) scaled by *jitter* in ``[0, 1]`` to
     spread retries across ``[50%, 100%]`` of the computed delay.
     """
     if retry_after is not None:
-        return min(cap, max(0.0, retry_after))
+        return max(0.0, retry_after)
     raw = min(cap, base * float(2**attempt))
     bounded_jitter = min(1.0, max(0.0, jitter))
     return raw * (0.5 + bounded_jitter * 0.5)

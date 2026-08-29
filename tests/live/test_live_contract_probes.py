@@ -33,6 +33,8 @@ pytestmark = pytest.mark.live
 _ORDER_PROBE_GATE = "STONEX_LIVE_ORDER_PROBE"
 
 
+# This probe deliberately reports an observation that is weaker than its hard assertions.
+@pytest.mark.filterwarnings("default:logon token is not a GUID .*:UserWarning")
 def test_logon_token_shape(client: StoneXClient, ids: dict[str, int]) -> None:
     """Hard-assert only what stonepy relies on (non-blank, unpadded); report the GUID question.
 
@@ -53,6 +55,11 @@ def test_logon_token_shape(client: StoneXClient, ids: dict[str, int]) -> None:
         )
 
 
+# Both outcomes are deliberate observations until the upstream invalidation contract is clear.
+@pytest.mark.filterwarnings("default:deleted session token was rejected server-side .*:UserWarning")
+@pytest.mark.filterwarnings(
+    "default:deleted session token still accepted immediately .*:UserWarning"
+)
 def test_delete_disposable_session_contract() -> None:
     """Pin the LogOff response shape and the server-side effect of deleting a session.
 

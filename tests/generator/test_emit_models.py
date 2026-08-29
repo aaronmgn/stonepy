@@ -165,6 +165,26 @@ def test_render_model_named_empty_type_is_optional_unresolved() -> None:
     assert 'Field(alias="")' not in rendered
 
 
+def test_render_model_corrects_dynamic_profile_count_and_id_types() -> None:
+    profile = _datatype(
+        "ApiUserDynamicProfileDTO",
+        [
+            {"name": "NumberFollowed", "type": "boolean", "format": None, "ref": None},
+            {"name": "NumberFollowing", "type": "string", "format": None, "ref": None},
+            {"name": "LastTradedMarketId", "type": "string", "format": None, "ref": None},
+        ],
+    )
+
+    rendered = render_model(profile, {profile.name})
+
+    assert 'number_followed: int | None = Field(default=None, alias="NumberFollowed")' in rendered
+    assert 'number_following: int | None = Field(default=None, alias="NumberFollowing")' in rendered
+    assert (
+        'last_traded_market_id: int | None = Field(default=None, alias="LastTradedMarketId")'
+        in rendered
+    )
+
+
 def test_emit_all_writes_models_enums_init_and_uses_endpoint_request_context(
     tmp_path: Path,
 ) -> None:
@@ -210,6 +230,30 @@ def test_emit_all_writes_models_enums_init_and_uses_endpoint_request_context(
     assert "from .AlertDTO import AlertDTO" in first_init
     assert "from .SubmitAlertDTO import SubmitAlertDTO" in first_init
     assert "from .enums import AlertDirection" in first_init
+
+
+def test_emit_all_forces_documented_new_trade_fields_optional(tmp_path: Path) -> None:
+    request = _datatype(
+        "NewTradeOrderRequestDTO",
+        [
+            {"name": "MarketId", "type": "integer", "format": None, "ref": None},
+            {"name": "OrderReference", "type": "string", "format": None, "ref": None},
+            {"name": "Source", "type": "string", "format": None, "ref": None},
+        ],
+    )
+    catalog = Catalog(
+        endpoints=[_endpoint(request_type=request.name)],
+        datatypes=[request],
+        lookups={},
+        unresolved=set(),
+    )
+
+    emit_all(catalog, tmp_path)
+    rendered = (tmp_path / "models/NewTradeOrderRequestDTO.py").read_text(encoding="utf-8")
+
+    assert 'market_id: int = Field(alias="MarketId")' in rendered
+    assert 'order_reference: str | None = Field(default=None, alias="OrderReference")' in rendered
+    assert 'source: str | None = Field(default=None, alias="Source")' in rendered
 
 
 def test_emit_all_renders_lookup_code_tables_as_enums(tmp_path: Path) -> None:

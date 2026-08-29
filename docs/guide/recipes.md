@@ -48,10 +48,12 @@ client.session.delete_session("my-username", response.session or "")
 
 ## Configure automatic session refresh from the environment
 
-If you set credentials on the `ClientConfig` (directly or via `from_env()`), the client logs
-on automatically the first time it needs a session and re-logs on when the token nears
-expiry. `from_env()` reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`, and
-`STONEX_PASSWORD`; `base_url` is required.
+If you set credentials on the `ClientConfig` (directly or via `from_env()`), the client can
+recover authentication without an explicit `log_on()` call. The first authenticated request is
+sent without a token and may receive a `401`; the client then logs on, replays that request once,
+and stores the new token. A later request refreshes an old token before it is sent. `from_env()`
+reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`, and `STONEX_PASSWORD`; `base_url` is
+required.
 
 ```bash
 export STONEX_BASE_URL="https://example.com/ciapi"
@@ -66,7 +68,7 @@ from stonepy import StoneXClient, ClientConfig
 config = ClientConfig.from_env()
 
 with StoneXClient(config) as client:
-    # No explicit log_on() call needed - the session is acquired and refreshed for you.
+    # No explicit log_on() call needed - a 401 triggers logon and one request replay.
     positions = client.order.list_open_positions()
     print("open positions:", len(positions.open_positions or []))
 ```

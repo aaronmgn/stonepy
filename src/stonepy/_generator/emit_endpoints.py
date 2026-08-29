@@ -47,6 +47,11 @@ _RETRY_SAFE_ENDPOINT_OVERRIDES: set[tuple[str, str]] = {
     ("message", "GetClientApplicationMessageTranslationWithInterestingItems"),
     ("order", "ListActiveOrders"),
 }
+_RETRY_UNSAFE_ENDPOINT_OVERRIDES: set[tuple[str, str]] = {
+    # This documented write saves the client's response. Automatic retries risk duplicate writes;
+    # method and body shape remain deferred to a live probe.
+    ("message", "ClientCommunicationMessageUpdate"),
+}
 
 # Catalog gap: these endpoints document "leave the market name and code parameters empty to
 # return all markets", but the catalog leaves those filters bare-typed (no required/nullable/
@@ -186,6 +191,14 @@ _PARAM_LOCATION_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
     ("client_preference", "SaveClientPreferenceOverriddenSettings v2"): {
         "ApiClientPreferencesOverriddenSettingsSaveRequestDTO": "body",
     },
+}
+
+# URI-template parameters that are absent from the catalog parameter list and therefore need a
+# curated annotation instead of the synthetic default of str. Keyed by target, endpoint, and the
+# exact placeholder name.
+_SYNTHETIC_PARAM_TYPE_OVERRIDES: dict[tuple[str, str, str], str] = {
+    # GetOrders documents clientAccountId as the numeric client account identifier.
+    ("order", "GetOrders v2", "clientAccountId"): "int",
 }
 
 # Per-endpoint path corrections for catalog gaps the systematic v2 de-doubling in resolved_path()
@@ -454,6 +467,14 @@ def _binding(
         (target_module(rec.target), rec.name), frozenset()
     )
     location_overrides = _PARAM_LOCATION_OVERRIDES.get((target_module(rec.target), rec.name), {})
+    endpoint_key = (target_module(rec.target), rec.name)
+    synthetic_type_overrides = {
+        param_name: annotation
+        for (target, endpoint_name, param_name), annotation in (
+            _SYNTHETIC_PARAM_TYPE_OVERRIDES.items()
+        )
+        if (target, endpoint_name) == endpoint_key
+    }
     path = resolved_path(rec)
     params = _params(
         rec.parameters,
@@ -461,6 +482,7 @@ def _binding(
         path=path,
         optional_overrides=optional_overrides,
         location_overrides=location_overrides,
+        synthetic_type_overrides=synthetic_type_overrides,
     )
     if request_model is None:
         request_model = _inferred_request_model(params, known_models)
@@ -778,6 +800,8 @@ def _auth_policy(rec: EndpointRecord) -> str:
 
 
 def _is_idempotent(rec: EndpointRecord, method: str) -> bool:
+    if (target_module(rec.target), rec.name) in _RETRY_UNSAFE_ENDPOINT_OVERRIDES:
+        return False
     if method in _IDEMPOTENT_METHODS:
         return True
     logical_name = rec.logical_name or _VERSION_SUFFIX_RE.sub("", rec.name)
@@ -791,6 +815,7 @@ def _params(
     path: str,
     optional_overrides: frozenset[str] = frozenset(),
     location_overrides: Mapping[str, str] = MappingProxyType({}),
+    synthetic_type_overrides: Mapping[str, str] = MappingProxyType({}),
 ) -> list[_Param]:
     rendered: list[_Param] = []
     used_names: set[str] = set()
@@ -832,16 +857,29 @@ def _params(
             )
         )
         covered.add(raw_name.lower())
-    rendered.extend(_synthetic_template_params(path, covered, used_names))
+    rendered.extend(
+        _synthetic_template_params(
+            path,
+            covered,
+            used_names,
+            type_overrides=synthetic_type_overrides,
+        )
+    )
     return rendered
 
 
-def _synthetic_template_params(path: str, covered: set[str], used_names: set[str]) -> list[_Param]:
+def _synthetic_template_params(
+    path: str,
+    covered: set[str],
+    used_names: set[str],
+    *,
+    type_overrides: Mapping[str, str] = MappingProxyType({}),
+) -> list[_Param]:
     """Synthesize params for URI templates the catalog ``parameters`` list omits.
 
     Some catalog entries (e.g. ``GetMarketSpread v2``) template path/query values but ship an
     empty parameter list; without these the request template can never be filled. Such values
-    are raw string substitutions, so they default to required ``str`` params.
+    default to required ``str`` params unless a curated type override applies.
     """
 
     path_template, separator, query_template = path.partition("?")
@@ -862,7 +900,7 @@ def _synthetic_template_params(path: str, covered: set[str], used_names: set[str
                     name=raw_name,
                     location=location,
                     python_name=_unique_name(python_param_name, used_names),
-                    annotation="str",
+                    annotation=type_overrides.get(raw_name, "str"),
                     optional=False,
                     default_expr=None,
                 )

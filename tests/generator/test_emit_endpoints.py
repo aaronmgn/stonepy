@@ -202,6 +202,22 @@ def test_render_binding_marks_http_idempotent_methods_retry_safe() -> None:
     assert "idempotent=True" in missing_method_rendered
 
 
+def test_documented_message_write_is_retry_unsafe_before_get_default() -> None:
+    rec = _endpoint(
+        name="ClientCommunicationMessageUpdate",
+        logical_name="ClientCommunicationMessageUpdate",
+        method="GET",
+        target="message",
+        path="/message/ClientCommunicationMessageResponse",
+        response_type="ApiClientCommunicationUpdateResponseDTO",
+    )
+
+    rendered = render_binding(rec, known_model_names={"ApiClientCommunicationUpdateResponseDTO"})
+
+    assert 'method="GET"' in rendered
+    assert "idempotent=False" in rendered
+
+
 def test_read_only_post_query_endpoints_are_retry_safe_by_override() -> None:
     rendered = render_binding(
         _endpoint(
@@ -225,6 +241,34 @@ def test_read_only_post_query_endpoints_are_retry_safe_by_override() -> None:
     )
 
     assert "idempotent=True" in rendered
+
+
+def test_synthetic_get_orders_client_account_id_uses_numeric_override() -> None:
+    rec = _endpoint(
+        name="GetOrders v2",
+        logical_name="GetOrders",
+        method="GET",
+        target="order",
+        path="/v2/orders?clientAccountId={clientAccountId}",
+        parameters=[
+            {
+                "name": "Limit",
+                "type": "integer required false",
+                "ref": None,
+                "in": "query",
+            }
+        ],
+        response_type="EnrichedOrderDTO",
+    )
+
+    rendered = render_binding(rec, known_model_names={"EnrichedOrderDTO"})
+
+    assert "def get_orders(\n    ctx: CallContext, client_account_id: int" in rendered
+    assert "async def aget_orders(\n    ctx: CallContext, client_account_id: int" in rendered
+    assert (
+        'Param(name="clientAccountId", location="query", python_name="client_account_id")'
+        in rendered
+    )
 
 
 def test_render_log_on_v2_uses_logical_symbol_auth_none_and_body_call() -> None:

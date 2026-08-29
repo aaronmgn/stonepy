@@ -1,3 +1,4 @@
+import asyncio
 from collections.abc import Callable
 from typing import cast, get_args, get_type_hints
 
@@ -5,8 +6,9 @@ import pytest
 from _pytest.monkeypatch import MonkeyPatch
 from pytest import LogCaptureFixture
 
-from stonepy import StoneXClient
+from stonepy import AsyncStoneXClient, StoneXClient
 from stonepy._core.config import ClientConfig
+from stonepy._core.pipeline import CallContext
 from stonepy._core.plugins import discover_plugin_resources, load_plugin_resources
 from stonepy._core.resource import BaseResource
 
@@ -275,3 +277,82 @@ def test_generated_client_instantiates_enabled_plugins(monkeypatch: MonkeyPatch)
         }
     finally:
         client.close()
+
+
+class _TrackingSyncTransport:
+    instances: list["_TrackingSyncTransport"] = []
+
+    def __init__(self, config: ClientConfig) -> None:
+        self.config = config
+        self.closed = False
+        self.instances.append(self)
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def test_sync_client_closes_transport_when_plugin_discovery_raises(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    _TrackingSyncTransport.instances.clear()
+
+    def fail_discovery(*args: object, **kwargs: object) -> dict[str, type[BaseResource]]:
+        raise RuntimeError("discovery failed")
+
+    monkeypatch.setattr("stonepy.client.SyncTransport", _TrackingSyncTransport)
+    monkeypatch.setattr("stonepy.client._load_plugin_resources", fail_discovery)
+
+    with pytest.raises(RuntimeError, match="discovery failed"):
+        StoneXClient(ClientConfig(base_url="https://api.example", enable_plugins=True))
+
+    assert len(_TrackingSyncTransport.instances) == 1
+    assert _TrackingSyncTransport.instances[0].closed
+
+
+def test_sync_client_closes_transport_when_plugin_constructor_raises(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    class ExplodingResource(BaseResource):
+        def __init__(self, ctx: CallContext) -> None:
+            raise RuntimeError("constructor failed")
+
+    _TrackingSyncTransport.instances.clear()
+    monkeypatch.setattr("stonepy.client.SyncTransport", _TrackingSyncTransport)
+    monkeypatch.setattr(
+        "stonepy.client._load_plugin_resources",
+        lambda *args, **kwargs: {"extra": ExplodingResource},
+    )
+
+    with pytest.raises(RuntimeError, match="constructor failed"):
+        StoneXClient(ClientConfig(base_url="https://api.example", enable_plugins=True))
+
+    assert len(_TrackingSyncTransport.instances) == 1
+    assert _TrackingSyncTransport.instances[0].closed
+
+
+def test_async_plugin_constructor_failure_in_running_loop_does_not_allocate_pool(
+    monkeypatch: MonkeyPatch,
+) -> None:
+    class ExplodingResource(BaseResource):
+        def __init__(self, ctx: CallContext) -> None:
+            raise RuntimeError("constructor failed")
+
+    allocations = 0
+
+    def fail_async_client_allocation(**kwargs: object) -> object:
+        nonlocal allocations
+        allocations += 1
+        raise AssertionError("async transport pool allocated during client construction")
+
+    monkeypatch.setattr("stonepy._core.transport.httpx.AsyncClient", fail_async_client_allocation)
+    monkeypatch.setattr(
+        "stonepy.client._load_plugin_resources",
+        lambda *args, **kwargs: {"extra": ExplodingResource},
+    )
+
+    async def run() -> None:
+        with pytest.raises(RuntimeError, match="constructor failed"):
+            AsyncStoneXClient(ClientConfig(base_url="https://api.example", enable_plugins=True))
+
+    asyncio.run(run())
+    assert allocations == 0

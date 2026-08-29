@@ -25,6 +25,7 @@ DATATYPE_ENUM_CASES = [
             "Email": 1,
             "EmailAndPushNotification": 5,
             "EmailAndSmsAndPushNotification": 7,
+            "None_": 0,
             "PushNotification": 4,
             "Sms": 2,
             "SmsAndPushNotification": 6,

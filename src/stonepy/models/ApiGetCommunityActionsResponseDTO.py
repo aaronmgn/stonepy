@@ -22,7 +22,9 @@ class ApiGetCommunityActionsResponseDTO(ResponseModel):
     Note: this API call response is for the use of the CI Connect social trading platform.
     """
 
-    community_actions: ApiCommunityActionDTO | None = Field(default=None, alias="CommunityActions")
+    community_actions: list[ApiCommunityActionDTO] | None = Field(
+        default=None, alias="CommunityActions"
+    )
     """The list of community actions."""
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from stonepy._generator.__main__ import main
@@ -110,8 +111,73 @@ def test_scaffold_writes_resource_mixin_and_test_stub(tmp_path: Path) -> None:
     assert ") -> ApiChangePasswordResponseDTO:" in resource_text
     assert "return await _ep.achange_password(self._ctx, request)" in resource_text
     assert "def test_change_password_returns_response() -> None:" in test_text
-    assert 'respx.post("https://api.example/session/changePassword")' in test_text
+    assert 'respx.post("https://api.example/TradingAPI/session/changePassword")' in test_text
+    assert 'ClientConfig(base_url="https://api.example/TradingAPI")' in test_text
     assert "client.session.change_password(" in test_text
+
+
+def test_scaffold_test_stubs_match_dedoubled_and_host_rooted_spec_urls(tmp_path: Path) -> None:
+    dedoubled = replace(
+        _endpoint(
+            name="GetMarketSpread v2",
+            logical_name="GetMarketSpread",
+            method="GET",
+            target="market",
+            path="/market/v2/market/spread",
+            parameters=[],
+            request_type=None,
+            response_type="GetMarketSpreadResponseDTO",
+        ),
+        version="v2",
+        uri_template="/v2/market/spread",
+    )
+    host_rooted = replace(
+        _endpoint(
+            name="LogOn v2",
+            logical_name="LogOn",
+            method="POST",
+            target="session",
+            path="/session/v2/Session",
+            parameters=[],
+            request_type=None,
+            response_type="ApiLogOnResponseDTOv2",
+        ),
+        version="v2",
+        uri_template="/v2/Session",
+    )
+    catalog = _catalog(
+        endpoints=[dedoubled, host_rooted],
+        datatypes=[
+            _datatype("GetMarketSpreadResponseDTO"),
+            _datatype("ApiLogOnResponseDTOv2"),
+        ],
+    )
+
+    scaffold(
+        catalog,
+        "market",
+        "GetMarketSpread",
+        package_dir=tmp_path / "stonepy",
+        project_root=tmp_path,
+    )
+    scaffold(
+        catalog,
+        "session",
+        "LogOn",
+        package_dir=tmp_path / "stonepy",
+        project_root=tmp_path,
+    )
+
+    dedoubled_stub = (tmp_path / "tests/resources/market/test_get_market_spread.py").read_text(
+        encoding="utf-8"
+    )
+    host_rooted_stub = (tmp_path / "tests/resources/session/test_log_on.py").read_text(
+        encoding="utf-8"
+    )
+    assert 'respx.get("https://api.example/TradingAPI/v2/market/spread")' in dedoubled_stub
+    assert 'respx.post("https://api.example/v2/session")' in host_rooted_stub
+    assert 'ClientConfig(base_url="https://api.example/TradingAPI")' in dedoubled_stub
+    assert 'ClientConfig(base_url="https://api.example/TradingAPI")' in host_rooted_stub
 
 
 def test_scaffold_drops_dangling_http_service_docstring_fragment(tmp_path: Path) -> None:

@@ -9,7 +9,9 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiGetMultipleUsersDetailsResponseDTO
 
-_RESPONSE_BODY = '{"CiConnectUsersDetails":{"ClientAccountId":1,"ScreenName":"x","FacebookId":"x"}}'  # noqa: E501
+_RESPONSE_BODY = (
+    '{"CiConnectUsersDetails":[{"ClientAccountId":1,"ScreenName":"x","FacebookId":"x"}]}'  # noqa: E501
+)
 
 
 @respx.mock
@@ -22,6 +24,8 @@ def test_get_multiple_users_details_by_client_account_ids_returns_response() -> 
         client._ctx.session.set_token("TOKEN", "user")
         resp = client.user_account.get_multiple_users_details_by_client_account_ids()
         assert isinstance(resp, ApiGetMultipleUsersDetailsResponseDTO)
+        assert resp.ci_connect_users_details is not None
+        assert resp.ci_connect_users_details[0].client_account_id == 1
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/getusersbyclientaccountids"
@@ -40,6 +44,8 @@ def test_get_multiple_users_details_by_client_account_ids_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             resp = await client.user_account.get_multiple_users_details_by_client_account_ids()
             assert isinstance(resp, ApiGetMultipleUsersDetailsResponseDTO)
+            assert resp.ci_connect_users_details is not None
+            assert resp.ci_connect_users_details[0].client_account_id == 1
             assert route.called
             assert route.calls[0].request.method == "GET"
         finally:

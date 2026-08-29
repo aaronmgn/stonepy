@@ -257,6 +257,11 @@ _FIELD_TYPE_OVERRIDES: dict[tuple[str, str], str] = {
     ("MarketSearchResultDTO", "MarketSpreads"): "list[ApiMarketSpreadDTO]",
     # Market state is a single enum value, not a list.
     ("MarketPricesDTO", "MarketState"): "MarketState",
+    # These documented follower counts are numeric, despite their boolean/string catalog types.
+    ("ApiUserDynamicProfileDTO", "NumberFollowed"): "int",
+    ("ApiUserDynamicProfileDTO", "NumberFollowing"): "int",
+    # The documented market identifier is numeric, despite its string catalog type.
+    ("ApiUserDynamicProfileDTO", "LastTradedMarketId"): "int",
     # The Save* request bodies wrap a single object, not a list: the live API rejects an array with
     # HTTP 400 ("The JSON value could not be converted to ... ClientPreferenceKeyDTO / Watchlist").
     ("ApiSaveClientPreferenceRequestDTO", "ClientPreference"): "ClientPreferenceKeyDTO",

@@ -422,12 +422,24 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
         ),
     ]
     known = "{" + ", ".join(f'"{target.property_name}"' for target in targets) + "}"
+    plugin_indent = "        " if async_client else "            "
+    if not async_client:
+        lines.append("        try:\n")
     lines.append(
-        "        self._plugins: dict[str, BaseResource] = {\n"
-        f"            name: resource(self._ctx)\n"
-        f"            for name, resource in _load_plugin_resources(config, {known}).items()\n"
-        "        }\n"
+        f"{plugin_indent}self._plugins: dict[str, BaseResource] = {{\n"
+        f"{plugin_indent}    name: resource(self._ctx)\n"
+        f"{plugin_indent}    for name, resource in "
+        f"_load_plugin_resources(config, {known}).items()\n"
+        f"{plugin_indent}}}\n"
     )
+    if not async_client:
+        lines.extend(
+            [
+                "        except BaseException:\n",
+                "            self._transport.close()\n",
+                "            raise\n",
+            ]
+        )
     for target in targets:
         resource_type = target.async_class_name if async_client else target.class_name
         lines.append(f"        self._{target.property_name}: {resource_type} | None = None\n")

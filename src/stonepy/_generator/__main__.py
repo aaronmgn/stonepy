@@ -14,6 +14,7 @@ from stonepy._generator.catalog import (
     assert_catalog_frozen,
     load_catalog,
 )
+from stonepy._generator.validate_overrides import assert_override_consumption
 
 _DEFAULT_PACKAGE_DIR = Path(__file__).resolve().parents[1]
 _DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -140,6 +141,7 @@ def _validate_catalog(
         assert_allowed_unresolved(catalog)
     if not allow_unfrozen_catalog:
         assert_catalog_frozen(catalog, catalog_root)
+        assert_override_consumption(catalog)
 
 
 def _catalog_root(parser: argparse.ArgumentParser, cli_root: Path | None) -> Path:

@@ -1,33 +1,43 @@
 # Logging and Secret Redaction
 
 stonepy is deliberately quiet. It does not log your HTTP requests, responses,
-headers, or payloads. The only place the library writes to the standard
-`logging` module is plugin discovery, and credentials are stripped from object
-reprs before they can ever reach a log line, a traceback, or your console.
+headers, or payloads. It writes warnings for plugin discovery and failed proactive
+session refresh, and credentials are stripped from object reprs before they can
+ever reach a log line, a traceback, or your console.
 
 This guide covers two distinct mechanisms:
 
-1. The stdlib `logging` usage (one logger, warnings only).
+1. The stdlib `logging` usage (two loggers, warnings only).
 2. Secret redaction at the `repr()` level, which protects `ClientConfig` and
    the internal `Request` object regardless of how you log them.
 
 ## What stonepy logs
 
-stonepy uses Python's standard `logging` module in exactly one module:
-`stonepy._core.plugins`. It creates a single named logger:
+stonepy uses Python's standard `logging` module with two named loggers:
 
 ```python
-logger = logging.getLogger("stonepy.plugins")
+plugin_logger = logging.getLogger("stonepy.plugins")
+pipeline_logger = logging.getLogger("stonepy.pipeline")
 ```
 
-That logger emits `WARNING` records only, and only during out-of-tree plugin
-discovery (which is off unless you set `enable_plugins=True` on your
-`ClientConfig`). The two messages are:
+`stonepy.plugins` emits `WARNING` records only during out-of-tree plugin discovery
+(which is off unless you set `enable_plugins=True` on your `ClientConfig`). Its two
+messages are:
 
 ```python
 logger.warning("plugin %s failed to load: %s; continuing", ep.name, exc)
 logger.warning("plugin %s did not load a BaseResource subclass; continuing", ep.name)
 ```
+
+`stonepy.pipeline` emits one warning when a proactive session refresh raises a stonepy
+error:
+
+```text
+proactive session refresh failed; continuing with existing token
+```
+
+This refresh behavior is fail-soft. The warning contains no credentials or token, and the
+request proceeds with the existing session so reactive `401` recovery remains available.
 
 !!! note
     There is no request/response logging built into stonepy. The client does
@@ -38,8 +48,8 @@ logger.warning("plugin %s did not load a BaseResource subclass; continuing", ep.
 ## Enabling logging
 
 Because stonepy logs through the stdlib, you control it with the normal logging
-configuration. The logger name `stonepy.plugins` lives under the `stonepy`
-hierarchy, so configuring `stonepy` captures it:
+configuration. Both logger names live under the `stonepy` hierarchy, so configuring
+`stonepy` captures them:
 
 ```python
 import logging
@@ -52,10 +62,11 @@ stonepy_logger = logging.getLogger("stonepy")
 stonepy_logger.setLevel(logging.WARNING)
 ```
 
-A failed plugin load then produces output similar to:
+A failed plugin load or proactive refresh then produces output similar to:
 
 ```text
 WARNING:stonepy.plugins:plugin acme_orders failed to load: No module named 'acme'; continuing
+WARNING:stonepy.pipeline:proactive session refresh failed; continuing with existing token
 ```
 
 !!! tip

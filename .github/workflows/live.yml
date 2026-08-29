@@ -7,8 +7,12 @@ on:
     - cron: "0 6 * * *" # 06:00 UTC daily
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   live:
+    if: github.repository == 'aaronmgn/stonepy'
     runs-on: ubuntu-latest
     env:
       STONEX_USERNAME: ${{ secrets.STONEX_USERNAME }}
@@ -18,6 +22,8 @@ jobs:
       # Opt-in gate for the SaveOrder simulation probe (tests/live/test_live_contract_probes.py):
       # set the STONEX_LIVE_ORDER_PROBE repository variable to "1" to enable it.
       STONEX_LIVE_ORDER_PROBE: ${{ vars.STONEX_LIVE_ORDER_PROBE }}
+      STONEX_LIVE_SAVE_PA_PROBE: ${{ vars.STONEX_LIVE_SAVE_PA_PROBE }}
+      STONEX_LIVE_MESSAGE_UPDATE_PROBE: ${{ vars.STONEX_LIVE_MESSAGE_UPDATE_PROBE }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0

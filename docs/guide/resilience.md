@@ -106,7 +106,7 @@ Retry behavior is driven by two `ClientConfig` fields and implemented in `RetryP
 
 The delay before each retry comes from `backoff_delay(attempt, retry_after, *, base=1.0, cap=30.0, jitter=...)`:
 
-- **If a `Retry-After` value is present** (parsed from the response header): the delay is `min(30.0, max(0.0, retry_after))` - the server's hint, clamped to `[0, 30]` seconds. Jitter is not applied in this case.
+- **If a `Retry-After` value is present** (parsed from the response header): the delay is `max(0.0, retry_after)` - the authoritative server hint with no 30-second cap. Jitter is not applied in this case.
 - **Otherwise** (exponential backoff with jitter):
   - `raw = min(30.0, 1.0 * 2 ** attempt)` - exponential growth capped at 30 seconds.
   - the returned delay is `raw * (0.5 + jitter * 0.5)` where `jitter` is a random float in `[0, 1)`.
@@ -126,7 +126,7 @@ def _within_retry_budget(self, started_at, delay):
 
 `started_at` is captured once at the very beginning of the call. The check includes the **upcoming** `delay`, so a retry is skipped if sleeping for it would push the elapsed time past `retry_budget_seconds`. When the budget is exhausted (or `max_retries` is reached, or the endpoint is non-idempotent), the loop stops retrying and raises the mapped error instead.
 
-So a call stops retrying as soon as **either** limit is hit: the attempt count (`max_retries`) **or** the time budget (`retry_budget_seconds`).
+So a call stops retrying as soon as **either** limit is hit: the attempt count (`max_retries`) **or** the time budget (`retry_budget_seconds`). An authoritative server `Retry-After` is not shortened to fit the budget. If that delay would exceed the remaining budget, the request fails immediately without sleeping or retrying.
 
 !!! note
     The retry budget does not abort an in-flight HTTP attempt; per-attempt duration is still governed by the timeouts. The budget only prevents starting a *new* retry sleep that would exceed it.
@@ -181,8 +181,8 @@ This is a true sliding window (not a fixed bucket reset), so it smooths bursts r
 Even with the proactive limiter, the server may still return HTTP `429`. The pipeline detects this (`_is_rate_limited` treats any `429` as rate-limited) and:
 
 1. Parses the `Retry-After` header via `_parse_retry_after`. This accepts either a numeric seconds value or an HTTP-date, and returns the delay in seconds (clamped to `>= 0`), or `None` if absent/unparseable.
-2. Computes `delay = backoff_delay(attempt, retry_after)` - so a present `Retry-After` is honored directly (clamped to 30s), otherwise exponential-with-jitter is used.
-3. Retries only if `_can_retry_rate_limit` passes: the endpoint is idempotent, `attempt < max_retries`, **and** the sleep fits within `retry_budget_seconds`.
+2. Computes `delay = backoff_delay(attempt, retry_after)` - so a present `Retry-After` is authoritative and uncapped, otherwise capped exponential-with-jitter is used. The 429 path then floors every computed delay at one second, including explicit zero, a past HTTP-date, and a sub-second value.
+3. Retries only if `_can_retry_rate_limit` passes: the endpoint is idempotent, `attempt < max_retries`, **and** the full sleep fits within `retry_budget_seconds`. A longer server delay fails fast without sleeping.
 4. If it cannot retry (non-idempotent, attempts exhausted, or budget exceeded), it raises `RateLimitError`.
 
 `RateLimitError` carries the parsed value on its `retry_after` attribute (`float | None`), so callers can back off intelligently:

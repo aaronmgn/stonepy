@@ -24,7 +24,7 @@ class ApiGetWallItemsForUsersResponseDTO(ResponseModel):
     trading platform.
     """
 
-    wall_items_for_users: ApiWallItemsForUsersDTO | None = Field(
+    wall_items_for_users: list[ApiWallItemsForUsersDTO] | None = Field(
         default=None, alias="WallItemsForUsers"
     )
     """The list of specified users and their respective wall items."""

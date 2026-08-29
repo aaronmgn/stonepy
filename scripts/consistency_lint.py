@@ -33,14 +33,21 @@ def check_resources(resources_dir: Path) -> list[str]:
 
 def check_catalog_unresolved(catalog_root: Path) -> list[str]:
     root = _resolve_catalog_root(catalog_root)
-    if not (root / "endpoints.json").exists():
-        return []
-    catalog = load_catalog(root)
+    missing = [
+        filename
+        for filename in ("endpoints.json", "data-types.json")
+        if not (root / filename).is_file()
+    ]
+    if not (root / "lookup-codes.json").is_file() and not (root / "lookups.json").is_file():
+        missing.append("lookup-codes.json (or lookups.json)")
+    if missing:
+        return [f"catalog checks ERROR: {root} is missing required file(s): {', '.join(missing)}"]
     try:
+        catalog = load_catalog(root)
         assert_allowed_unresolved(catalog)
         assert_catalog_frozen(catalog, root)
-    except ValueError as exc:
-        return [str(exc)]
+    except (OSError, ValueError) as exc:
+        return [f"catalog checks ERROR for {root}: {exc}"]
     return []
 
 
@@ -95,10 +102,12 @@ def _base_name(base: ast.expr) -> str:
 def main(argv: list[str] | None = None) -> int:
     args = argv or []
     resources_dir = Path(args[0]) if args else Path("src/stonepy/resources")
-    catalog_root = Path(
-        os.environ.get("STONEPY_CATALOG", "/home/aaron/Projects/stonex_api_docs/Docs/catalog")
-    )
-    errors = [*check_resources(resources_dir), *check_catalog_unresolved(catalog_root)]
+    errors = check_resources(resources_dir)
+    catalog_root = os.environ.get("STONEPY_CATALOG", "").strip()
+    if catalog_root:
+        errors.extend(check_catalog_unresolved(Path(catalog_root)))
+    else:
+        print("catalog checks SKIPPED (STONEPY_CATALOG not set)", file=sys.stderr)
     if errors:
         for error in errors:
             print(error, file=sys.stderr)
@@ -110,7 +119,7 @@ def _resolve_catalog_root(root: Path) -> Path:
     if (root / "endpoints.json").exists() and (root / "data-types.json").exists():
         return root
     nested = root / "catalog"
-    if (nested / "endpoints.json").exists() and (nested / "data-types.json").exists():
+    if nested.is_dir():
         return nested
     return root
 

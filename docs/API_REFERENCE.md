@@ -5,8 +5,7 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 
 - **Package:** [`stonepy` on PyPI](https://pypi.org/project/stonepy/)
 - **Upstream API documentation:** <https://docs.labs.gaincapital.com/> - the authoritative
-  CIAPI v2 contract (HTTP Services and Data Types). Every generated endpoint records its
-  originating documentation page as a `source_url`.
+  CIAPI v2 contract (HTTP Services and Data Types).
 
 ## Installation
 

@@ -1,12 +1,38 @@
 from __future__ import annotations
 
+import asyncio
+
 import httpx
 import pytest
 import respx
 
 from stonepy import AuthenticationError, ConfigurationError
+from stonepy._core.clock import FakeClock
 from stonepy._core.config import ClientConfig
-from stonepy.client import StoneXClient
+from stonepy.client import AsyncStoneXClient, StoneXClient
+from stonepy.models import ApiLogOnRequestDTO
+
+
+def _logon_request() -> ApiLogOnRequestDTO:
+    return ApiLogOnRequestDTO(
+        UserName="me",
+        Password="pw",
+        AppKey="key",
+        AppVersion="stonepy",
+        AppComments="",
+    )
+
+
+def _logon_response(token: str) -> dict[str, object]:
+    return {
+        "Session": token,
+        "PasswordChangeRequired": False,
+        "AllowedAccountOperator": False,
+        "StatusCode": 1,
+        "Is2FAEnabled": False,
+        "TwoFAToken": "",
+        "Additional2FAMethods": [],
+    }
 
 
 @respx.mock
@@ -37,3 +63,67 @@ def test_config_credential_logon_with_empty_session_raises() -> None:
             client.client_preference.get_client_preferences_list(["x"], 1)
     finally:
         client.close()
+
+
+@respx.mock
+def test_manual_logon_installs_sync_proactive_replay(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = FakeClock()
+    monkeypatch.setattr("stonepy.client.SystemClock", lambda: clock)
+    logon = respx.post("https://api.example/v2/session").mock(
+        side_effect=[
+            httpx.Response(200, json=_logon_response("MANUAL-TOKEN")),
+            httpx.Response(200, json=_logon_response("REPLAY-TOKEN")),
+        ]
+    )
+    protected = respx.get("https://api.example/v2/clientPreference/list").mock(
+        return_value=httpx.Response(200, json={"ClientPreferences": []})
+    )
+    client = StoneXClient(
+        ClientConfig(base_url="https://api.example", proactive_refresh_seconds=10.0)
+    )
+    try:
+        client.session.log_on(_logon_request())
+        clock.advance(10.0)
+
+        response = client.client_preference.get_client_preferences_list(["x"], 1)
+
+        assert response.client_preferences == []
+        assert len(logon.calls) == 2
+        assert protected.calls[0].request.headers["Session"] == "REPLAY-TOKEN"
+        assert protected.calls[0].request.headers["UserName"] == "me"
+    finally:
+        client.close()
+
+
+@respx.mock
+def test_manual_logon_installs_async_proactive_replay(monkeypatch: pytest.MonkeyPatch) -> None:
+    clock = FakeClock()
+    monkeypatch.setattr("stonepy.client.SystemClock", lambda: clock)
+    logon = respx.post("https://api.example/v2/session").mock(
+        side_effect=[
+            httpx.Response(200, json=_logon_response("MANUAL-TOKEN")),
+            httpx.Response(200, json=_logon_response("REPLAY-TOKEN")),
+        ]
+    )
+    protected = respx.get("https://api.example/v2/clientPreference/list").mock(
+        return_value=httpx.Response(200, json={"ClientPreferences": []})
+    )
+
+    async def run() -> None:
+        client = AsyncStoneXClient(
+            ClientConfig(base_url="https://api.example", proactive_refresh_seconds=10.0)
+        )
+        try:
+            await client.session.log_on(_logon_request())
+            clock.advance(10.0)
+
+            response = await client.client_preference.get_client_preferences_list(["x"], 1)
+
+            assert response.client_preferences == []
+            assert len(logon.calls) == 2
+            assert protected.calls[0].request.headers["Session"] == "REPLAY-TOKEN"
+            assert protected.calls[0].request.headers["UserName"] == "me"
+        finally:
+            await client.aclose()
+
+    asyncio.run(run())

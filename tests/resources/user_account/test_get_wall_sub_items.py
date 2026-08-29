@@ -9,7 +9,7 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiGetWallSubItemsResponseDTO
 
-_RESPONSE_BODY = '{"WallItems":{"WallItemId":1,"ParentWallItemId":1,"ScreenName":"x","CommentText":"x","FlaggedAsInappropriate":false,"CreateDate":"/Date(1577836800000)/","NoOfSubComments":1}}'  # noqa: E501
+_RESPONSE_BODY = '{"WallItems":[{"WallItemId":1,"ParentWallItemId":1,"ScreenName":"x","CommentText":"x","FlaggedAsInappropriate":false,"CreateDate":"/Date(1577836800000)/","NoOfSubComments":1}]}'  # noqa: E501
 
 
 @respx.mock
@@ -22,6 +22,8 @@ def test_get_wall_sub_items_returns_response() -> None:
         client._ctx.session.set_token("TOKEN", "user")
         resp = client.user_account.get_wall_sub_items()
         assert isinstance(resp, ApiGetWallSubItemsResponseDTO)
+        assert resp.wall_items is not None
+        assert resp.wall_items[0].wall_item_id == 1
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/getwallsubitems"
@@ -40,6 +42,8 @@ def test_get_wall_sub_items_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             resp = await client.user_account.get_wall_sub_items()
             assert isinstance(resp, ApiGetWallSubItemsResponseDTO)
+            assert resp.wall_items is not None
+            assert resp.wall_items[0].wall_item_id == 1
             assert route.called
             assert route.calls[0].request.method == "GET"
         finally:

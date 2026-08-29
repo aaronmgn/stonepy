@@ -176,7 +176,7 @@ READS: list[tuple[str, Call, Callable[[Any], bool]]] = [
     ),
     (
         "order.get_orders",
-        lambda c, i: c.order.get_orders(client_account_id=str(i["cid"])),
+        lambda c, i: c.order.get_orders(client_account_id=i["cid"]),
         _ok,
     ),
     (

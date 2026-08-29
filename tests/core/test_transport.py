@@ -11,7 +11,7 @@ from stonepy._core.clock import FakeClock
 from stonepy._core.config import ClientConfig
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
 from stonepy._core.models import RequestModel, ResponseModel
-from stonepy._core.transport import Request, SyncTransport, build_request
+from stonepy._core.transport import AsyncTransport, Request, SyncTransport, build_request
 from stonepy.client import StoneXClient
 from stonepy.models import GetPriceTickResponseDTO
 
@@ -471,8 +471,6 @@ def test_sync_transport_constructed_from_client_config_sends() -> None:
 
 @respx.mock
 def test_async_transport_asend() -> None:
-    from stonepy._core.transport import AsyncTransport
-
     route = respx.get("https://api.example/ping?A=1").mock(
         return_value=httpx.Response(200, json={"ok": 1})
     )
@@ -484,5 +482,50 @@ def test_async_transport_asend() -> None:
         assert route.called
         assert str(resp.request.url) == "https://api.example/ping?A=1"
         await t.aclose()
+
+    asyncio.run(run())
+
+
+def test_async_transport_close_before_first_send_does_not_allocate_pool() -> None:
+    async def run() -> None:
+        transport = AsyncTransport(base_url="https://api.example", verify=True, timeout=5.0)
+
+        assert transport._client is None
+        await transport.aclose()
+        assert transport._client is None
+
+    asyncio.run(run())
+
+
+def test_async_transport_allocates_one_pool_on_first_send_and_closes_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class FakeAsyncClient:
+        def __init__(self, **kwargs: object) -> None:
+            self.kwargs = kwargs
+            self.closed = False
+            created.append(self)
+
+        async def request(self, *args: object, **kwargs: object) -> httpx.Response:
+            return httpx.Response(200, json={"ok": 1})
+
+        async def aclose(self) -> None:
+            self.closed = True
+
+    created: list[FakeAsyncClient] = []
+    monkeypatch.setattr("stonepy._core.transport.httpx.AsyncClient", FakeAsyncClient)
+
+    async def run() -> None:
+        transport = AsyncTransport(base_url="https://api.example", verify=True, timeout=5.0)
+        request = Request("GET", "https://api.example/ping", {}, {}, None)
+
+        assert created == []
+        assert (await transport.asend(request)).status_code == 200
+        assert len(created) == 1
+        assert (await transport.asend(request)).status_code == 200
+        assert len(created) == 1
+
+        await transport.aclose()
+        assert created[0].closed
 
     asyncio.run(run())

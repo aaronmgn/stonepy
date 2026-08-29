@@ -21,7 +21,7 @@ CLIENT_COMMUNICATION_MESSAGE_UPDATE_SPEC: EndpointSpec[ApiClientCommunicationUpd
         name="ClientCommunicationMessageUpdate",
         method="GET",
         path="/message/ClientCommunicationMessageResponse",
-        idempotent=True,
+        idempotent=False,
         auth_policy=AuthPolicy.SESSION,
         rate_limit_bucket="message",
         response_model=ApiClientCommunicationUpdateResponseDTO,

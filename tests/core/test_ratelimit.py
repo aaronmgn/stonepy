@@ -166,8 +166,10 @@ def test_backoff_prefers_retry_after() -> None:
     assert backoff_delay(1, retry_after=2.0, jitter=0.0) == 2.0
 
 
-def test_backoff_clamps_retry_after_to_cap() -> None:
-    assert backoff_delay(1, retry_after=120.0, cap=30.0, jitter=0.0) == 30.0
+def test_backoff_honors_uncapped_retry_after_and_caps_computed_delay() -> None:
+    assert backoff_delay(1, retry_after=120.0, cap=30.0, jitter=0.0) == 120.0
+    assert backoff_delay(1, retry_after=-1.0, cap=30.0, jitter=0.0) == 0.0
+    assert backoff_delay(10, retry_after=None, cap=30.0, jitter=1.0) == 30.0
 
 
 def test_backoff_requires_jitter_keyword_argument() -> None:

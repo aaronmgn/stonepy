@@ -9,7 +9,7 @@ from stonepy._core.config import ClientConfig
 from stonepy.client import AsyncStoneXClient, StoneXClient
 from stonepy.models import ApiGetCommunityActionsResponseDTO
 
-_RESPONSE_BODY = '{"CommunityActions":{"CommunityActionId":1,"CommunityActionTypeId":1,"CommunityActionTypeDescription":"x","CreateDate":"/Date(1577836800000)/"}}'  # noqa: E501
+_RESPONSE_BODY = '{"CommunityActions":[{"CommunityActionId":1,"CommunityActionTypeId":1,"CommunityActionTypeDescription":"x","CreateDate":"/Date(1577836800000)/"}]}'  # noqa: E501
 
 
 @respx.mock
@@ -22,6 +22,8 @@ def test_get_social_actions_returns_response() -> None:
         client._ctx.session.set_token("TOKEN", "user")
         resp = client.user_account.get_social_actions()
         assert isinstance(resp, ApiGetCommunityActionsResponseDTO)
+        assert resp.community_actions is not None
+        assert resp.community_actions[0].community_action_id == 1
         assert route.called
         assert route.calls[0].request.method == "GET"
         assert route.calls[0].request.url.path == "/useraccount/getsocialactions"
@@ -40,6 +42,8 @@ def test_get_social_actions_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             resp = await client.user_account.get_social_actions()
             assert isinstance(resp, ApiGetCommunityActionsResponseDTO)
+            assert resp.community_actions is not None
+            assert resp.community_actions[0].community_action_id == 1
             assert route.called
             assert route.calls[0].request.method == "GET"
         finally:
