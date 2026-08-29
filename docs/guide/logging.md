@@ -2,8 +2,9 @@
 
 stonepy is deliberately quiet. It does not log your HTTP requests, responses,
 headers, or payloads. It writes warnings for plugin discovery and failed proactive
-session refresh, and credentials are stripped from object reprs before they can
-ever reach a log line, a traceback, or your console.
+session refresh. Its own object representations mask values keyed as app key,
+password, session, authorization, or proxy. Usernames are not masked, and logging
+from the external HTTP stack is not sanitized by stonepy.
 
 This guide covers two distinct mechanisms:
 
@@ -76,10 +77,10 @@ WARNING:stonepy.pipeline:proactive session refresh failed; continuing with exist
 ## How secrets are redacted
 
 Redaction in stonepy happens when an object is converted to its string
-representation, not inside a logging handler. This means a credential is hidden
-whether it appears in a deliberate `log.info(config)`, an f-string, a `print()`,
-or an exception that captures the object. The helpers live in
-`stonepy._core.logging`.
+representation, not inside a logging handler. Values under the recognized keys
+are therefore hidden in a deliberate `log.info(config)`, an f-string, a `print()`,
+or an exception that captures the object. Other values, including usernames, are
+not masked. The helpers live in `stonepy._core.logging`.
 
 The core primitive replaces any non-empty value with a fixed mask (it does not
 truncate or partially reveal the value):

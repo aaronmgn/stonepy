@@ -9,8 +9,9 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 
 ## Why stonepy
 
-- **Fully typed.** Every request and response is a [Pydantic](https://docs.pydantic.dev/) model,
-  so your editor autocompletes fields and `mypy` checks your calls.
+- **Fully typed.** Request and response DTO bodies are
+  [Pydantic](https://docs.pydantic.dev/) models; some methods take primitive parameters or return
+  bare scalars or lists. Your editor autocompletes model fields and `mypy` checks your calls.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
 - **Complete coverage.** All 128 documented CIAPI endpoints are bound, using the v2 variant of
   every endpoint that has one.

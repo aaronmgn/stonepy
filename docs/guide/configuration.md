@@ -37,17 +37,19 @@ with StoneXClient(config) as client:
 | `username` | `str` | `""` | StoneX / City Index username used for automatic session refresh. |
 | `password` | `str` | `""` | Account password used for automatic session refresh. |
 | `app_version` | `str` | `"stonepy"` | Application version string reported during log-on. |
-| `proactive_refresh_seconds` | `float` | `1080.0` | Age (in seconds) after which the session is proactively refreshed before it expires. |
+| `proactive_refresh_seconds` | `float` | `1080.0` | Token age (in seconds) at which the session is proactively refreshed; no server expiry timestamp is consulted. |
 
 !!! tip
-    Set `app_key`, `username`, and `password` together to enable automatic session refresh. Leaving them empty disables proactive refresh, in which case you manage the session yourself.
+    Set `app_key`, `username`, and `password` together to enable automatic session refresh
+    without an explicit `log_on()`. A successful manual `log_on()` also installs a refresh
+    callable, so proactive and reactive refresh work for manual sessions.
 
 ## Resilience
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
 | `max_retries` | `int` | `3` | Maximum number of retry attempts for retryable requests. |
-| `retry_budget_seconds` | `float` | `30.0` | Total time budget (in seconds) for all retries of a single request. |
+| `retry_budget_seconds` | `float` | `30.0` | Pre-sleep admission budget: a retry is skipped when its upcoming sleep would exceed this elapsed-time threshold; in-flight attempts and proactive limiter waits can run past it. |
 | `rate_limit_max` | `int` | `500` | Maximum aggregate requests across all endpoints within the rate-limit window. |
 | `rate_limit_window_seconds` | `float` | `5.0` | Length (in seconds) of the rolling rate-limit window. |
 
@@ -83,7 +85,9 @@ with StoneXClient(config) as client:
 
 Behavior:
 
-- Keyword overrides take precedence over environment variables. For example, `ClientConfig.from_env(app_key="abc")` uses `"abc"` regardless of `STONEX_APP_KEY`.
+- Non-`None` keyword overrides take precedence over environment variables. `None` is ignored
+  except for `status_decoder`, where an explicit `None` disables business-status checks. For
+  example, `ClientConfig.from_env(app_key="abc")` uses `"abc"` regardless of `STONEX_APP_KEY`.
 - It raises `ValueError` if `base_url` resolves to an empty (or whitespace-only) value after applying the `STONEX_BASE_URL` variable and any override.
 - It raises `TypeError` if you pass an override whose name is not a `ClientConfig` field.
 - Only the four variables above are read from the environment. Every other field uses its dataclass default unless supplied as a keyword override.

@@ -1,8 +1,7 @@
 # Recipes
 
-Short, copy-paste task snippets across the StoneX (CIAPI v2) resource groups. Every
-method name, argument, and DTO below is verified against the source. Each snippet defines
-its own variables so you can paste and adapt it directly.
+Short, copy-paste task snippets across the StoneX (CIAPI v2) resource groups. Each snippet
+defines its own variables so you can paste and adapt it directly.
 
 All snippets use the synchronous `StoneXClient`. The `AsyncStoneXClient` exposes the same
 resource groups and method names with `async`/`await` and `async with`.
@@ -15,7 +14,8 @@ resource groups and method names with `async`/`await` and `async with`.
 
 Build a `ClientConfig`, open the client as a context manager, and call
 `client.session.log_on(...)` with an `ApiLogOnRequestDTO`. The client stores the returned
-session token internally, so every later call on the same client reuses it.
+session token internally and attaches it to later endpoints that use session authentication.
+A successful manual log-on also installs the callable used for proactive and reactive refresh.
 
 ```python
 from stonepy import StoneXClient, ClientConfig
@@ -50,10 +50,13 @@ client.session.delete_session("my-username", response.session or "")
 
 If you set credentials on the `ClientConfig` (directly or via `from_env()`), the client can
 recover authentication without an explicit `log_on()` call. The first authenticated request is
-sent without a token and may receive a `401`; the client then logs on, replays that request once,
-and stores the new token. A later request refreshes an old token before it is sent. `from_env()`
-reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`, and `STONEX_PASSWORD`; `base_url` is
-required.
+sent without a token and may receive HTTP `401` or `ErrorCode` `4011` (never `4010`); the client
+then logs on, replays that request once, and stores the new token. This one-time authentication
+replay applies to every endpoint, including non-idempotent order calls, because the rejection
+means the server did not process the request. Transport, `5xx`, and `429` retries remain
+idempotency-gated. A later request refreshes an old token based on its age before it is sent.
+`from_env()` reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`, and `STONEX_PASSWORD`;
+`base_url` is required.
 
 ```bash
 export STONEX_BASE_URL="https://example.com/ciapi"
@@ -68,15 +71,15 @@ from stonepy import StoneXClient, ClientConfig
 config = ClientConfig.from_env()
 
 with StoneXClient(config) as client:
-    # No explicit log_on() call needed - a 401 triggers logon and one request replay.
+    # No explicit log_on() call needed - a 401 or ErrorCode 4011 triggers one refresh and replay.
     positions = client.order.list_open_positions()
     print("open positions:", len(positions.open_positions or []))
 ```
 
 !!! tip
     `from_env()` accepts keyword overrides, e.g.
-    `ClientConfig.from_env(proactive_refresh_seconds=600.0)`. Automatic refresh only
-    activates when `username`, `password`, and `app_key` are all set.
+    `ClientConfig.from_env(proactive_refresh_seconds=600.0)`. Config credentials enable refresh
+    without an explicit log-on. A successful manual `log_on()` also installs a refresh callable.
 
 ## Search markets (all 9 required arguments)
 
@@ -140,6 +143,7 @@ with StoneXClient(config) as client:
     money.
 
 ```python
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from stonepy import StoneXClient, ClientConfig
@@ -162,7 +166,7 @@ with StoneXClient(config) as client:
             audit_id="",
             trading_account_id=123456,
             applicability="GTC",
-            expiry_date_time_utc=None,
+            expiry_date_time_utc=datetime.now(UTC) + timedelta(days=1),
             guaranteed=False,
             trigger_price=Decimal("1.2500"),
             reference="stonepy",

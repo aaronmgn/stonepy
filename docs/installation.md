@@ -47,7 +47,9 @@ A normal install pulls in three small, well-established libraries:
 | [`pydantic`](https://docs.pydantic.dev/) | `>=2.7,<3.0` | Typed request/response models (DTOs) and validation |
 | [`simplejson`](https://simplejson.readthedocs.io/) | `>=3.19,<4.0` | JSON encoding/decoding |
 
-That is the entire footprint - no native build steps and no heavyweight transitive trees beyond what these three require.
+That is the entire footprint - there are no native build steps on platforms with a compatible
+prebuilt `pydantic-core` wheel; source installations may require a Rust toolchain. There are no
+heavyweight transitive trees beyond what these three require.
 
 !!! note "No extras for normal use"
     There are **no** optional extras to install for typical usage. `pip install stonepy` (or the `uv` equivalent above) gives you everything needed to authenticate and trade. The extras below are only for people working *on* the library.

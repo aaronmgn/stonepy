@@ -22,11 +22,11 @@ The top-level `stonepy` package exports the client entry points and the error hi
 | `ClientConfig` | Connection, credential, timeout, retry, and rate-limit configuration. Build it directly or via `ClientConfig.from_env()`. |
 | `StoneXClient` | Synchronous client; use as a context manager (`with StoneXClient(config) as client:`). |
 | `AsyncStoneXClient` | Asynchronous client; use as `async with AsyncStoneXClient(config) as client:`. |
-| `StoneXError` | Base class for every exception raised by the library. |
+| `StoneXError` | Base class for the public runtime error hierarchy. Configuration, validation, and plugin setup can also raise builtin `TypeError` or `ValueError`. |
 
 ### Error Hierarchy
 
-All exceptions inherit from `StoneXError`:
+The public runtime exceptions inherit from `StoneXError`:
 
 - `AuthenticationError` - log-on failed or the session could not be refreshed.
 - `ConfigurationError` - the client has no credentials configured for session refresh.
@@ -45,7 +45,8 @@ Resource groups are exposed as properties on both clients and mirror the StoneX 
 `market`, `message`, `news`, `order`, `order_including_closed`, `pm`, `preference`,
 `price_alert`, `session`, `spread`, `tradingadvisor`, `user_account`, and `watchlist`.
 
-Each method maps to a single CIAPI v2 endpoint:
+Each generated method maps to a single CIAPI v2 endpoint. The documented `place_order` alias
+below maps to the same endpoint as the generated `order` method:
 
 ```python
 session = client.session.log_on(request_dto)
@@ -62,6 +63,7 @@ Request and response models are exported from `stonepy.models`:
 - Request DTO names usually end in `RequestDTO`
   (e.g. `NewTradeOrderRequestDTO`, `NewStopLimitOrderRequestDTO`, `CancelOrderRequestDTO`).
 - Response DTO names usually end in `ResponseDTO`.
+- v2 forms end in `RequestDTOv2` or `ResponseDTOv2`.
 
 Models are [Pydantic](https://docs.pydantic.dev/) models: they validate input and serialise to
 the JSON shapes the API expects.
