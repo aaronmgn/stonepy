@@ -27,9 +27,13 @@ with StoneXClient(config) as client:
 If you supply `app_key`, `username`, and `password` on `ClientConfig` (directly or via
 `ClientConfig.from_env()`), the client refreshes the session automatically:
 
-- it re-authenticates in the background before the token expires, controlled by
+- it re-authenticates as a synchronous pre-request step when the stored token reaches
   `ClientConfig.proactive_refresh_seconds` (default `1080.0`, i.e. 18 minutes), and
 - it transparently re-logs-on if a request is rejected with an expired-session error.
+
+The proactive step is fail-soft. If it raises a stonepy error, the client logs one warning on
+`stonepy.pipeline` and sends the request with the existing token. The normal reactive `401`
+refresh and one-time replay can still recover the call.
 
 ```python
 config = ClientConfig(

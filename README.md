@@ -82,10 +82,12 @@ its context manager.
 
 If you supply `app_key`, `username`, and `password` on `ClientConfig` (directly or via
 `ClientConfig.from_env()`), the client also refreshes the session automatically: it
-re-authenticates in the background before the token expires, controlled by
+re-authenticates as a synchronous pre-request step once the stored token reaches
 `ClientConfig.proactive_refresh_seconds` (default `1080.0`, i.e. 18 minutes), and transparently
-re-logs-on if a request is rejected with an expired-session error. Without those credentials you
-must call `log_on` yourself and manage re-authentication.
+re-logs-on if a request is rejected with an expired-session error. If proactive refresh fails
+with a stonepy error, the client logs a warning and tries the request with the existing token so
+the reactive `401` path can still recover it. Without configured credentials you must call
+`log_on` yourself and manage re-authentication.
 
 ```python
 config = ClientConfig(

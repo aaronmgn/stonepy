@@ -74,7 +74,8 @@ Two optional dependency groups exist for contributors. End users do not need the
     pip install "stonepy[docs]"
     ```
 
-    Includes `mkdocs-material`, `mkdocstrings[python]`, `mike`, and `ruff`.
+    Includes `mkdocs-material`, `mkdocstrings[python]`, `mike`, `mkdocs-gen-files`,
+    `mkdocs-literate-nav`, and `ruff`.
 
 With `uv`, install groups against a checkout instead:
 
