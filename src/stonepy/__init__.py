@@ -20,7 +20,7 @@ from stonepy._core.errors import (
 )
 from stonepy.client import AsyncStoneXClient, StoneXClient
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 __all__ = [
     "AsyncStoneXClient",
