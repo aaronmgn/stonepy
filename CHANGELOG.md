@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-08-29
+
 ### Added
 
 - Python 3.14 is now tested in CI and declared in the package classifiers.
@@ -20,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Locked development and documentation dependencies were refreshed (including the
   `cryptography`, `pymdown-extensions`, and `setuptools` security updates), and every workflow
   now uses `astral-sh/setup-uv` v10.0.1.
+
+### Fixed
+
+- Documentation corrected against the 0.4.0 source after a full claim audit: manual `log_on()`
+  installs a refresh callable, the 401/ErrorCode-4011 authentication replay applies to every
+  endpoint while transport/5xx/429 retries stay idempotency-gated, `retry_budget_seconds` is a
+  pre-sleep admission check, the stop-limit order recipe validates, and several scope claims
+  (exception hierarchy, secret masking, DTO naming, Pydantic coverage) are now precise.
 
 ## [0.4.0] - 2026-08-29
 
@@ -340,7 +350,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.1
 [0.4.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.0
 [0.3.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.3.0
 [0.2.6]: https://github.com/aaronmgn/stonepy/releases/tag/v0.2.6
