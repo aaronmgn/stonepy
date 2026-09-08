@@ -9894,7 +9894,7 @@ This prints the package version from its single source in <code>stonepy/_version
 </tr>
 <tr>
 <td><a href="https://docs.pydantic.dev/"><code>pydantic</code></a></td>
-<td><code>&gt;=2.7,&lt;3.0</code>; <code>&gt;=2.12</code> on Python 3.14</td>
+<td><code>&gt;=2.7,&lt;3.0</code> on Python &lt; 3.14; <code>&gt;=2.12,&lt;3.0</code> on Python &gt;= 3.14</td>
 <td>Typed request/response models (DTOs) and validation</td>
 </tr>
 <tr>
@@ -9937,8 +9937,8 @@ heavyweight transitive trees beyond what these three require.</p>
 <p>The generator ships in the wheel but needs the dev tools (<code>ruff</code>, <code>unasync</code>)
 and the repository <code>pyproject.toml</code>; run it from a source checkout or editable install.</p>
 <h2 id="type-checking-pep-561">Type checking (PEP 561)<a class="headerlink" href="#type-checking-pep-561" title="Permanent link">&para;</a></h2>
-<p><code>stonepy</code> is fully typed and ships a <code>py.typed</code> marker, so it is <a href="https://peps.python.org/pep-0561/">PEP 561</a> compliant. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
-<p>This means tools like <code>mypy</code> and <code>pyright</code> work out of the box:</p>
+<p><code>stonepy</code> ships annotations and a <code>py.typed</code> marker for <a href="https://peps.python.org/pep-0561/">PEP 561</a> type discovery. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
+<p>You can check consumer code with <code>mypy</code> or <code>pyright</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mypy<span class="w"> </span>your_script.py
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># or</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pyright<span class="w"> </span>your_script.py
@@ -9947,11 +9947,15 @@ and the repository <code>pyproject.toml</code>; run it from a source checkout or
 <p>Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
 <code>UserName</code> when constructing DTOs in statically checked code; the equivalent snake_case names
 work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
-remains under review.</p>
+remains under review. The pyright CI job is advisory and currently reports 8 diagnostics;
+it is not a release gate.</p>
+<p><code>ClientConfig.from_env()</code> exposes typed keyword overrides through <code>ClientConfigOverrides</code>.
+Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate
+their keys and values.</p>
 <h2 id="stability">Stability<a class="headerlink" href="#stability" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Pre-1.0 / alpha</p>
-<p><code>stonepy</code> is currently pre-1.0 (PyPI Development Status: <strong>3 - Alpha</strong>). The public API may change between releases. Pin a version (for example <code>stonepy==0.4.1</code>) if you need reproducible builds, and review the changelog before upgrading.</p>
+<p><code>stonepy</code> is currently pre-1.0 (PyPI Development Status: <strong>3 - Alpha</strong>). The public API may change between releases. Pin a version (for example <code>stonepy==0.5.0</code>) if you need reproducible builds, and review the changelog before upgrading.</p>
 </div>
 
 

@@ -9867,6 +9867,34 @@ write, stonepy uses the endpoint's documented status domain:</p>
 </tr>
 </tbody>
 </table>
+<p>With status checks enabled, every acknowledgement endpoint in the instruction, order, and
+execution-text domains raises <code>OrderStatusUnknownError</code> for an empty body or a missing, null,
+boolean, or malformed status. These are the affected methods (on both clients):</p>
+<table>
+<thead>
+<tr>
+<th>Domain</th>
+<th>Methods</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Instruction</td>
+<td><code>order.cancel_order</code>, <code>order.order</code> (also <code>order.place_order</code>), <code>order.trade</code>, <code>order.update_order</code>, <code>order.update_trade</code>, <code>fixed_margin.trade_fm</code>, <code>fixed_margin.update_trade_fm</code></td>
+</tr>
+<tr>
+<td>Order</td>
+<td><code>order.simulate_cancel_order</code>, <code>order.simulate_order</code>, <code>order.simulate_trade</code>, <code>order.simulate_update_order</code>, <code>order.simulate_update_trade</code></td>
+</tr>
+<tr>
+<td>Execution text</td>
+<td><code>order.save_order</code></td>
+</tr>
+</tbody>
+</table>
+<p>See the <a href="../../api/resources/#order">order</a> and <a href="../../api/resources/#fixed_margin">fixed-margin</a>
+endpoint references for their signatures. Setting <code>status_decoder=None</code> bypasses these checks;
+JSON decoding and response-model validation still apply.</p>
 <p>After an instruction acknowledgement passes, stonepy also checks each <code>Orders[]</code> item using the
 order domain. Fixed-margin responses expose the same two layers as
 <code>InstructionStatusId</code>/<code>InstructionStatusReasonId</code> and <code>OrderStatusId</code>/<code>OrderStatusReasonId</code>.

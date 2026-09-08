@@ -12809,7 +12809,7 @@ StoneX CIAPI v2 endpoint.</p>
 
 </div><h2 id="unspecified-responses">Unspecified responses<a class="headerlink" href="#unspecified-responses" title="Permanent link">&para;</a></h2>
 <p><code>preference.delete_user_preference</code>, <code>preference.save_user_preference</code>, and <code>price_alert.save_pa</code>
-return <code>stonepy._core.models.UnspecifiedResponse</code> because their catalog contracts document no
+return <code>stonepy.UnspecifiedResponse</code> because their catalog contracts document no
 response body. Empty bodies and JSON <code>null</code> produce an empty model; unexpected object fields
 are retained in <code>model_extra</code>.</p>
 

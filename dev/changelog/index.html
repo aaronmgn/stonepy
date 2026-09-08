@@ -9666,7 +9666,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Unreleased">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-09-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 - 2026-09-08
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.5.0 - 2026-09-08">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -10329,7 +10340,18 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Unreleased">
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#050-2026-09-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        0.5.0 - 2026-09-08
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="0.5.0 - 2026-09-08">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -10973,46 +10995,43 @@
 <p>All notable changes to this project are documented in this file.</p>
 <p>The format is based on <a href="https://keepachangelog.com/en/1.1.0/">Keep a Changelog</a>,
 and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semantic Versioning</a>.</p>
-<h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.4.1...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.5.0...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
+<h2 id="050-2026-09-08"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.5.0">0.5.0</a> - 2026-09-08<a class="headerlink" href="#050-2026-09-08" title="Permanent link">&para;</a></h2>
+<p>This release makes order handling safer: unknown nested request fields that were silently
+dropped now raise validation errors, and acknowledgements without a usable status raise
+<code>OrderStatusUnknownError</code>. Migrate shared request DTOs to their <code>Request&lt;Name&gt;</code> variants,
+replace entry-point plugins with explicitly constructed resources, and update deprecated
+resource names. Migration notes cover
+<a href="https://aaronmgn.github.io/stonepy/latest/api/models/#request-side-variants-of-shared-dtos">request DTO conversion</a>,
+<a href="https://aaronmgn.github.io/stonepy/latest/guide/error-handling/#rejection-semantics">acknowledgement errors and affected endpoints</a>,
+<a href="https://aaronmgn.github.io/stonepy/latest/guide/configuration/#validation">configuration validation</a>,
+and <a href="https://aaronmgn.github.io/stonepy/latest/guide/extensibility/">extension migration</a>;
+resource renames are listed below.</p>
 <h3 id="added">Added<a class="headerlink" href="#added" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>status_decoder</code> can receive the endpoint <code>domain</code> keyword; legacy two-argument callables
-  remain supported, including replacement after client construction.</li>
-<li>Session managers expose atomic generation/header snapshots and manual-logon commits.</li>
+  remain supported, including replacement after client construction.
+  Migrate existing two-argument <code>StatusDecoder</code> annotations to <code>LegacyStatusDecoder</code> from
+  <code>stonepy._core.status</code>; <code>StatusDecoder</code> is now a protocol requiring <code>domain</code>.
+  Signature normalization raises <code>TypeError("status_decoder must accept (status, status_reason) or (status, status_reason, *, domain)")</code>
+  when an inspectable signature accepts neither form; uninspectable signatures retain
+  two-argument invocation.</li>
+<li><code>CallContext.utc_now</code> provides an injectable UTC source for HTTP-date <code>Retry-After</code>
+  interpretation. <code>FakeClock</code> gained a timezone-aware <code>utc_start</code> argument and <code>utcnow()</code>;
+  pass <code>clock.utcnow</code> as <code>utc_now</code> to drive HTTP-date retries with virtual time.</li>
 <li>Public exceptions support pickle round-trips with arguments and diagnostic attributes intact.</li>
 <li>Added <code>client_application</code>, <code>fixed_margin</code>, and <code>trading_advisor</code> client properties and
   <code>order.get_order_including_closed(order_id, client_account_id)</code> on both clients.</li>
 <li>Public <code>stonepy.extensions</code> exports <code>BaseResource</code>, <code>CallContext</code>, <code>EndpointSpec</code>, <code>Param</code>,
   <code>AuthPolicy</code>, and <code>StatusDomain</code>. Clients and resources expose a read-only <code>call_context</code>
   property for explicitly constructed resources.</li>
-<li>Export <code>ClientConfigOverrides</code>, a TypedDict for typed <code>ClientConfig.from_env()</code> keyword
-  overrides, and add consumer typing probes plus a non-blocking pyright CI job.</li>
+<li>Export <code>ClientConfigOverrides</code>, a TypedDict used by <code>ClientConfig.from_env()</code> through
+  <code>Unpack</code> so static checkers can reject unknown keywords and incompatible values. Annotate
+  dynamic override dictionaries with <code>ClientConfigOverrides</code>. Consumer typing probes and an
+  advisory pyright CI job were added; the job is non-blocking and currently reports 8 diagnostics.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>BREAKING:</strong> <code>ClientConfig</code> repr omits <code>app_key</code>, <code>password</code>, and <code>proxy</code>.</li>
-<li><strong>BREAKING:</strong> <code>ClientConfig.from_env()</code> uses dataclass defaults for fields not provided by the
-  environment or overrides, and rejects unknown override names even when their value is <code>None</code>.</li>
-<li>Secret redaction uses one <code>SECRET_KEYS</code> vocabulary for mappings, headers,
-  URL queries, and models.</li>
-<li>Source distribution includes are anchored to the package and release metadata.</li>
-<li>Endpoint generation rejects unresolved response types and unreviewed missing response contracts
-  before deleting output, including when unresolved catalog references are otherwise allowed.</li>
-<li><strong>BREAKING:</strong> INSTRUCTION, ORDER, and EXECUTION_TEXT acknowledgements with missing, empty,
-  null, boolean, or malformed statuses raise <code>OrderStatusUnknownError</code> before model validation;
-  its <code>status</code> may be <code>None</code>. Raw checks follow the model's first-wins key remapping, and the
-  validated model must retain a usable status. <code>status_decoder=None</code> bypasses acknowledgement
-  checks, but an empty acknowledgement body still raises <code>ResponseParseError</code> during validation.</li>
-<li><strong>BREAKING:</strong> <code>delete_user_preference</code>, <code>save_user_preference</code>, and <code>save_pa</code> return
-  <code>UnspecifiedResponse</code>, retaining unexpected object fields in <code>model_extra</code>.</li>
-<li><strong>BREAKING:</strong> Async invocation requires an async transport and clock. Sending through an
-  <code>AsyncTransport</code> after <code>aclose()</code> raises <code>RuntimeError</code>, including if it was never used.</li>
-<li><strong>BREAKING:</strong> <code>ClientConfig</code> validates base URLs, numeric types, ranges, and finiteness on
-  construction, raising builtin <code>TypeError</code> or <code>ValueError</code>.</li>
-<li><strong>BREAKING:</strong> Package version, default user agent, build metadata, and plugin compatibility
-  checks use the single version source in <code>stonepy/_version.py</code>.</li>
-<li><strong>BREAKING:</strong> The internal <code>safe_repr</code> helper redacts mapping keys and uses ordinary repr for
-  other objects; <code>ClientConfig</code> protects its secrets through dataclass field omission.</li>
 <li><strong>BREAKING:</strong> Request DTOs that embed shared DTOs now use strict <code>Request&lt;Name&gt;</code> variants;
   unknown keys and tolerant instances in request positions raise <code>ValidationError</code>. Variant keys
   must be the exact alias or Python name. The original tolerant DTOs remain available. Mappings:
@@ -11041,51 +11060,87 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>OrderRequestDTO</code> -&gt; <code>RequestOrderRequestDTO</code>,
   <code>PreferenceDTO</code> -&gt; <code>RequestPreferenceDTO</code>,
   <code>Timestamp</code> -&gt; <code>RequestTimestamp</code>.</li>
-<li><strong>BREAKING:</strong> The pydantic minimum is now 2.12 on Python 3.14; earlier Python versions
+<li><strong>BREAKING:</strong> INSTRUCTION, ORDER, and EXECUTION_TEXT acknowledgements with missing, empty,
+  null, boolean, or malformed statuses raise <code>OrderStatusUnknownError</code> before model validation;
+  its <code>status</code> may be <code>None</code>. Empty acknowledgement bodies also raise this error. Raw checks
+  follow the model's first-wins key remapping, and the validated model must retain a usable
+  status. <code>status_decoder=None</code> bypasses acknowledgement checks, but an empty acknowledgement
+  body still raises <code>ResponseParseError</code> during validation.</li>
+<li><strong>BREAKING:</strong> <code>preference.delete_user_preference</code>, <code>preference.save_user_preference</code>, and
+  <code>price_alert.save_pa</code> return <code>stonepy.UnspecifiedResponse</code>; import it with
+  <code>from stonepy import UnspecifiedResponse</code> for annotations or <code>isinstance()</code> checks.
+  Empty bodies and JSON null become empty models; unexpected object fields are retained in
+  <code>model_extra</code>. The private <code>PassthroughResponseModel</code> was renamed to this class.</li>
+<li><strong>BREAKING:</strong> <code>ClientConfig</code> validates base URLs, numeric types, ranges, and finiteness on
+  construction, raising builtin <code>TypeError</code> or <code>ValueError</code>.</li>
+<li><strong>BREAKING:</strong> <code>ClientConfig</code> repr omits <code>app_key</code>, <code>password</code>, and <code>proxy</code>.</li>
+<li><strong>BREAKING:</strong> Async paths require an <code>AsyncClock</code>. <code>CallContext.ainvoke()</code> requires a
+  transport with <code>asend()</code> and no longer falls back to synchronous invocation; synchronous-only
+  clocks or transports raise <code>TypeError</code>. For hand-built contexts using <code>AsyncSessionManager</code>,
+  supply an <code>alogon</code> callable returning an awaitable: when refresh needs that callback,
+  <code>alogon=None</code> raises <code>TypeError</code> instead of falling back to synchronous <code>logon</code>.
+  Prefer reusing <code>AsyncStoneXClient.call_context</code>.</li>
+<li><strong>BREAKING:</strong> Sending through an <code>AsyncTransport</code> after <code>aclose()</code> raises <code>RuntimeError</code>,
+  including if it was never used.</li>
+<li><strong>BREAKING:</strong> The pydantic minimum is now 2.12 on Python 3.14 and newer; earlier Python versions
   retain the 2.7 minimum.</li>
+<li>Package version, default user agent, and build metadata use the single version source in
+  <code>stonepy/_version.py</code>.</li>
+<li>The internal <code>safe_repr</code> helper redacts secret-named mapping values and uses ordinary repr
+  for other objects.</li>
+<li>Source distribution includes are anchored to the package and release metadata.</li>
+<li>Endpoint generation rejects unresolved response types and unreviewed missing response contracts
+  before deleting endpoint output, including when unresolved catalog references are otherwise allowed.</li>
+<li>Request-type generation rejects unsupported compound request parameter annotations embedding
+  non-root DTOs and catalog names that collide with a generated request variant.
+  Before regenerating, use supported request DTO bindings and resolve colliding catalog names.</li>
 <li>Coverage now measures branches, and pre-commit hooks run ruff, format, and mypy through
   the locked uv environment.</li>
 <li>CI uses <code>uv sync --locked</code> and uv 0.12.10, checks client-regeneration drift, and requires
-  lowest-direct dependency tests on Python 3.11 and 3.14 plus an installed-wheel smoke test.</li>
+  lowest-direct dependency tests on Python 3.11 and 3.14 plus the complete installed-wheel
+  smoke test directory.</li>
 <li>Releases use pinned uv and verification tools from the locked environment, require the
   same-commit reusable CI workflow, and publish exactly the verified artifacts after checking
   source, tag, and distribution versions.</li>
 <li>Documentation deployment validates strictly before publishing, and manual release versions
   must match an existing tag and its source version.</li>
-<li><strong>BREAKING:</strong> Live tests require <code>STONEX_LIVE=1</code>, an allowlisted HTTPS host and port, and
-  <code>STONEX_LIVE_CLIENT_ACCOUNT_ID</code>; a session-wide account assertion runs before any live test.</li>
-<li>GetPA live probes compare query and body filters using temporary alert ids, check the
-  production binding, and clean up by id. Strict live xfails now cover only contract mismatches.</li>
-<li><strong>BREAKING:</strong> <code>ClientConfig.from_env()</code> now exposes typed keyword names and values through
-  <code>Unpack[ClientConfigOverrides]</code>; static checkers reject unknown keys and incompatible values.
-  Annotate dynamic override dictionaries with <code>ClientConfigOverrides</code>. Invalid non-None <code>base_url</code>
-  overrides now reach constructor validation and raise <code>TypeError("base_url must be a string")</code>
-  instead of <code>AttributeError</code>.</li>
-<li>Document that the bundled generator requires dev tools and the repository <code>pyproject.toml</code>;
-  run generator commands from a source checkout or editable install. The generator stays in the wheel.</li>
+<li>Live tests require <code>STONEX_LIVE=1</code>, credentials, an allowlisted HTTPS host and port, and
+  <code>STONEX_LIVE_CLIENT_ACCOUNT_ID</code> matching the first returned client account. Missing credentials
+  or the account id fail collection after opt-in; disallowed targets or account mismatches fail
+  at setup. Runs without <code>STONEX_LIVE=1</code> skip live tests.
+  Configure contributor runs using the <a href="https://github.com/aaronmgn/stonepy/blob/main/CONTRIBUTING.md#live-tests">live-test recipe</a>.</li>
 </ul>
 <h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>BREAKING:</strong> <code>clientapplication</code>, <code>fixedmargin</code>, <code>tradingadvisor</code>, and
+<li><code>clientapplication</code>, <code>fixedmargin</code>, <code>tradingadvisor</code>, and
   <code>order_including_closed</code> client properties now emit <code>DeprecationWarning</code>. Migrate to
   <code>client_application</code>, <code>fixed_margin</code>, <code>trading_advisor</code>, and
-  <code>client.order.get_order_including_closed</code>, respectively.</li>
+  <code>client.order.get_order_including_closed</code>, respectively.
+  The old names still work, but their warnings become errors under <code>-W error</code> or
+  <code>filterwarnings = ["error"]</code>.</li>
 </ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Removed the private <code>BucketedSlidingWindowLimiter</code> and <code>PassthroughResponseModel</code> helpers.</li>
 <li><strong>BREAKING:</strong> Removed entry-point plugin discovery, <code>ClientConfig.enable_plugins</code>,
   <code>ClientConfig.allow_overrides</code>, <code>client.plugin()</code>, <code>requires_stonepy</code>, and <code>ABI_VERSION</code>.
   Remove plugin registrations and configuration; import <code>BaseResource</code> from
   <code>stonepy.extensions</code> and construct <code>MyResource(client.call_context)</code> instead.</li>
+<li>Removed the private <code>BucketedSlidingWindowLimiter</code> helper.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
-<li>Authentication replay uses an atomic generation/header snapshot, preventing a
-  peer refresh from causing a stale token to be replayed without refreshing it.</li>
-<li>Manual logon snapshots its validated request and commits its token and replay
+<li><strong>BREAKING:</strong> <code>price_alert.get_pa</code> now sends its filters in the query string. A demo API
+  probe confirmed that query <code>alertId</code> filtered the results while the previous body binding
+  returned both probe alerts regardless of it.</li>
+<li>Session managers expose atomic generation/header snapshots, which authentication replay
+  uses to prevent a peer refresh from causing a stale token to be replayed without refreshing it.</li>
+<li>Manual logon snapshots its validated request; session managers commit its token and replay
   callback together. The callback survives logoff and is replaced only by a successful manual
   logon; failed refreshes leave session state intact and only successful refreshes coalesce.</li>
+<li><code>ClientConfig.from_env()</code> uses dataclass defaults for fields not provided by the environment
+  or overrides. Unknown override names still raise <code>TypeError</code>, even when their value is <code>None</code>.
+  Invalid non-None <code>base_url</code> overrides now reach constructor validation and raise
+  <code>TypeError("base_url must be a string")</code> instead of <code>AttributeError</code>.</li>
 <li>Generator Ruff formatting is independent of the current working directory and uses the
   source checkout's absolute project configuration.</li>
 <li><code>--allow-unfrozen-catalog</code> no longer silently skips override-consumption validation;
@@ -11098,22 +11153,26 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   nested order lifecycle status values.</li>
 <li>Clarify frozen-catalog endpoint coverage, authentication replay with zero retries, non-2xx
   ErrorCode 4011 handling, and httpx request logging at INFO in the documentation.</li>
+<li>Document that the bundled generator requires dev tools and the repository <code>pyproject.toml</code>;
+  run generator commands from a source checkout or editable install. The generator stays in the wheel.</li>
 <li>Bound session concurrency test waits and isolate live preference and watchlist round-trips
   with per-test names.</li>
-<li><strong>BREAKING:</strong> Opted-in live runs fail collection when required settings are missing;
-  runs without <code>STONEX_LIVE=1</code> continue to skip live tests.</li>
-<li>Require full commit SHA pins for workflow actions and run the complete installed-wheel
-  smoke test directory.</li>
-<li><strong>BREAKING:</strong> <code>price_alert.get_pa</code> now sends its filters in the query string, where the
-  demo API honors <code>alertId</code>; the previous body binding returned every alert regardless of it.</li>
-<li>MD-M5 live probes classify known contract rejections, including HTTP 404, as restricted
-  expected failures while preserving authentication, throttling, server, and transport failures.</li>
+<li>Require full commit SHA pins for workflow actions.</li>
+<li>GetPA live probes compare query and body filters using temporary alert ids, check the
+  production binding, and clean up by id.</li>
+<li>Strict live xfails restrict expected failures to contract mismatches. MD-M5 probes classify
+  known contract rejections, including HTTP 404, while preserving authentication, throttling,
+  server, and transport failures.</li>
 </ul>
 <h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>BREAKING:</strong> Validation errors, parse errors, and fallback API errors no longer echo inputs
-  or response bodies in ordinary exception text; plugin load warnings omit exception messages.</li>
 <li><strong>BREAKING:</strong> <code>ClientConfig</code> rejects <code>base_url</code> values containing embedded credentials.</li>
+<li><strong>BREAKING:</strong> DTO validation errors hide input values; response parse errors report validation locations
+  and types or a generic decode failure. Fallback API errors report the reason phrase and body
+  length instead of echoing the body; raw bodies remain available in diagnostic attributes.
+  Use structured exception attributes instead of matching exception text.</li>
+<li>Secret redaction uses one <code>SECRET_KEYS</code> vocabulary for mappings, headers, URL queries,
+  and generated model representations.</li>
 </ul>
 <h2 id="041-2026-08-29"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.4.1">0.4.1</a> - 2026-08-29<a class="headerlink" href="#041-2026-08-29" title="Permanent link">&para;</a></h2>
 <h3 id="added_1">Added<a class="headerlink" href="#added_1" title="Permanent link">&para;</a></h3>

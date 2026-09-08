@@ -9790,12 +9790,19 @@ DTO naming follows the upstream API:</p>
 <ul>
 <li>endpoint request DTOs often end in <code>RequestDTO</code> or <code>RequestDTOv2</code>,</li>
 <li>response DTOs often end in <code>ResponseDTO</code> or <code>ResponseDTOv2</code>,</li>
-<li>shared DTOs have strict request-side twins named <code>Request&lt;Name&gt;</code>.</li>
+<li>shared DTOs used in requests have strict request-side twins named <code>Request&lt;Name&gt;</code>.</li>
 </ul>
-<p>Because every model is fully typed, your editor autocompletes each field and <code>mypy</code> validates your
-payloads. Every model carries a description and per-field documentation sourced from the upstream
-API; the same prose feeds editor tooltips and each model's JSON schema (<code>model_json_schema()</code>).</p>
-<p>Every model has its own page under <a href="../reference/models/"><strong>All models</strong></a>, grouped into request
+<p>Model annotations support editor autocomplete and static checks; Pydantic performs runtime payload
+validation. See the <a href="../../installation/#type-checking-pep-561">constructor typing notes</a> for current
+checker limitations. Generated DTOs carry descriptions and per-field documentation sourced from
+the upstream API; the same prose feeds editor tooltips and each model's JSON schema
+(<code>model_json_schema()</code>).</p>
+<p><code>preference.delete_user_preference</code>, <code>preference.save_user_preference</code>, and <code>price_alert.save_pa</code>
+return <code>stonepy.UnspecifiedResponse</code> because their catalog records document no response body.
+Import it with <code>from stonepy import UnspecifiedResponse</code> for annotations or <code>isinstance()</code> checks.
+Empty bodies and JSON null produce an empty model; unexpected object fields are preserved in
+<code>model_extra</code>.</p>
+<p>Every generated DTO has its own page under <a href="../reference/models/"><strong>All models</strong></a>, grouped into request
 models, response models, enums, and other models. A few common examples:</p>
 <h2 id="session">Session<a class="headerlink" href="#session" title="Permanent link">&para;</a></h2>
 <ul>
@@ -9819,6 +9826,14 @@ corresponding variant or supply a mapping, including when passing a request body
 Variants accept only the exact alias or Python field name (no case-insensitive remap). For example,
 <code>RequestApiStopLimitOrderDTOv2</code> accepts <code>TriggerPrice</code> and <code>trigger_price</code>, but rejects <code>triggerPrice</code>.
 Response models continue to accept case-insensitive keys and ignore unknown nested fields.</p>
+<p>To convert a tolerant instance you already hold, dump its aliases and validate the result:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApiIfDoneDTOv2</span><span class="p">,</span> <span class="n">RequestApiIfDoneDTOv2</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">existing</span> <span class="o">=</span> <span class="n">ApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">({</span><span class="s2">"Stop"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"TriggerPrice"</span><span class="p">:</span> <span class="s2">"1.25"</span><span class="p">}})</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">request_if_done</span> <span class="o">=</span> <span class="n">RequestApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">by_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</code></pre></div>
+<p>A dump cannot recover fields the tolerant parse already discarded. Rebuild from the original
+input when you need to detect or correct those fields before sending a request.</p>
 <table>
 <thead>
 <tr>

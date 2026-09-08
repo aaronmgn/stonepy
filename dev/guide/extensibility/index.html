@@ -9779,12 +9779,20 @@
 <a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>    <span class="n">response</span> <span class="o">=</span> <span class="n">resource</span><span class="o">.</span><span class="n">health</span><span class="p">()</span>
 </code></pre></div>
 <p>For an async resource, define <code>async def health</code> and use
-<code>return await self.call_context.ainvoke(_HEALTH)</code> with an <code>AsyncStoneXClient</code> context.</p>
+<code>return await self.call_context.ainvoke(_HEALTH)</code>. Prefer reusing
+<code>AsyncStoneXClient.call_context</code>, which already supplies the async components and logon callback.
+If you assemble the context yourself, async invocation requires a transport with <code>asend()</code> and
+an <code>AsyncClock</code>-capable clock with <code>asleep()</code>. For a context using <code>AsyncSessionManager</code>, also
+provide an <code>alogon</code> callable that returns an awaitable: when refresh needs that callback,
+<code>alogon=None</code> raises <code>TypeError</code> instead of falling back to synchronous <code>logon</code>.
+Synchronous-only clocks or transports also raise <code>TypeError</code>; <code>ainvoke()</code> no longer falls back
+to synchronous invocation.</p>
 <p>The <code>call_context</code> properties are read-only references to mutable, shared call state. Reusing a
 client's context shares its authentication, rate limiter, retry policy, and transport. Complete
 resource calls before closing that client; constructing a resource does not transfer transport
 ownership. The <code>stonepy.extensions</code> module docstring also shows explicit <code>CallContext</code> construction.</p>
-<p>To migrate from entry-point plugins, remove the <code>stonepy.resources</code> entry-point registration,
+<p>Entry-point plugin discovery and registration support have been removed. To migrate, remove
+the <code>stonepy.resources</code> entry-point registration,
 <code>enable_plugins</code>, <code>allow_overrides</code>, <code>requires_stonepy</code>, and <code>ABI_VERSION</code>, and replace
 <code>client.plugin("name")</code> with <code>MyResource(client.call_context)</code>.</p>
 <p>For business-status customization, see <a href="../configuration/#supplying-a-custom-status_decoder">custom status decoders</a>.</p>

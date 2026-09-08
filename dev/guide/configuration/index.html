@@ -10279,9 +10279,10 @@ validation rules below apply.</p>
 builtin <code>TypeError</code>; invalid values raise builtin <code>ValueError</code>.</p>
 <ul>
 <li><code>base_url</code> must be a non-blank string without surrounding whitespace, with an <code>http</code> or <code>https</code>
-  scheme, a hostname, a valid port, and no embedded username or password.</li>
-<li>Timeouts, <code>rate_limit_window_seconds</code>, and <code>proactive_refresh_seconds</code> must be finite positive
-  integers or floats.</li>
+  scheme, a hostname, and no embedded username or password. An explicit port must be in <code>1..65535</code>.</li>
+<li><code>connect_timeout</code>, <code>read_timeout</code>, <code>write_timeout</code>, <code>pool_timeout</code>,
+  <code>rate_limit_window_seconds</code>, and <code>proactive_refresh_seconds</code> must be finite positive integers
+  or floats.</li>
 <li><code>max_connections</code> and <code>rate_limit_max</code> must be positive integers; <code>max_retries</code> must be a
   non-negative integer.</li>
 <li><code>retry_budget_seconds</code> must be a finite non-negative number. Booleans are rejected for all
@@ -10300,6 +10301,11 @@ top-level numeric decision. Both callable signatures are supported:</p>
 </code></pre></div>
 <p>A decoder receives the endpoint's <code>INSTRUCTION</code> or <code>ORDER</code> domain through the <code>domain</code> keyword
 when its signature accepts it. Legacy two-argument callables retain their calling convention.
+For existing two-argument decoder annotations, use <code>LegacyStatusDecoder</code> from
+<code>stonepy._core.status</code>; <code>StatusDecoder</code> is now a protocol whose signature includes <code>domain</code>.
+An inspectable signature that accepts neither supported form raises
+<code>TypeError("status_decoder must accept (status, status_reason) or (status, status_reason, *, domain)")</code>.
+If signature inspection itself fails, the decoder is called with two arguments.
 The signature is inspected once per callable identity; replacing <code>config.status_decoder</code> after
 client construction takes effect on the next response. Runtime exceptions from a decoder propagate
 without retrying the callable. <code>StatusDecision</code> is <code>BusinessStatus | bool | str | None</code>.</p>
