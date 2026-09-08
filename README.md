@@ -3,19 +3,20 @@
 [![PyPI version](https://img.shields.io/pypi/v/stonepy.svg)](https://pypi.org/project/stonepy/)
 [![Python versions](https://img.shields.io/pypi/pyversions/stonepy.svg)](https://pypi.org/project/stonepy/)
 [![CI](https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml/badge.svg)](https://github.com/aaronmgn/stonepy/actions/workflows/ci.yml)
-[![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://aaronmgn.github.io/stonepy/)
+[![Docs](https://img.shields.io/badge/docs-online-blue.svg)](https://aaronmgn.github.io/stonepy/latest/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://github.com/aaronmgn/stonepy/blob/main/LICENSE)
 
 Python client for the StoneX (CIAPI) v2 trading API.
 
-📖 **Documentation:** <https://aaronmgn.github.io/stonepy/>
+📖 **Documentation:** <https://aaronmgn.github.io/stonepy/latest/>
 
 ## Features
 
 - **Typed models.** Request and response DTO bodies are
   [Pydantic](https://docs.pydantic.dev/) v2 models; some methods take primitive parameters or
-  return bare scalars or lists. The package ships a `py.typed` marker, so editors autocomplete
-  fields and type checkers can check your calls. See the
+  return bare scalars or lists. The package ships a `py.typed` marker and generated model stubs,
+  so editors autocomplete fields and mypy and pyright accept snake_case or wire-alias
+  constructor keywords. See the
   [constructor typing notes](https://aaronmgn.github.io/stonepy/latest/installation/#type-checking-pep-561)
   for current limitations.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
@@ -28,8 +29,10 @@ Python client for the StoneX (CIAPI) v2 trading API.
 > **Project status:** `stonepy` is pre-1.0 (alpha). The public API may change between minor
 > releases until 1.0; pin a version for production use.
 
-When upgrading, migrate shared request DTOs to `Request<Name>` variants, replace entry-point
-plugins with explicitly constructed resources, and update deprecated resource names. See the
+When upgrading, await async-session mutators in extension code and ensure request-field
+assignments pass validation. If migrating from an older release, also use `Request<Name>`
+variants for shared request DTOs, replace entry-point plugins with explicitly constructed
+resources, and update deprecated resource names. See the
 [release notes](https://aaronmgn.github.io/stonepy/latest/changelog/),
 [model guide](https://aaronmgn.github.io/stonepy/latest/api/models/), and
 [extensibility guide](https://aaronmgn.github.io/stonepy/latest/guide/extensibility/)
@@ -180,7 +183,10 @@ Important subclasses include `AuthenticationError`, `RateLimitError`,
 `OrderRejectedError`, `OrderStatusUnknownError`, `ResponseParseError`, `StoneXAPIError`, and
 `TransportError`.
 
-Unknown fields in nested request DTOs raise Pydantic `ValidationError` before sending an order.
+Unknown fields in nested request DTOs raise Pydantic `ValidationError` during validation.
+Request DTOs also validate direct field assignments; in-place edits to nested containers remain
+unguarded, and submission does not deeply revalidate existing models. See
+[assignment validation](https://aaronmgn.github.io/stonepy/latest/api/models/#assignment-validation).
 With the default status checks, an order acknowledgement without a usable status raises
 `OrderStatusUnknownError`; verify the order state before resubmitting.
 
@@ -210,7 +216,7 @@ print(page.total_number_of_results)
 ## API Reference
 
 Full documentation - the guides and a complete API reference - is published at
-<https://aaronmgn.github.io/stonepy/>.
+<https://aaronmgn.github.io/stonepy/latest/>.
 
 ## Development
 

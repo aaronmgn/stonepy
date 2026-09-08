@@ -11,8 +11,9 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 
 - **Typed models.** Request and response DTO bodies are
   [Pydantic](https://docs.pydantic.dev/) models; some methods take primitive parameters or return
-  bare scalars or lists. Your editor autocompletes model fields and type checkers can check your
-  calls, subject to the [constructor typing limitations](installation.md#type-checking-pep-561).
+  bare scalars or lists. Generated model stubs let mypy and pyright check snake_case or wire-alias
+  constructor keywords, subject to the
+  [constructor typing limitations](installation.md#type-checking-pep-561).
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
 - **Complete coverage.** All 128 endpoints of the frozen catalog revision (`CATALOG_VERSION`)
   are bound, using the v2 variant of every endpoint that has one.
@@ -74,8 +75,11 @@ and newer.
 
 Continue with the [Quickstart](quickstart.md), or jump to the [API reference](api/client.md).
 
-When upgrading, use the strict `Request<Name>` DTO variants for shared request data, replace
-entry-point plugins with explicitly constructed resources, and update deprecated resource names.
+When upgrading, await async-session mutators in extension code and ensure request-field
+assignments pass validation. In-place edits to nested containers remain unguarded; see
+[assignment validation](api/models.md#assignment-validation). If migrating from an older release,
+also use strict `Request<Name>` DTO variants for shared request data, replace entry-point plugins
+with explicitly constructed resources, and update deprecated resource names.
 See the [model migration notes](api/models.md#request-side-variants-of-shared-dtos),
 [extensibility guide](guide/extensibility.md), and [changelog](changelog.md) for details.
 

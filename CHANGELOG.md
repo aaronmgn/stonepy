@@ -7,26 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-08
+
+Async session updates are safer, request fields are checked when reassigned, and concurrent
+first access shares a single client resource instance. Extension code must await async-session
+mutators, and request-building code must assign valid values instead of relying on later server
+validation. See the migration notes for
+[async session mutation](https://aaronmgn.github.io/stonepy/latest/guide/extensibility/)
+and [request assignment validation](https://aaronmgn.github.io/stonepy/latest/api/models/#assignment-validation).
+
+### Added
+
+- Distributions include 286 generated companion model stubs supporting construction with
+  snake_case names or wire aliases under both mypy and pyright. Use one naming convention per
+  call: mixed spellings remain a static error although they are valid at runtime. Stubs are not
+  imported at runtime. The wheel is approximately 716 KiB.
+
 ### Changed
 
-- The required pyright CI job now checks all of `src` and `tests`, retaining strict mypy
-  and the public response types without suppressing diagnostics.
 - **BREAKING:** `AsyncSessionManager.set_token()`, `clear()`, and `refresh()` now raise
   `TypeError` instead of mutating state without the async lock, where an in-flight refresh could
   overwrite them. Extension code can reach the manager through `client.call_context.session`;
   migrate to `await manager.aset_token(token, username)`, `await manager.aclear(...)`, and
-  `await manager.arefresh(seen_generation, do_logon)` with an awaitable logon callback.
-  Synchronous read accessors remain available.
+  `await manager.arefresh(seen_generation, do_logon)` with a no-argument async callback returning
+  a token string or `(token, username)` pair; `arefresh()` returns `None`. For a manually seeded
+  token that needs its own callback for a 401 refresh/replay, use
+  `await manager.acommit(token, username, alogon)`; `aset_token()` does not install that callback.
+  The [extension guide](https://aaronmgn.github.io/stonepy/latest/guide/extensibility/) shows
+  generation capture and type narrowing. Synchronous read accessors remain available.
 - **BREAKING:** Request DTOs now validate direct attribute assignment, raising Pydantic
-  `ValidationError` locally for invalid values previously left for the server to reject.
-  Models remain mutable, and valid assignments still serialize normally. A13 is only partially
-  addressed: in-place container edits, such as appending to a nested list, are not intercepted.
-  All nested models reachable from shipped request DTOs validate their own field assignments.
-  An extension-defined request may embed a model without assignment validation; the parent
-  cannot validate that model's field assignments. No submission-time deep revalidation is added.
-- Distributions now include 286 generated companion model stubs, increasing wheel size by
-  approximately 43%, to support both constructor spellings in type checkers. Runtime import
-  cost is unchanged; stubs provide this support without inline constructor overloads.
+  `ValidationError` for invalid values that previously bypassed local assignment checks.
+  Unknown-attribute assignment now raises `ValidationError` with error type `no_such_attribute`
+  instead of a plain `ValueError` and its old message; `except ValueError` still works, but exact
+  type checks and message matching can break.
+  Literal wrong-typed assignments to typed DTOs were already mypy errors; audit dynamically
+  supplied values, `Any`, unchecked code, and suppressed diagnostics for the runtime change.
+  Models remain mutable, and accepted values may be coerced by field validation. All nested
+  models reachable from shipped request DTOs validate their own field assignments. In-place
+  container edits, such as appending to a nested list, remain unguarded, as do
+  `model_copy(update=...)` and direct `__dict__` writes; validate plain mappings with nested
+  mappings/lists using `model_validate(...)` for validated updates. Reassigning or validating
+  an existing DTO instance does not deeply revalidate its internals; extension-defined nested
+  models need their own assignment validation. No submission-time deep revalidation is added.
+- The pyright CI job is now required and runs `pyright src tests`, model stubtest, and selected
+  consumer typing cases on Python 3.12. Strict mypy remains required. Stub/field parity tests
+  check runtime model fields and aliases; catalog freshness requires the manual drift workflow.
+- Updated the documentation deployment action, `actions/deploy-pages`, from 5.0.0 to 5.0.1.
 
 ### Fixed
 
@@ -34,14 +60,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   lazy, and deprecated aliases retain their warnings and return the canonical resource.
 - The `models`, `endpoints`, `contract`, `client`, and `all` generator commands stage and format
   their complete output before publication. `all` shares one transaction across models/stubs,
-  endpoints, contracts, and client/resources. Failures preserve the previous files, and publication
-  errors roll back already replaced paths.
-  Interrupts reconcile actual filesystem state, failed restores retain recovery backups, and
-  symlinked resource trees are rejected before generation can write through them. Recovery
-  workspaces are excluded from distributions.
-- Generated model construction with snake_case names or wire aliases now type-checks under
-  both mypy and pyright. A single call that mixes alias and snake_case keywords is still a
-  static error although it is valid at runtime.
+  endpoints, contracts, and client/resources. Staging failures preserve previous files;
+  publication errors trigger rollback, with recovery backups retained if restoration fails.
+  Symlinked resource trees are rejected, and recovery workspaces are excluded from distributions.
+  Publication is not atomic across directories: concurrent readers can observe rename windows,
+  and process termination may require manual recovery. Concurrent filesystem writers are
+  unsupported; `scaffold` is outside this transaction support.
 - Source distributions now include the test suite, generator fixtures, scripts, catalog pin,
   lockfile, and configuration/documentation assets read by the suite, so downstream packagers
   can run tests offline with development dependencies installed. Release artifact checks reject
@@ -571,7 +595,8 @@ resource renames are listed below.
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.6.0
 [0.5.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.5.0
 [0.4.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.1
 [0.4.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.0

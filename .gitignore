@@ -19,6 +19,7 @@ PLAN_*_CLAUDE.md
 REVIEW_*_CODEX.md
 REVIEW_*_CLAUDE.md
 IMPLEMENTATION_PLAN_*.md
+TASK_NOTES*.md
 
 .uv-cache/
 .superpowers/

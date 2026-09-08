@@ -23,7 +23,7 @@ Import it with `from stonepy import UnspecifiedResponse` for annotations or `isi
 Empty bodies and JSON null produce an empty model; unexpected object fields are preserved in
 `model_extra`.
 
-Every generated DTO has its own page under [**All models**](../reference/models/), grouped into request
+Every generated DTO has its own page in the **All models** navigation section, grouped into request
 models, response models, enums, and other models. A few common examples:
 
 ## Session
@@ -37,10 +37,59 @@ models, response models, enums, and other models. A few common examples:
 - [`NewStopLimitOrderRequestDTO`](../reference/models/NewStopLimitOrderRequestDTO.md)
 - [`CancelOrderRequestDTO`](../reference/models/CancelOrderRequestDTO.md)
 
+## Assignment validation
+
+Request DTOs remain mutable, but direct field assignments now run Pydantic validation.
+Invalid values raise `ValidationError` immediately; accepted values may be coerced using the
+same field rules as construction. To migrate, assign valid values at each step instead of
+temporarily storing invalid values for later correction or server validation. Valid assignments,
+including to previously unset fields, are included when the request is serialized.
+Literal wrong-typed assignments to typed DTOs were already mypy errors before this release;
+focus the runtime audit on dynamically supplied values, `Any`, unchecked code, and suppressed
+diagnostics. Assigning an unknown attribute now raises `ValidationError` with error type
+`no_such_attribute`, replacing the previous plain `ValueError` and its message; `except ValueError`
+still catches it, but exact exception-type checks and message matching must be updated.
+
+Every nested model reachable from the shipped request DTOs validates its own field assignments.
+For example, assigning an invalid `market_id` on a watchlist item raises `ValidationError`.
+In-place container edits such as `request.watchlist.items.append(...)` are not intercepted.
+Replace the list through its field when you need its new contents validated.
+
+```python
+from stonepy.models import RequestApiClientAccountWatchlistItemDTO, SaveWatchlistRequestDTO
+
+request = SaveWatchlistRequestDTO.model_validate(
+    {"ClientAccountId": 1, "Watchlist": {"Items": [{"MarketId": 7}]}}
+)
+new_items = list(request.watchlist.items or [])
+new_items.append(RequestApiClientAccountWatchlistItemDTO(market_id=8))
+request.watchlist.items = new_items
+```
+
+Reassigning an existing DTO instance, including an item in a replacement list, does not deeply
+revalidate its internals. Other ways to bypass validation include `model_copy(update=...)` and
+direct `__dict__` writes. For validated updates, pass a plain mapping containing nested mappings
+and lists to `model_validate(...)`, rather than an existing DTO instance:
+
+```python
+data = request.model_dump(mode="python", by_alias=True)
+data["ClientAccountId"] = 2
+request = SaveWatchlistRequestDTO.model_validate(data)
+```
+
+Here the dump converts the existing DTO tree to plain data before the updated data is validated.
+When auditing data already changed through a validation bypass, prefer rebuilding from the
+original input mapping; serialization of invalid model contents can warn or fail.
+
+An extension-defined nested model must enable assignment validation in its own configuration;
+its parent cannot intercept writes to that model's fields. Request submission does not deeply
+revalidate existing model instances. Response models do not gain assignment validation.
+
 ## Request-side variants of shared DTOs
 
 Request roots subclass `RequestModel` and reject unknown fields. Shared nested DTOs use
-`RequestVariantModel` twins so request validation stays strict at every nesting level. Their
+`RequestVariantModel` twins so construction and direct field assignment reject unknown fields
+at every nesting level, subject to the validation bypasses above. Their
 original `ResponseModel` classes remain tolerant and retain their names, aliases, defaults,
 field documentation, and secret-field representation settings. Variants preserve those field
 settings and all-optional defaults while rejecting unknown keys with `ValidationError`.

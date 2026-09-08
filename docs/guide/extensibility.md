@@ -63,6 +63,47 @@ changing state or running a logon callback. Synchronous read accessors remain av
 Use `ainvoke()` with an async session manager: a hand-built context passed to `invoke()` raises
 `TypeError` if it tries to refresh that manager. Synchronous contexts should use `SessionManager`.
 
+The callback takes no arguments and resolves to either a token string (retaining the current
+username) or a `(token, username)` pair: `Callable[[], Awaitable[str | tuple[str, str]]]`.
+`arefresh()` returns `None`; it updates the manager or reuses a peer's newer generation.
+Capture `seen_generation` before deciding to refresh so concurrent callers can share that result.
+`client.call_context.session` is typed as `SessionManager | AsyncSessionManager`, even on an
+async client. Neither `AsyncSessionManager` nor the `SessionRefreshResult` alias is re-exported
+by `stonepy` or `stonepy.extensions`; the example explicitly depends on the internal
+`stonepy._core.session` module to narrow the union:
+
+```python
+from collections.abc import Awaitable, Callable
+
+from stonepy import AsyncStoneXClient
+from stonepy._core.session import AsyncSessionManager
+
+
+async def refresh_session(
+    client: AsyncStoneXClient,
+    fetch_session: Callable[[], Awaitable[tuple[str, str]]],
+) -> None:
+    manager = client.call_context.session
+    assert isinstance(manager, AsyncSessionManager)
+    seen_generation = await manager.ageneration()
+
+    async def do_logon() -> str | tuple[str, str]:
+        return await fetch_session()
+
+    await manager.arefresh(seen_generation, do_logon)  # Returns None.
+```
+
+Supply `fetch_session` as your async credential-acquisition function. It runs while the manager's
+lock is held, so it must obtain credentials independently of this manager; calling this client's
+`session.log_on()` or another manager mutator inside the callback would reacquire that lock.
+To avoid an internal import, define a runtime-checkable `Protocol` with the `ageneration()` and
+`arefresh()` signatures above and narrow with `isinstance(manager, YourProtocol)` instead.
+
+When seeding a manual token that needs its own callback for a 401 refresh/replay, use
+`await manager.acommit(token, username, alogon)` to install both together; `aset_token()` leaves
+any existing manual callback unchanged and does not install one on a fresh manager.
+An installed manual callback takes precedence over the callback passed to `arefresh()`.
+
 The `call_context` properties are read-only references to mutable, shared call state. Reusing a
 client's context shares its authentication, rate limiter, retry policy, and transport. Complete
 resource calls before closing that client; constructing a resource does not transfer transport
