@@ -71,7 +71,7 @@ def _enum_fallback(rec: TypeRecord) -> str:
     return f"StoneX CIAPI v2 {rec.catalog_name} enumeration."
 
 
-def format_python(source: str) -> str:
+def format_python(source: str, *, stub: bool = False) -> str:
     """Return Ruff-formatted and import-sorted Python source."""
 
     if not RUFF_CONFIG_PATH.is_file():
@@ -82,14 +82,15 @@ def format_python(source: str) -> str:
         raise RuntimeError("ruff is required to format generated source") from exc
 
     ruff_bin = ruff.find_ruff_bin()
-    formatted = _format_with_ruff(source, ruff_bin)
-    formatted = _sort_imports_with_ruff(formatted, ruff_bin)
-    return _format_with_ruff(formatted, ruff_bin)
+    filename = "generated.pyi" if stub else "generated.py"
+    formatted = _format_with_ruff(source, ruff_bin, filename)
+    formatted = _sort_imports_with_ruff(formatted, ruff_bin, filename)
+    return _format_with_ruff(formatted, ruff_bin, filename)
 
 
-def _format_with_ruff(source: str, ruff_bin: str) -> str:
+def _format_with_ruff(source: str, ruff_bin: str, filename: str) -> str:
     with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / "generated.py"
+        path = Path(tmp) / filename
         path.write_text(source, encoding="utf-8")
         result = subprocess.run(
             [ruff_bin, "format", "--config", str(RUFF_CONFIG_PATH), str(path)],
@@ -103,9 +104,9 @@ def _format_with_ruff(source: str, ruff_bin: str) -> str:
         return path.read_text(encoding="utf-8")
 
 
-def _sort_imports_with_ruff(source: str, ruff_bin: str) -> str:
+def _sort_imports_with_ruff(source: str, ruff_bin: str, filename: str) -> str:
     with tempfile.TemporaryDirectory() as tmp:
-        path = Path(tmp) / "generated.py"
+        path = Path(tmp) / filename
         path.write_text(source, encoding="utf-8")
         result = subprocess.run(
             [
@@ -158,8 +159,13 @@ def render_model(
     emitted_name: str | None = None,
     request_variants: Mapping[str, str] | None = None,
     request_variant: bool = False,
+    stub: bool = False,
 ) -> str:
-    """Render a generated Pydantic model class for a datatype record."""
+    """Render runtime source or a companion stub from the same resolved model metadata.
+
+    Stubs retain the fields, aliases, defaults, bases, and documentation of the runtime
+    class, adding only constructor overloads. Base-class methods remain inherited.
+    """
 
     from stonepy._generator.request_graph import rewrite_request_annotation
 
@@ -177,11 +183,13 @@ def render_model(
     if request_variants is not None:
         for field in fields:
             field.annotation = rewrite_request_annotation(field.annotation, request_variants)
+    signatures = _constructor_signatures(fields) if stub and fields else []
     annotations = [field.annotation for field in fields]
     imports = _model_imports(
         annotations=annotations,
         base_model=base_model,
         uses_field=bool(fields),
+        uses_overloads=len(signatures) > 1,
         uses_unresolved=any(field.uses_unresolved for field in fields),
         enum_names=set(enum_names) if enum_names is not None else None,
         known_names=known_names | set((request_variants or {}).values()),
@@ -216,8 +224,41 @@ def render_model(
         if field.doc:
             lines.append(field.doc)
 
-    lines.append(f"\n\n{emitted_name}.model_rebuild(raise_errors=False)\n")
-    return format_python("".join(lines))
+    if stub and fields:
+        lines.append(_render_constructors(fields, signatures))
+
+    if not stub:
+        lines.append(f"\n\n{emitted_name}.model_rebuild(raise_errors=False)\n")
+    return format_python("".join(lines), stub=stub)
+
+
+def _constructor_signatures(fields: list[_RenderedField]) -> list[tuple[str, ...]]:
+    # Wire aliases such as "Price Tolerance" (and Python keywords) cannot be keyword
+    # parameters. Use the Python field name in the alias signature for those fields.
+    aliases = tuple(
+        field.alias
+        if field.alias.isidentifier() and not keyword.iskeyword(field.alias)
+        else field.name
+        for field in fields
+    )
+    names = tuple(field.name for field in fields)
+    return list(dict.fromkeys((aliases, names)))
+
+
+def _render_constructors(fields: list[_RenderedField], signatures: list[tuple[str, ...]]) -> str:
+    # dataclass_transform exposes only one spelling per field. Companion stubs supply both
+    # without adding code objects or a custom constructor to the runtime model modules.
+    lines = ["\n"]
+    for names in signatures:
+        # A lone @overload is invalid: identical forms need one ordinary typed signature.
+        if len(signatures) > 1:
+            lines.append("    @overload\n")
+        lines.append("    def __init__(self, *,\n")
+        for field, name in zip(fields, names, strict=True):
+            default = " = ..." if field.optional else ""
+            lines.append(f"        {name}: {field.annotation}{default},\n")
+        lines.append("    ) -> None: ...\n")
+    return "".join(lines)
 
 
 def render_enum(rec: TypeRecord) -> str:
@@ -257,12 +298,16 @@ class _RenderedField:
         self,
         *,
         name: str,
+        alias: str,
+        optional: bool,
         annotation: str,
         field_expr: str,
         uses_unresolved: bool,
         doc: str = "",
     ) -> None:
         self.name = name
+        self.alias = alias
+        self.optional = optional
         self.annotation = annotation
         self.field_expr = field_expr
         self.uses_unresolved = uses_unresolved
@@ -371,6 +416,8 @@ def _model_fields(
         rendered.append(
             _RenderedField(
                 name=name,
+                alias=raw_name,
+                optional=optional,
                 annotation=annotation,
                 field_expr=field_expr,
                 uses_unresolved="Unresolved" in _annotation_tokens(annotation),
@@ -420,6 +467,7 @@ def _model_imports(
     annotations: list[str],
     base_model: str,
     uses_field: bool,
+    uses_overloads: bool,
     uses_unresolved: bool,
     enum_names: set[str] | None,
     known_names: set[str],
@@ -439,6 +487,8 @@ def _model_imports(
         typing_imports.append("Any")
     if known_model_deps:
         typing_imports.append("TYPE_CHECKING")
+    if uses_overloads:
+        typing_imports.append("overload")
     if typing_imports:
         lines.append(f"from typing import {', '.join(typing_imports)}\n")
 

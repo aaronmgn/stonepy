@@ -30,6 +30,12 @@ uv build
 uv run twine check dist/*
 ```
 
+The required Python 3.12 typing job also runs `uv run pyright tests src/stonepy/models`,
+`uv run python -m mypy.stubtest stonepy.models`, and the pyright consumer cases selected by
+`uv run pytest -m pyright tests/test_consumer_typing.py`. The interpreter matrix excludes those
+pyright cases to avoid repeating checker subprocesses. Model stub/field parity runs in the
+ordinary test suite; stubtest alone cannot verify Pydantic field types or aliases.
+
 Coverage measures `src/stonepy/_core`, `_generator`, `resources` (without `_sync` and
 `__init__.py`), `_endpoints`, and `stonepy.client`; `stonepy.models` is generated and excluded.
 
@@ -92,9 +98,9 @@ The model reference pages under "API reference > Models" are generated from `sto
 The generator ships in the wheel but needs the dev tools (`ruff`, `unasync`)
 and the repository `pyproject.toml`; run it from a source checkout or editable install.
 
-Models, endpoint bindings, contract tests, `client.py`, resource `__init__.py` files, and
-`_sync` resource files are generated from the StoneX catalog. **Do not edit them by hand** -
-regenerate them instead:
+Models and their companion `.pyi` stubs, endpoint bindings, contract tests, `client.py`,
+resource `__init__.py` files, and `_sync` resource files are generated from the StoneX catalog.
+**Do not edit them by hand** - regenerate them instead:
 
 ```bash
 export STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog
@@ -105,6 +111,11 @@ The catalog lives in a separate repository; `CATALOG_VERSION` records the pinned
 generator has no machine-specific catalog fallback. Set `STONEPY_CATALOG` as above, or pass
 `--catalog-root /path/to/stonex_api_docs/Docs/catalog` on each catalog-consuming command; the CLI
 flag takes precedence over the environment variable.
+
+The catalog-free `generated-client` CI job regenerates only client/resource aggregation; it
+does not regenerate or check model stubs. Full model/stub regeneration drift is checked by the
+manual `drift.yml` workflow, which needs the private catalog. Ordinary CI checks stub ownership,
+runtime parity, and static validity, but cannot establish freshness against that catalog.
 
 ## Adding Resource Methods
 

@@ -20,6 +20,21 @@ def _version(metadata: bytes) -> str:
     return versions[0]
 
 
+def _check_model_stubs(members: list[str], prefix: str, artifact: str) -> set[str]:
+    model_files = {Path(name).name for name in members if name.startswith(prefix + "models/")}
+    runtime = {Path(name).stem for name in model_files if name.endswith(".py")} - {
+        "__init__",
+        "enums",
+    }
+    stubs = {Path(name).stem for name in model_files if name.endswith(".pyi")}
+    if not runtime or stubs != runtime:
+        raise ValueError(
+            f"{artifact} model stubs differ: missing={sorted(runtime - stubs)}, "
+            f"unexpected={sorted(stubs - runtime)}"
+        )
+    return stubs
+
+
 def check_artifacts(
     dist_dir: Path, *, source_version: str, tag: str | None = None
 ) -> dict[str, str]:
@@ -53,6 +68,7 @@ def check_artifacts(
             raise ValueError("wheel must contain exactly one stonepy/py.typed marker")
         if "stonepy/_generator/__init__.py" not in members:
             raise ValueError("wheel must include stonepy/_generator/__init__.py")
+        wheel_stubs = _check_model_stubs(members, "stonepy/", "wheel")
         metadata = [name for name in members if name.endswith(".dist-info/METADATA")]
         if len(metadata) != 1:
             raise ValueError("wheel must contain exactly one METADATA file")
@@ -73,6 +89,12 @@ def check_artifacts(
         ]
         if len(pkg_info) != 1 or not pkg_info[0].isfile():
             raise ValueError("sdist must contain exactly one root PKG-INFO file")
+        prefix = f"{Path(pkg_info[0].name).parts[0]}/src/stonepy/"
+        source_names = [member.name for member in source_members if member.isfile()]
+        if source_names.count(prefix + "py.typed") != 1:
+            raise ValueError("sdist must contain exactly one stonepy/py.typed marker")
+        if _check_model_stubs(source_names, prefix, "sdist") != wheel_stubs:
+            raise ValueError("wheel and sdist model stubs differ")
         metadata_file = source_archive.extractfile(pkg_info[0])
         if metadata_file is None:
             raise ValueError("sdist PKG-INFO is not readable")

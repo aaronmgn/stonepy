@@ -49,7 +49,7 @@ uv add stonepy
 
 Requires Python >= 3.11 and pydantic >= 2.7 (< 3.0), with pydantic >= 2.12 on Python 3.14
 and newer. `stonepy` ships type information (PEP 561 `py.typed`) that `mypy` and `pyright`
-discover automatically; pyright CI is currently advisory.
+discover automatically; both checkers participate in the required CI checks.
 
 ## Quickstart
 

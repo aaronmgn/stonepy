@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Distributions now include 286 generated companion model stubs, increasing wheel size by
+  approximately 43%, to support both constructor spellings in type checkers. Runtime import
+  cost is unchanged; stubs provide this support without inline constructor overloads.
+
+### Fixed
+
+- Generated model construction with snake_case names or wire aliases now type-checks under
+  both mypy and pyright. A single call that mixes alias and snake_case keywords is still a
+  static error although it is valid at runtime.
+
 ## [0.5.0] - 2026-09-08
 
 This release makes order handling safer: unknown nested request fields that were silently

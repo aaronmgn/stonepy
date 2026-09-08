@@ -26,6 +26,8 @@ def _artifacts(
     wheel_members = {
         "stonepy/__init__.py": b"",
         "stonepy/py.typed": b"",
+        "stonepy/models/ExampleDTO.py": b"",
+        "stonepy/models/ExampleDTO.pyi": b"",
         "stonepy/_generator/__init__.py": b"",
         "stonepy-0.4.1.dist-info/METADATA": f"Name: stonepy\nVersion: {wheel_version}\n".encode(),
     }
@@ -37,6 +39,9 @@ def _artifacts(
     source_members = {
         "stonepy-0.4.1/PKG-INFO": f"Name: stonepy\nVersion: {sdist_version}\n".encode(),
         "stonepy-0.4.1/src/stonepy/__init__.py": b"",
+        "stonepy-0.4.1/src/stonepy/py.typed": b"",
+        "stonepy-0.4.1/src/stonepy/models/ExampleDTO.py": b"",
+        "stonepy-0.4.1/src/stonepy/models/ExampleDTO.pyi": b"",
     }
     source_members.update(dict.fromkeys(sdist_extra, b""))
     with tarfile.open(sdist, "w:gz") as source_archive:
@@ -100,6 +105,9 @@ def test_release_artifacts_require_exactly_one_wheel_and_sdist(
     ("omit", "message"),
     [
         ("stonepy/py.typed", "py.typed"),
+        ("stonepy/models/ExampleDTO.pyi", "wheel model stubs"),
+        ("stonepy-0.4.1/src/stonepy/models/ExampleDTO.pyi", "sdist model stubs"),
+        ("stonepy-0.4.1/src/stonepy/py.typed", "py.typed"),
         ("stonepy/_generator/__init__.py", "_generator"),
         ("stonepy-0.4.1.dist-info/METADATA", "METADATA"),
         ("stonepy-0.4.1/PKG-INFO", "PKG-INFO"),
@@ -115,6 +123,8 @@ def test_release_artifacts_require_package_members(tmp_path: Path, omit: str, me
     ("wheel_extra", "sdist_extra", "message"),
     [
         (("duplicate/stonepy/py.typed",), (), "py.typed"),
+        (("stonepy/models/Unexpected.pyi",), (), "wheel model stubs"),
+        ((), ("stonepy-0.4.1/src/stonepy/models/Unexpected.pyi",), "sdist model stubs"),
         (("extra.dist-info/METADATA",), (), "METADATA"),
         ((), ("extra/PKG-INFO",), "PKG-INFO"),
         ((), ("stonepy-0.4.1/.uv-cache/wheels/foo",), ".uv-cache"),
