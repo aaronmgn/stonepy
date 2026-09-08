@@ -4,6 +4,7 @@ import ast
 import os
 import subprocess
 import sys
+from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, call
@@ -243,7 +244,7 @@ def test_strict_live_xfails_have_raises_restrictions() -> None:
                 )
 
 
-@pytest.mark.parametrize("status", [400, 401, 403, 404, 405, 415, 429, 500])
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 405, 415, 429, 500, 503])
 @pytest.mark.parametrize("error_type", [StoneXAPIError, AuthenticationError])
 def test_live_contract_mismatch_restricts_http_failures(
     status: int, error_type: type[StoneXAPIError]
@@ -260,6 +261,14 @@ def test_live_contract_mismatch_restricts_http_failures(
     mismatch = as_contract_mismatch(exc)
     expected = error_type is StoneXAPIError and status in {400, 404, 405, 415}
     assert isinstance(mismatch, ExpectedLiveContractMismatch) is expected
+    probe = Mock(side_effect=exc)
+    raised_type = ExpectedLiveContractMismatch if expected else error_type
+    with pytest.raises(raised_type) as exc_info:
+        probes.test_md_m5_live_shape_candidate(Mock(spec=StoneXClient), {}, probe)
+    if expected:
+        assert exc_info.value.__cause__ is exc
+    else:
+        assert exc_info.value is exc
 
 
 def test_live_contract_mismatch_restricts_non_http_failures() -> None:
@@ -278,6 +287,44 @@ def test_live_contract_mismatch_restricts_non_http_failures() -> None:
     assert as_contract_mismatch(AssertionError("bug")) is None
 
 
+@pytest.mark.parametrize(
+    "exc",
+    [
+        ResponseParseError(
+            phase="validate",
+            http_status=200,
+            method="GET",
+            path="/probe",
+            raw_body=b"",
+            message="shape",
+        ),
+        TransportError("down", method="GET", path="/probe", attempt=0),
+        AssertionError("bug"),
+    ],
+    ids=["parse", "transport", "assertion"],
+)
+def test_md_m5_probe_restricts_non_http_failures(exc: Exception) -> None:
+    probe = Mock(side_effect=exc)
+    is_mismatch = isinstance(exc, ResponseParseError)
+    raised_type = ExpectedLiveContractMismatch if is_mismatch else type(exc)
+    with pytest.raises(raised_type) as exc_info:
+        probes.test_md_m5_live_shape_candidate(Mock(spec=StoneXClient), {}, probe)
+    if is_mismatch:
+        assert exc_info.value.__cause__ is exc
+    else:
+        assert exc_info.value is exc
+
+
+@pytest.mark.parametrize("value", [[], {}, None])
+def test_md_m5_probe_still_requires_a_list(value: object) -> None:
+    probe = Mock(return_value=value)
+    if isinstance(value, list):
+        probes.test_md_m5_live_shape_candidate(Mock(spec=StoneXClient), {}, probe)
+    else:
+        with pytest.raises(ExpectedLiveContractMismatch, match="expected list"):
+            probes.test_md_m5_live_shape_candidate(Mock(spec=StoneXClient), {}, probe)
+
+
 def _probe_client() -> Mock:
     client = Mock(spec=StoneXClient)
     client._ctx = Mock()
@@ -291,10 +338,10 @@ def _probe_client() -> Mock:
     return client
 
 
-@pytest.mark.parametrize("query_fails", [False, True])
+@pytest.mark.parametrize("query_outcome", ["filtered", "unfiltered", "error"])
 @pytest.mark.parametrize("body_honors_filter", [False, True])
 def test_get_pa_probe_records_both_bindings_and_checks_production(
-    capsys: pytest.CaptureFixture[str], query_fails: bool, body_honors_filter: bool
+    capsys: pytest.CaptureFixture[str], query_outcome: str, body_honors_filter: bool
 ) -> None:
     client = _probe_client()
     filtered = PriceAlertResponseDTO.model_validate({"PriceAlerts": [{"AlertId": 101}]})
@@ -302,15 +349,15 @@ def test_get_pa_probe_records_both_bindings_and_checks_production(
         {"PriceAlerts": [{"AlertId": 101}, {"AlertId": 102}]}
     )
     client._ctx.invoke.side_effect = [
-        RuntimeError("query failed") if query_fails else filtered,
+        {"filtered": filtered, "unfiltered": unfiltered, "error": RuntimeError("query failed")}[
+            query_outcome
+        ],
         filtered if body_honors_filter else unfiltered,
     ]
-    production_location = GET_PA_SPEC.params[0].location
-    production_honors = body_honors_filter if production_location == "body" else not query_fails
-    if production_honors:
+    if query_outcome == "filtered":
         probes.test_get_pa_selected_binding_honors_filters(client, {"cid": 123, "mid": 456})
     else:
-        with pytest.raises(AssertionError, match=f"production GetPA {production_location} binding"):
+        with pytest.raises(AssertionError, match="production GetPA query binding"):
             probes.test_get_pa_selected_binding_honors_filters(client, {"cid": 123, "mid": 456})
     output = capsys.readouterr().out
     assert "location='query'" in output and "location='body'" in output
@@ -327,6 +374,21 @@ def test_get_pa_probe_records_both_bindings_and_checks_production(
         call(alert_id=101, client_account_id=123),
         call(alert_id=102, client_account_id=123),
     ]
+
+
+@pytest.mark.parametrize("index", [0, 1])
+def test_get_pa_probe_rejects_either_production_filter_in_body(
+    monkeypatch: pytest.MonkeyPatch, index: int
+) -> None:
+    params = tuple(
+        replace(param, location="body") if position == index else param
+        for position, param in enumerate(GET_PA_SPEC.params)
+    )
+    monkeypatch.setattr(probes, "GET_PA_SPEC", replace(GET_PA_SPEC, params=params))
+    client = _probe_client()
+    with pytest.raises(AssertionError, match="production GetPA must bind both filters to query"):
+        probes.test_get_pa_selected_binding_honors_filters(client, {"cid": 123, "mid": 456})
+    client.price_alert.save_price_alert.assert_not_called()
 
 
 def test_get_pa_probe_cleans_up_if_second_creation_fails() -> None:

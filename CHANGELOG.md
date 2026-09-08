@@ -112,6 +112,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runs without `STONEX_LIVE=1` continue to skip live tests.
 - Require full commit SHA pins for workflow actions and run the complete installed-wheel
   smoke test directory.
+- **BREAKING:** `price_alert.get_pa` now sends its filters in the query string, where the
+  demo API honors `alertId`; the previous body binding returned every alert regardless of it.
+- MD-M5 live probes classify known contract rejections, including HTTP 404, as restricted
+  expected failures while preserving authentication, throttling, server, and transport failures.
 
 ### Security
 

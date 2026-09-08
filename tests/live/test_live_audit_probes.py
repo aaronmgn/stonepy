@@ -88,7 +88,13 @@ def _top_holder_users(client: StoneXClient, market_id: int) -> object:
 def test_md_m5_live_shape_candidate(
     client: StoneXClient, ids: dict[str, int], probe: ShapeProbe
 ) -> None:
-    value = probe(client, ids)
+    try:
+        value = probe(client, ids)
+    except StoneXError as exc:
+        mismatch = as_contract_mismatch(exc)
+        if mismatch is None:
+            raise
+        raise mismatch from exc
     if not isinstance(value, list):
         raise ExpectedLiveContractMismatch(f"expected list, received {type(value).__name__}")
 
@@ -144,6 +150,15 @@ def _delete_probe_alerts(
 
 
 def test_get_pa_selected_binding_honors_filters(client: StoneXClient, ids: dict[str, int]) -> None:
+    """Verify query filtering while continuing to observe the catalog body binding.
+
+    Host run 34211196782 on 2026-09-08 returned HTTP 200 for both bindings: query
+    honored alertId (9036111), while body returned both run alerts (9036111, 9036112).
+    """
+    assert [(param.name, param.location) for param in GET_PA_SPEC.params] == [
+        ("alertId", "query"),
+        ("ClientAccountId", "query"),
+    ], "production GetPA must bind both filters to query"
     alert_ids: list[int] = []
     try:
         for _ in range(2):
