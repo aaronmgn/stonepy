@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import warnings
 from collections.abc import Awaitable, Callable
+from threading import Lock
 from types import TracebackType
 
 from stonepy._core.clock import Clock, SystemClock
@@ -166,6 +167,7 @@ class StoneXClient:
 
     def __init__(self, config: ClientConfig) -> None:
         self._ctx, self._transport = _build_context(config)
+        self._resource_lock = Lock()
         self._cfd: CfdResource | None = None
         self._client_preference: ClientPreferenceResource | None = None
         self._client_application: ClientapplicationResource | None = None
@@ -199,21 +201,27 @@ class StoneXClient:
     def cfd(self) -> CfdResource:
         """Return the cfd resource group."""
         if self._cfd is None:
-            self._cfd = CfdResource(self._ctx)
+            with self._resource_lock:
+                if self._cfd is None:
+                    self._cfd = CfdResource(self._ctx)
         return self._cfd
 
     @property
     def client_preference(self) -> ClientPreferenceResource:
         """Return the client_preference resource group."""
         if self._client_preference is None:
-            self._client_preference = ClientPreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._client_preference is None:
+                    self._client_preference = ClientPreferenceResource(self._ctx)
         return self._client_preference
 
     @property
     def client_application(self) -> ClientapplicationResource:
         """Return the client_application resource group."""
         if self._client_application is None:
-            self._client_application = ClientapplicationResource(self._ctx)
+            with self._resource_lock:
+                if self._client_application is None:
+                    self._client_application = ClientapplicationResource(self._ctx)
         return self._client_application
 
     @property
@@ -230,14 +238,18 @@ class StoneXClient:
     def clientpreference(self) -> ClientpreferenceResource:
         """Return the clientpreference resource group."""
         if self._clientpreference is None:
-            self._clientpreference = ClientpreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._clientpreference is None:
+                    self._clientpreference = ClientpreferenceResource(self._ctx)
         return self._clientpreference
 
     @property
     def fixed_margin(self) -> FixedmarginResource:
         """Return the fixed_margin resource group."""
         if self._fixed_margin is None:
-            self._fixed_margin = FixedmarginResource(self._ctx)
+            with self._resource_lock:
+                if self._fixed_margin is None:
+                    self._fixed_margin = FixedmarginResource(self._ctx)
         return self._fixed_margin
 
     @property
@@ -254,35 +266,45 @@ class StoneXClient:
     def margin(self) -> MarginResource:
         """Return the margin resource group."""
         if self._margin is None:
-            self._margin = MarginResource(self._ctx)
+            with self._resource_lock:
+                if self._margin is None:
+                    self._margin = MarginResource(self._ctx)
         return self._margin
 
     @property
     def market(self) -> MarketResource:
         """Return the market resource group."""
         if self._market is None:
-            self._market = MarketResource(self._ctx)
+            with self._resource_lock:
+                if self._market is None:
+                    self._market = MarketResource(self._ctx)
         return self._market
 
     @property
     def message(self) -> MessageResource:
         """Return the message resource group."""
         if self._message is None:
-            self._message = MessageResource(self._ctx)
+            with self._resource_lock:
+                if self._message is None:
+                    self._message = MessageResource(self._ctx)
         return self._message
 
     @property
     def news(self) -> NewsResource:
         """Return the news resource group."""
         if self._news is None:
-            self._news = NewsResource(self._ctx)
+            with self._resource_lock:
+                if self._news is None:
+                    self._news = NewsResource(self._ctx)
         return self._news
 
     @property
     def order(self) -> OrderResource:
         """Return the order resource group."""
         if self._order is None:
-            self._order = OrderResource(self._ctx)
+            with self._resource_lock:
+                if self._order is None:
+                    self._order = OrderResource(self._ctx)
         return self._order
 
     @property
@@ -295,49 +317,63 @@ class StoneXClient:
             stacklevel=2,
         )
         if self._order_including_closed is None:
-            self._order_including_closed = OrderIncludingClosedResource(self._ctx)
+            with self._resource_lock:
+                if self._order_including_closed is None:
+                    self._order_including_closed = OrderIncludingClosedResource(self._ctx)
         return self._order_including_closed
 
     @property
     def pm(self) -> PmResource:
         """Return the pm resource group."""
         if self._pm is None:
-            self._pm = PmResource(self._ctx)
+            with self._resource_lock:
+                if self._pm is None:
+                    self._pm = PmResource(self._ctx)
         return self._pm
 
     @property
     def preference(self) -> PreferenceResource:
         """Return the preference resource group."""
         if self._preference is None:
-            self._preference = PreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._preference is None:
+                    self._preference = PreferenceResource(self._ctx)
         return self._preference
 
     @property
     def price_alert(self) -> PriceAlertResource:
         """Return the price_alert resource group."""
         if self._price_alert is None:
-            self._price_alert = PriceAlertResource(self._ctx)
+            with self._resource_lock:
+                if self._price_alert is None:
+                    self._price_alert = PriceAlertResource(self._ctx)
         return self._price_alert
 
     @property
     def session(self) -> SessionResource:
         """Return the session resource group."""
         if self._session is None:
-            self._session = SessionResource(self._ctx)
+            with self._resource_lock:
+                if self._session is None:
+                    self._session = SessionResource(self._ctx)
         return self._session
 
     @property
     def spread(self) -> SpreadResource:
         """Return the spread resource group."""
         if self._spread is None:
-            self._spread = SpreadResource(self._ctx)
+            with self._resource_lock:
+                if self._spread is None:
+                    self._spread = SpreadResource(self._ctx)
         return self._spread
 
     @property
     def trading_advisor(self) -> TradingadvisorResource:
         """Return the trading_advisor resource group."""
         if self._trading_advisor is None:
-            self._trading_advisor = TradingadvisorResource(self._ctx)
+            with self._resource_lock:
+                if self._trading_advisor is None:
+                    self._trading_advisor = TradingadvisorResource(self._ctx)
         return self._trading_advisor
 
     @property
@@ -354,14 +390,18 @@ class StoneXClient:
     def user_account(self) -> UserAccountResource:
         """Return the user_account resource group."""
         if self._user_account is None:
-            self._user_account = UserAccountResource(self._ctx)
+            with self._resource_lock:
+                if self._user_account is None:
+                    self._user_account = UserAccountResource(self._ctx)
         return self._user_account
 
     @property
     def watchlist(self) -> WatchlistResource:
         """Return the watchlist resource group."""
         if self._watchlist is None:
-            self._watchlist = WatchlistResource(self._ctx)
+            with self._resource_lock:
+                if self._watchlist is None:
+                    self._watchlist = WatchlistResource(self._ctx)
         return self._watchlist
 
     def __enter__(self) -> StoneXClient:
@@ -391,6 +431,7 @@ class AsyncStoneXClient:
 
     def __init__(self, config: ClientConfig) -> None:
         self._ctx, self._transport = _build_async_context(config)
+        self._resource_lock = Lock()
         self._cfd: AsyncCfdResource | None = None
         self._client_preference: AsyncClientPreferenceResource | None = None
         self._client_application: AsyncClientapplicationResource | None = None
@@ -424,21 +465,27 @@ class AsyncStoneXClient:
     def cfd(self) -> AsyncCfdResource:
         """Return the cfd resource group."""
         if self._cfd is None:
-            self._cfd = AsyncCfdResource(self._ctx)
+            with self._resource_lock:
+                if self._cfd is None:
+                    self._cfd = AsyncCfdResource(self._ctx)
         return self._cfd
 
     @property
     def client_preference(self) -> AsyncClientPreferenceResource:
         """Return the client_preference resource group."""
         if self._client_preference is None:
-            self._client_preference = AsyncClientPreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._client_preference is None:
+                    self._client_preference = AsyncClientPreferenceResource(self._ctx)
         return self._client_preference
 
     @property
     def client_application(self) -> AsyncClientapplicationResource:
         """Return the client_application resource group."""
         if self._client_application is None:
-            self._client_application = AsyncClientapplicationResource(self._ctx)
+            with self._resource_lock:
+                if self._client_application is None:
+                    self._client_application = AsyncClientapplicationResource(self._ctx)
         return self._client_application
 
     @property
@@ -455,14 +502,18 @@ class AsyncStoneXClient:
     def clientpreference(self) -> AsyncClientpreferenceResource:
         """Return the clientpreference resource group."""
         if self._clientpreference is None:
-            self._clientpreference = AsyncClientpreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._clientpreference is None:
+                    self._clientpreference = AsyncClientpreferenceResource(self._ctx)
         return self._clientpreference
 
     @property
     def fixed_margin(self) -> AsyncFixedmarginResource:
         """Return the fixed_margin resource group."""
         if self._fixed_margin is None:
-            self._fixed_margin = AsyncFixedmarginResource(self._ctx)
+            with self._resource_lock:
+                if self._fixed_margin is None:
+                    self._fixed_margin = AsyncFixedmarginResource(self._ctx)
         return self._fixed_margin
 
     @property
@@ -479,35 +530,45 @@ class AsyncStoneXClient:
     def margin(self) -> AsyncMarginResource:
         """Return the margin resource group."""
         if self._margin is None:
-            self._margin = AsyncMarginResource(self._ctx)
+            with self._resource_lock:
+                if self._margin is None:
+                    self._margin = AsyncMarginResource(self._ctx)
         return self._margin
 
     @property
     def market(self) -> AsyncMarketResource:
         """Return the market resource group."""
         if self._market is None:
-            self._market = AsyncMarketResource(self._ctx)
+            with self._resource_lock:
+                if self._market is None:
+                    self._market = AsyncMarketResource(self._ctx)
         return self._market
 
     @property
     def message(self) -> AsyncMessageResource:
         """Return the message resource group."""
         if self._message is None:
-            self._message = AsyncMessageResource(self._ctx)
+            with self._resource_lock:
+                if self._message is None:
+                    self._message = AsyncMessageResource(self._ctx)
         return self._message
 
     @property
     def news(self) -> AsyncNewsResource:
         """Return the news resource group."""
         if self._news is None:
-            self._news = AsyncNewsResource(self._ctx)
+            with self._resource_lock:
+                if self._news is None:
+                    self._news = AsyncNewsResource(self._ctx)
         return self._news
 
     @property
     def order(self) -> AsyncOrderResource:
         """Return the order resource group."""
         if self._order is None:
-            self._order = AsyncOrderResource(self._ctx)
+            with self._resource_lock:
+                if self._order is None:
+                    self._order = AsyncOrderResource(self._ctx)
         return self._order
 
     @property
@@ -520,49 +581,63 @@ class AsyncStoneXClient:
             stacklevel=2,
         )
         if self._order_including_closed is None:
-            self._order_including_closed = AsyncOrderIncludingClosedResource(self._ctx)
+            with self._resource_lock:
+                if self._order_including_closed is None:
+                    self._order_including_closed = AsyncOrderIncludingClosedResource(self._ctx)
         return self._order_including_closed
 
     @property
     def pm(self) -> AsyncPmResource:
         """Return the pm resource group."""
         if self._pm is None:
-            self._pm = AsyncPmResource(self._ctx)
+            with self._resource_lock:
+                if self._pm is None:
+                    self._pm = AsyncPmResource(self._ctx)
         return self._pm
 
     @property
     def preference(self) -> AsyncPreferenceResource:
         """Return the preference resource group."""
         if self._preference is None:
-            self._preference = AsyncPreferenceResource(self._ctx)
+            with self._resource_lock:
+                if self._preference is None:
+                    self._preference = AsyncPreferenceResource(self._ctx)
         return self._preference
 
     @property
     def price_alert(self) -> AsyncPriceAlertResource:
         """Return the price_alert resource group."""
         if self._price_alert is None:
-            self._price_alert = AsyncPriceAlertResource(self._ctx)
+            with self._resource_lock:
+                if self._price_alert is None:
+                    self._price_alert = AsyncPriceAlertResource(self._ctx)
         return self._price_alert
 
     @property
     def session(self) -> AsyncSessionResource:
         """Return the session resource group."""
         if self._session is None:
-            self._session = AsyncSessionResource(self._ctx)
+            with self._resource_lock:
+                if self._session is None:
+                    self._session = AsyncSessionResource(self._ctx)
         return self._session
 
     @property
     def spread(self) -> AsyncSpreadResource:
         """Return the spread resource group."""
         if self._spread is None:
-            self._spread = AsyncSpreadResource(self._ctx)
+            with self._resource_lock:
+                if self._spread is None:
+                    self._spread = AsyncSpreadResource(self._ctx)
         return self._spread
 
     @property
     def trading_advisor(self) -> AsyncTradingadvisorResource:
         """Return the trading_advisor resource group."""
         if self._trading_advisor is None:
-            self._trading_advisor = AsyncTradingadvisorResource(self._ctx)
+            with self._resource_lock:
+                if self._trading_advisor is None:
+                    self._trading_advisor = AsyncTradingadvisorResource(self._ctx)
         return self._trading_advisor
 
     @property
@@ -579,14 +654,18 @@ class AsyncStoneXClient:
     def user_account(self) -> AsyncUserAccountResource:
         """Return the user_account resource group."""
         if self._user_account is None:
-            self._user_account = AsyncUserAccountResource(self._ctx)
+            with self._resource_lock:
+                if self._user_account is None:
+                    self._user_account = AsyncUserAccountResource(self._ctx)
         return self._user_account
 
     @property
     def watchlist(self) -> AsyncWatchlistResource:
         """Return the watchlist resource group."""
         if self._watchlist is None:
-            self._watchlist = AsyncWatchlistResource(self._ctx)
+            with self._resource_lock:
+                if self._watchlist is None:
+                    self._watchlist = AsyncWatchlistResource(self._ctx)
         return self._watchlist
 
     async def __aenter__(self) -> AsyncStoneXClient:

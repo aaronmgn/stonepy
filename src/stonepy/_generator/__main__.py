@@ -14,6 +14,7 @@ from stonepy._generator.catalog import (
     assert_catalog_frozen,
     load_catalog,
 )
+from stonepy._generator.publication import generation_transaction
 from stonepy._generator.validate_overrides import assert_override_consumption
 
 _DEFAULT_PACKAGE_DIR = Path(__file__).resolve().parents[1]
@@ -131,14 +132,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     if args.command in {"endpoints", "all"}:
         emit_endpoints.validate_response_models(catalog)
-    if args.command in {"models", "all"}:
-        emit_models.emit_all(catalog, package_dir)
-    if args.command in {"endpoints", "all"}:
-        emit_endpoints.emit_all(catalog, package_dir)
-    if args.command in {"contract", "all"}:
-        emit_contract.emit_contract_tests(catalog, project_root)
-    if args.command == "all":
-        emit_client.emit_client(args.resources_dir or package_dir / "resources", package_dir)
+    with generation_transaction() as transaction:
+        if args.command in {"models", "all"}:
+            emit_models.emit_all(catalog, package_dir, _transaction=transaction)
+        if args.command in {"endpoints", "all"}:
+            emit_endpoints.emit_all(catalog, package_dir, _transaction=transaction)
+        if args.command in {"contract", "all"}:
+            emit_contract.emit_contract_tests(catalog, project_root, _transaction=transaction)
+        if args.command == "all":
+            emit_client.emit_client(
+                args.resources_dir or package_dir / "resources",
+                package_dir,
+                _transaction=transaction,
+            )
     return 0
 
 

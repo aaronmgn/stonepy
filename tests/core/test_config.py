@@ -133,6 +133,14 @@ def test_config_rejects_invalid_base_urls(base_url: str) -> None:
         ClientConfig(base_url=base_url)
 
 
+@pytest.mark.parametrize("base_url", ["https://[bad", "https://h:secret", "https://h:0"])
+def test_invalid_url_errors_do_not_retain_parser_exception_context(base_url: str) -> None:
+    with pytest.raises(ValueError, match="base_url must have a valid host and port") as caught:
+        ClientConfig(base_url=base_url)
+    assert caught.value.__context__ is None
+    assert caught.value.__cause__ is None
+
+
 @pytest.mark.parametrize("base_url", [True, 5, None])
 def test_config_rejects_wrong_base_url_type(base_url: object) -> None:
     from typing import Any, cast

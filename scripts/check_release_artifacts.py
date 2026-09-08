@@ -47,6 +47,7 @@ SDIST_REQUIRED_FILES = (
     "tests/resources/session/test_log_on.py",
     "tests/smoke_installed/test_installed_wheel.py",
     "tests/typing/consumer_model_constructors.py",
+    "tests/typing/core_response_types.py",
     "tests/typing/from_env_overrides.py",
 )
 """Suite entry points and supporting files required for offline source-distribution tests."""
@@ -58,6 +59,11 @@ def _version(metadata: bytes) -> str:
     if len(versions) != 1 or not isinstance(versions[0], str):
         raise ValueError("artifact metadata must contain exactly one Version header")
     return versions[0]
+
+
+def _check_recovery_workspaces(members: list[str]) -> None:
+    if any(part.startswith(".stonepy-generate-") for name in members for part in Path(name).parts):
+        raise ValueError("distributions must not contain .stonepy-generate- recovery workspaces")
 
 
 def _check_model_stubs(members: list[str], prefix: str, artifact: str) -> set[str]:
@@ -101,6 +107,7 @@ def check_artifacts(
     wheel, sdist = wheels[0], sdists[0]
     with zipfile.ZipFile(wheel) as archive:
         members = archive.namelist()
+        _check_recovery_workspaces(members)
         print(f"Wheel members ({wheel.name}):")
         for name in members:
             print(name)
@@ -120,6 +127,12 @@ def check_artifacts(
 
     with tarfile.open(sdist, "r:gz") as source_archive:
         source_members = source_archive.getmembers()
+        _check_recovery_workspaces([member.name for member in source_members])
+        if any(
+            member.name.endswith("/scripts/benchmark_client_construction.py")
+            for member in source_members
+        ):
+            raise ValueError("sdist must not contain the development-only construction benchmark")
         if any(".uv-cache" in member.name for member in source_members):
             raise ValueError("sdist must not contain .uv-cache members")
         pkg_info = [

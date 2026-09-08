@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import re
-import shutil
 from collections.abc import Collection
 from pathlib import Path
 
 from stonepy._generator.catalog import Catalog, JsonObject, TypeRecord, is_enum_record, python_name
+from stonepy._generator.publication import OutputTransaction, generation_transaction
 from stonepy._generator.render import (
     BANNER,
     _annotation_tokens,
@@ -47,66 +47,68 @@ _FORCE_OPTIONAL_FIELDS: dict[str, set[str]] = {
 }
 
 
-def emit_all(catalog: Catalog, out_dir: Path) -> None:
+def emit_all(
+    catalog: Catalog, out_dir: Path, *, _transaction: OutputTransaction | None = None
+) -> None:
     """Write generated model modules under *out_dir*/models."""
 
-    graph = build_request_type_graph(catalog)
-    models_dir = out_dir / "models"
-    if models_dir.exists():
-        shutil.rmtree(models_dir)
-    models_dir.mkdir(parents=True, exist_ok=True)
+    with generation_transaction(_transaction) as transaction:
+        graph = build_request_type_graph(catalog)
+        models_dir = transaction.stage(out_dir / "models")
 
-    lookup_records = _lookup_enum_records(catalog.lookups)
-    known_names = {rec.name for rec in catalog.datatypes} | {rec.name for rec in lookup_records}
-    enum_records = [rec for rec in catalog.datatypes if is_enum_record(rec)] + lookup_records
-    enum_names = {rec.name for rec in enum_records}
-    request_types = graph.roots
-    cyclic_fields = _cyclic_ref_fields(catalog.datatypes)
+        lookup_records = _lookup_enum_records(catalog.lookups)
+        known_names = {rec.name for rec in catalog.datatypes} | {rec.name for rec in lookup_records}
+        enum_records = [rec for rec in catalog.datatypes if is_enum_record(rec)] + lookup_records
+        enum_names = {rec.name for rec in enum_records}
+        request_types = graph.roots
+        cyclic_fields = _cyclic_ref_fields(catalog.datatypes)
 
-    for rec in catalog.datatypes:
-        if is_enum_record(rec):
-            continue
-        force_optional = cyclic_fields.get(rec.name, set()) | _FORCE_OPTIONAL_FIELDS.get(
-            rec.name, set()
+        for rec in catalog.datatypes:
+            if is_enum_record(rec):
+                continue
+            force_optional = cyclic_fields.get(rec.name, set()) | _FORCE_OPTIONAL_FIELDS.get(
+                rec.name, set()
+            )
+            for suffix, stub in ((".py", False), (".pyi", True)):
+                (models_dir / f"{rec.name}{suffix}").write_text(
+                    render_model(
+                        rec,
+                        known_names,
+                        stub=stub,
+                        request_types=request_types,
+                        enum_names=enum_names,
+                        force_optional=force_optional or None,
+                        request_variants=graph.variants if rec.name in graph.roots else None,
+                    ),
+                    encoding="utf-8",
+                )
+
+        by_name = {rec.name: rec for rec in catalog.datatypes}
+        for name in sorted(graph.reachable):
+            for suffix, stub in ((".py", False), (".pyi", True)):
+                (models_dir / f"{graph.request_name(name)}{suffix}").write_text(
+                    render_model(
+                        by_name[name],
+                        known_names,
+                        stub=stub,
+                        request_types=graph.roots,
+                        enum_names=enum_names,
+                        force_optional=cyclic_fields.get(name, set())
+                        | _FORCE_OPTIONAL_FIELDS.get(name, set()),
+                        emitted_name=graph.request_name(name),
+                        request_variants=graph.variants,
+                        request_variant=True,
+                    ),
+                    encoding="utf-8",
+                )
+
+        (models_dir / "enums.py").write_text(render_enums(enum_records), encoding="utf-8")
+        (models_dir / "__init__.py").write_text(
+            _render_init(
+                _non_enum_records(catalog.datatypes), enum_records, graph.variants.values()
+            ),
+            encoding="utf-8",
         )
-        for suffix, stub in ((".py", False), (".pyi", True)):
-            (models_dir / f"{rec.name}{suffix}").write_text(
-                render_model(
-                    rec,
-                    known_names,
-                    stub=stub,
-                    request_types=request_types,
-                    enum_names=enum_names,
-                    force_optional=force_optional or None,
-                    request_variants=graph.variants if rec.name in graph.roots else None,
-                ),
-                encoding="utf-8",
-            )
-
-    by_name = {rec.name: rec for rec in catalog.datatypes}
-    for name in sorted(graph.reachable):
-        for suffix, stub in ((".py", False), (".pyi", True)):
-            (models_dir / f"{graph.request_name(name)}{suffix}").write_text(
-                render_model(
-                    by_name[name],
-                    known_names,
-                    stub=stub,
-                    request_types=graph.roots,
-                    enum_names=enum_names,
-                    force_optional=cyclic_fields.get(name, set())
-                    | _FORCE_OPTIONAL_FIELDS.get(name, set()),
-                    emitted_name=graph.request_name(name),
-                    request_variants=graph.variants,
-                    request_variant=True,
-                ),
-                encoding="utf-8",
-            )
-
-    (models_dir / "enums.py").write_text(render_enums(enum_records), encoding="utf-8")
-    (models_dir / "__init__.py").write_text(
-        _render_init(_non_enum_records(catalog.datatypes), enum_records, graph.variants.values()),
-        encoding="utf-8",
-    )
 
 
 def _cyclic_ref_fields(records: list[TypeRecord]) -> dict[str, set[str]]:

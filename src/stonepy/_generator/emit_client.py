@@ -9,6 +9,11 @@ from pathlib import Path
 
 from unasync import Rule, unasync_files  # type: ignore[import-untyped]
 
+from stonepy._generator.publication import (
+    OutputTransaction,
+    generation_transaction,
+    reject_symlinks,
+)
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 
 __all__ = ["emit_client"]
@@ -25,36 +30,42 @@ _DEPRECATED_RESOURCE_PROPERTIES: dict[str, str] = {
 }
 
 
-def emit_client(resources_dir: Path, out_dir: Path) -> None:
+def emit_client(
+    resources_dir: Path, out_dir: Path, *, _transaction: OutputTransaction | None = None
+) -> None:
     """Generate resource aggregators and client classes."""
 
+    reject_symlinks(resources_dir)
     if not resources_dir.exists():
         return
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    package_resources_dir = out_dir / "resources"
-    package_resources_dir.mkdir(parents=True, exist_ok=True)
+    with generation_transaction(_transaction) as transaction:
+        package_resources_dir = transaction.stage(out_dir / "resources", preserve=True)
+        if resources_dir.resolve() == (out_dir / "resources").resolve():
+            resources_dir = package_resources_dir
 
-    targets = _copy_resource_sources(resources_dir, package_resources_dir)
-    resource_targets = [_resource_target(target) for target in targets]
+        targets = _copy_resource_sources(resources_dir, package_resources_dir)
+        resource_targets = [_resource_target(target) for target in targets]
 
-    replacements = {
-        "aclear": "clear",
-        "acommit": "commit",
-        "ainvoke": "invoke",
-        "alogon": "logon",
-        "aset_token": "set_token",
-        **_endpoint_replacements(out_dir, resource_targets),
-    }
-    for target in resource_targets:
-        _emit_sync_mixins(target, replacements)
-        _emit_resource_init(target)
+        replacements = {
+            "aclear": "clear",
+            "acommit": "commit",
+            "ainvoke": "invoke",
+            "alogon": "logon",
+            "aset_token": "set_token",
+            **_endpoint_replacements(transaction.path(out_dir / "_endpoints"), resource_targets),
+        }
+        for target in resource_targets:
+            _emit_sync_mixins(target, replacements)
+            _emit_resource_init(target)
 
-    (package_resources_dir / "__init__.py").write_text(
-        _render_resources_init(resource_targets),
-        encoding="utf-8",
-    )
-    (out_dir / "client.py").write_text(_render_client(resource_targets), encoding="utf-8")
+        (package_resources_dir / "__init__.py").write_text(
+            _render_resources_init(resource_targets),
+            encoding="utf-8",
+        )
+        transaction.stage(out_dir / "client.py", directory=False).write_text(
+            _render_client(resource_targets), encoding="utf-8"
+        )
 
 
 class _MixinModule:
@@ -149,20 +160,19 @@ def _mixin_module(path: Path) -> _MixinModule:
 
 
 def _emit_sync_mixins(target: _ResourceTarget, replacements: dict[str, str]) -> None:
-    sync_dir = target.package_dir / "_sync"
-    if sync_dir.exists():
-        shutil.rmtree(sync_dir)
-    sync_dir.mkdir(parents=True, exist_ok=True)
-    if not target.mixins:
-        return
+    reject_symlinks(target.package_dir)
+    with generation_transaction() as transaction:
+        sync_dir = transaction.stage(target.package_dir / "_sync")
+        if not target.mixins:
+            return
 
-    rule = Rule(str(target.package_dir), str(sync_dir), replacements)
-    unasync_files([str(mixin.path) for mixin in target.mixins], [rule])
-    for sync_file in sorted(sync_dir.glob("*.py")):
-        source = sync_file.read_text(encoding="utf-8")
-        if not source.startswith(BANNER):
-            source = BANNER + source
-        sync_file.write_text(format_python(source), encoding="utf-8")
+        rule = Rule(str(target.package_dir), str(sync_dir), replacements)
+        unasync_files([str(mixin.path) for mixin in target.mixins], [rule])
+        for sync_file in sorted(sync_dir.glob("*.py")):
+            source = sync_file.read_text(encoding="utf-8")
+            if not source.startswith(BANNER):
+                source = BANNER + source
+            sync_file.write_text(format_python(source), encoding="utf-8")
 
 
 def _emit_resource_init(target: _ResourceTarget) -> None:
@@ -270,6 +280,7 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         "from __future__ import annotations\n\n",
         "import warnings\n",
         "from collections.abc import Awaitable, Callable\n",
+        "from threading import Lock\n",
         "from types import TracebackType\n\n",
         "from stonepy._core.errors import ConfigurationError\n",
         "from stonepy._core.clock import Clock, SystemClock\n",
@@ -425,6 +436,7 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
             if async_client
             else "        self._ctx, self._transport = _build_context(config)\n"
         ),
+        "        self._resource_lock = Lock()\n",
     ]
     for target in targets:
         resource_type = target.async_class_name if async_client else target.class_name
@@ -460,7 +472,9 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
                     else []
                 ),
                 f"        if self._{target.property_name} is None:\n",
-                f"            self._{target.property_name} = {resource_type}(self._ctx)\n",
+                "            with self._resource_lock:\n",
+                f"                if self._{target.property_name} is None:\n",
+                f"                    self._{target.property_name} = {resource_type}(self._ctx)\n",
                 f"        return self._{target.property_name}\n",
                 "\n",
             ]
@@ -537,9 +551,8 @@ def _async_client_lifecycle(name: str) -> list[str]:
     ]
 
 
-def _endpoint_replacements(out_dir: Path, targets: list[_ResourceTarget]) -> dict[str, str]:
+def _endpoint_replacements(endpoints_dir: Path, targets: list[_ResourceTarget]) -> dict[str, str]:
     replacements = _resource_endpoint_replacements(targets)
-    endpoints_dir = out_dir / "_endpoints"
     if not endpoints_dir.exists():
         return replacements
     for endpoint_file in sorted(endpoints_dir.glob("*.py")):

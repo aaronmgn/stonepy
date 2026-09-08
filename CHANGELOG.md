@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The required pyright CI job now checks all of `src` and `tests`, retaining strict mypy
+  and the public response types without suppressing diagnostics.
 - **BREAKING:** `AsyncSessionManager.set_token()`, `clear()`, and `refresh()` now raise
   `TypeError` instead of mutating state without the async lock, where an in-flight refresh could
   overwrite them. Extension code can reach the manager through `client.call_context.session`;
@@ -28,6 +30,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Concurrent first access to a client resource now returns one shared instance. Resources remain
+  lazy, and deprecated aliases retain their warnings and return the canonical resource.
+- The `models`, `endpoints`, `contract`, `client`, and `all` generator commands stage and format
+  their complete output before publication. `all` shares one transaction across models/stubs,
+  endpoints, contracts, and client/resources. Failures preserve the previous files, and publication
+  errors roll back already replaced paths.
+  Interrupts reconcile actual filesystem state, failed restores retain recovery backups, and
+  symlinked resource trees are rejected before generation can write through them. Recovery
+  workspaces are excluded from distributions.
 - Generated model construction with snake_case names or wire aliases now type-checks under
   both mypy and pyright. A single call that mixes alias and snake_case keywords is still a
   static error although it is valid at runtime.

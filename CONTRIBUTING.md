@@ -30,7 +30,7 @@ uv build
 uv run twine check dist/*
 ```
 
-The required Python 3.12 typing job also runs `uv run pyright tests src/stonepy/models`,
+The required Python 3.12 typing job also runs `uv run pyright src tests`,
 `uv run python -m mypy.stubtest stonepy.models`, and the pyright consumer cases selected by
 `uv run pytest -m pyright tests/test_consumer_typing.py`. The interpreter matrix excludes those
 pyright cases to avoid repeating checker subprocesses. Model stub/field parity runs in the

@@ -63,6 +63,9 @@ build-backend = "hatchling.build"
 [tool.hatch.version]
 path = "src/stonepy/_version.py"
 
+[tool.hatch.build]
+exclude = ["**/.stonepy-generate-*/**", "/scripts/benchmark_client_construction.py"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/stonepy"]
 

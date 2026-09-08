@@ -75,8 +75,10 @@ def normalize_status_decoder(
     decoder: StatusDecoder | LegacyStatusDecoder | None,
 ) -> StatusDecoder | None:
     """Adapt a decoder once, retaining its runtime exceptions without retrying it."""
-    if decoder is None or decoder is default_status_decoder:
-        return decoder
+    if decoder is None:
+        return None
+    if decoder is default_status_decoder:
+        return default_status_decoder
     if isinstance(decoder, _StatusDecoderAdapter):
         return decoder
     try:

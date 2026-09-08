@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -30,6 +29,7 @@ from stonepy._generator.emit_endpoints import (
 from stonepy._generator.emit_endpoints import _is_idempotent as _endpoint_is_idempotent
 from stonepy._generator.emit_endpoints import _params as _endpoint_params
 from stonepy._generator.emit_models import _cyclic_ref_fields, _lookup_enum_records
+from stonepy._generator.publication import OutputTransaction, generation_transaction
 from stonepy._generator.render import BANNER, field_name, format_python, resolved_field_annotation
 from stonepy._generator.request_graph import build_request_type_graph
 
@@ -38,30 +38,30 @@ __all__ = ["emit_contract_tests"]
 _PLACEHOLDER_RE = re.compile(r"\{([^{}]+)\}")
 
 
-def emit_contract_tests(catalog: Catalog, out_dir: Path) -> None:
+def emit_contract_tests(
+    catalog: Catalog, out_dir: Path, *, _transaction: OutputTransaction | None = None
+) -> None:
     """Write generated contract tests under *out_dir*/tests/contract."""
 
-    contract_dir = out_dir / "tests" / "contract"
-    if contract_dir.exists():
-        shutil.rmtree(contract_dir)
-    contract_dir.mkdir(parents=True, exist_ok=True)
+    with generation_transaction(_transaction) as transaction:
+        contract_dir = transaction.stage(out_dir / "tests" / "contract")
 
-    (contract_dir / "test_models_roundtrip.py").write_text(
-        _render_models_roundtrip(catalog),
-        encoding="utf-8",
-    )
-    (contract_dir / "test_endpoint_specs.py").write_text(
-        _render_endpoint_specs(catalog),
-        encoding="utf-8",
-    )
-    (contract_dir / "test_lookup_enums.py").write_text(
-        _render_lookup_enums(catalog),
-        encoding="utf-8",
-    )
-    (contract_dir / "test_datatype_enums.py").write_text(
-        _render_datatype_enums(catalog),
-        encoding="utf-8",
-    )
+        (contract_dir / "test_models_roundtrip.py").write_text(
+            _render_models_roundtrip(catalog),
+            encoding="utf-8",
+        )
+        (contract_dir / "test_endpoint_specs.py").write_text(
+            _render_endpoint_specs(catalog),
+            encoding="utf-8",
+        )
+        (contract_dir / "test_lookup_enums.py").write_text(
+            _render_lookup_enums(catalog),
+            encoding="utf-8",
+        )
+        (contract_dir / "test_datatype_enums.py").write_text(
+            _render_datatype_enums(catalog),
+            encoding="utf-8",
+        )
 
 
 def _render_models_roundtrip(catalog: Catalog) -> str:

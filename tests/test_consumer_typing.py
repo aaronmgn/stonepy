@@ -122,6 +122,34 @@ def test_consumer_model_constructor_typing(checker: str, tmp_path: Path) -> None
     assert error_lines == set(range(2, len(calls) + 2)), diagnosed.stdout
 
 
+@pytest.mark.parametrize(
+    "checker",
+    [
+        pytest.param("mypy", marks=_REQUIRES_MYPY),
+        pytest.param("pyright", marks=[_REQUIRES_PYRIGHT, pytest.mark.pyright]),
+    ],
+)
+def test_core_response_types_remain_precise(checker: str, tmp_path: Path) -> None:
+    fixture = ROOT / "tests/typing/core_response_types.py"
+    accepted = _mypy(fixture, tmp_path) if checker == "mypy" else _pyright(fixture)
+    assert accepted.returncode == 0, accepted.stdout + accepted.stderr
+    # A widened response would defeat these assertions; prove both checkers enforce them.
+    invalid = tmp_path / "wrong_response_types.py"
+    invalid.write_text(
+        fixture.read_text().replace(
+            "assert_type(parse_response(model, response), ApiLogOnResponseDTOv2)",
+            "assert_type(parse_response(model, response), str)",
+        )
+    )
+    diagnosed = _mypy(invalid, tmp_path) if checker == "mypy" else _pyright(invalid)
+    assert diagnosed.returncode == 1, diagnosed.stdout + diagnosed.stderr
+    assert (
+        "assert-type" in diagnosed.stdout
+        if checker == "mypy"
+        else "reportAssertTypeFailure" in diagnosed.stdout
+    )
+
+
 def test_consumer_examples_accept_valid_runtime_forms() -> None:
     config = valid_overrides()
     assert config.read_timeout == 60.0
@@ -145,7 +173,7 @@ def test_pyright_job_gates_ci() -> None:
     assert "uv python install 3.12" in job
     assert "uv sync --locked --extra dev --python 3.12" in job
     assert "uv run --locked python -m mypy.stubtest stonepy.models" in job
-    assert "uv run --locked pyright tests src/stonepy/models" in job
+    assert "uv run --locked pyright src tests" in job
     assert "-m pyright tests/test_consumer_typing.py" in job
     assert 'uv run --locked pytest --cov -m "not pyright"' in workflow
     needs = re.search(r"^    needs: \[([^]]+)\]$", aggregate, re.MULTILINE)

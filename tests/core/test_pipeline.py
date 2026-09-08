@@ -471,6 +471,8 @@ def test_parse_response_wraps_success_body_parse_failures(
     assert exc.method == "GET"
     assert exc.path == "/order/{OrderId}"
     assert exc.raw_body == response.content
+    assert exc.__context__ is None
+    assert exc.__cause__ is None
 
 
 def _list_spec() -> EndpointSpec[ListResponse[_Resp]]:

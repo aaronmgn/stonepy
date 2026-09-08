@@ -22,3 +22,4 @@ IMPLEMENTATION_PLAN_*.md
 
 .uv-cache/
 .superpowers/
+.stonepy-generate-*/
