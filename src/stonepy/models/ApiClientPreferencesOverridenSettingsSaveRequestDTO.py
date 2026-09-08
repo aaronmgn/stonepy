@@ -10,15 +10,15 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
-    from .ApiClientPreferencesOverridenSettingsSaveDTO import (
-        ApiClientPreferencesOverridenSettingsSaveDTO,
+    from .RequestApiClientPreferencesOverridenSettingsSaveDTO import (
+        RequestApiClientPreferencesOverridenSettingsSaveDTO,
     )
 
 
 class ApiClientPreferencesOverridenSettingsSaveRequestDTO(RequestModel):
     """Request to save client preferences that override default values."""
 
-    settings: ApiClientPreferencesOverridenSettingsSaveDTO = Field(alias="Settings")
+    settings: RequestApiClientPreferencesOverridenSettingsSaveDTO = Field(alias="Settings")
     """The client level overridden settings to save. This cannot be null."""
 
 

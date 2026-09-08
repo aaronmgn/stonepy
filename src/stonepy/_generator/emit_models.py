@@ -4,17 +4,21 @@ from __future__ import annotations
 
 import re
 import shutil
+from collections.abc import Collection
 from pathlib import Path
 
 from stonepy._generator.catalog import Catalog, JsonObject, TypeRecord, is_enum_record, python_name
 from stonepy._generator.render import (
     BANNER,
+    _annotation_tokens,
     format_python,
     render_docstring,
     render_enum,
     render_enums,
     render_model,
+    resolved_field_annotation,
 )
+from stonepy._generator.request_graph import build_request_type_graph, request_type_names
 
 __all__ = ["emit_all", "render_enum", "render_model"]
 
@@ -46,6 +50,7 @@ _FORCE_OPTIONAL_FIELDS: dict[str, set[str]] = {
 def emit_all(catalog: Catalog, out_dir: Path) -> None:
     """Write generated model modules under *out_dir*/models."""
 
+    graph = build_request_type_graph(catalog)
     models_dir = out_dir / "models"
     if models_dir.exists():
         shutil.rmtree(models_dir)
@@ -55,7 +60,7 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
     known_names = {rec.name for rec in catalog.datatypes} | {rec.name for rec in lookup_records}
     enum_records = [rec for rec in catalog.datatypes if is_enum_record(rec)] + lookup_records
     enum_names = {rec.name for rec in enum_records}
-    request_types = _request_type_names(catalog, known_names)
+    request_types = graph.roots
     cyclic_fields = _cyclic_ref_fields(catalog.datatypes)
 
     for rec in catalog.datatypes:
@@ -71,13 +76,31 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
                 request_types=request_types,
                 enum_names=enum_names,
                 force_optional=force_optional or None,
+                request_variants=graph.variants if rec.name in graph.roots else None,
+            ),
+            encoding="utf-8",
+        )
+
+    by_name = {rec.name: rec for rec in catalog.datatypes}
+    for name in sorted(graph.reachable):
+        (models_dir / f"{graph.request_name(name)}.py").write_text(
+            render_model(
+                by_name[name],
+                known_names,
+                request_types=graph.roots,
+                enum_names=enum_names,
+                force_optional=cyclic_fields.get(name, set())
+                | _FORCE_OPTIONAL_FIELDS.get(name, set()),
+                emitted_name=graph.request_name(name),
+                request_variants=graph.variants,
+                request_variant=True,
             ),
             encoding="utf-8",
         )
 
     (models_dir / "enums.py").write_text(render_enums(enum_records), encoding="utf-8")
     (models_dir / "__init__.py").write_text(
-        _render_init(_non_enum_records(catalog.datatypes), enum_records),
+        _render_init(_non_enum_records(catalog.datatypes), enum_records, graph.variants.values()),
         encoding="utf-8",
     )
 
@@ -92,15 +115,15 @@ def _cyclic_ref_fields(records: list[TypeRecord]) -> dict[str, set[str]]:
     recursion while leaving acyclic required refs untouched.
     """
 
-    names = {rec.name for rec in records}
+    names = {rec.name for rec in records if not is_enum_record(rec)}
     edges: dict[str, list[tuple[str, str]]] = {}
     for rec in records:
         refs: list[tuple[str, str]] = []
         for prop in rec.properties:
             field = prop.get("name")
-            ref = prop.get("ref")
-            if isinstance(field, str) and isinstance(ref, str) and ref in names:
-                refs.append((field, ref))
+            if isinstance(field, str):
+                annotation = resolved_field_annotation(rec.name, prop, names)
+                refs.extend((field, ref) for ref in sorted(_annotation_tokens(annotation) & names))
         edges[rec.name] = refs
 
     def reaches(start: str, target: str, seen: set[str]) -> bool:
@@ -125,7 +148,12 @@ def _non_enum_records(records: list[TypeRecord]) -> list[TypeRecord]:
     return [rec for rec in records if not is_enum_record(rec)]
 
 
-def _render_init(model_records: list[TypeRecord], enum_records: list[TypeRecord]) -> str:
+def _render_init(
+    model_records: list[TypeRecord],
+    enum_records: list[TypeRecord],
+    variant_names: Collection[str] = (),
+) -> str:
+    model_names = sorted([rec.name for rec in model_records] + list(variant_names))
     lines = [
         BANNER,
         render_docstring(
@@ -136,12 +164,12 @@ def _render_init(model_records: list[TypeRecord], enum_records: list[TypeRecord]
         "from __future__ import annotations\n\n",
     ]
 
-    for rec in sorted(model_records, key=lambda item: item.name):
-        lines.append(f"from .{rec.name} import {rec.name}\n")
+    for name in model_names:
+        lines.append(f"from .{name} import {name}\n")
     for rec in sorted(enum_records, key=lambda item: item.name):
         lines.append(f"from .enums import {rec.name}\n")
 
-    exported = sorted([rec.name for rec in model_records] + [rec.name for rec in enum_records])
+    exported = sorted(model_names + [rec.name for rec in enum_records])
     lines.append("\n__all__ = [\n")
     for name in exported:
         lines.append(f'    "{name}",\n')
@@ -149,8 +177,8 @@ def _render_init(model_records: list[TypeRecord], enum_records: list[TypeRecord]
 
     if model_records:
         lines.append("\nfor _model in (\n")
-        for rec in sorted(model_records, key=lambda item: item.name):
-            lines.append(f"    {rec.name},\n")
+        for name in model_names:
+            lines.append(f"    {name},\n")
         lines.append("):\n")
         lines.append("    _model.model_rebuild(_types_namespace=globals(), raise_errors=False)\n")
         lines.append("del _model\n")
@@ -158,19 +186,7 @@ def _render_init(model_records: list[TypeRecord], enum_records: list[TypeRecord]
 
 
 def _request_type_names(catalog: Catalog, known_names: set[str]) -> set[str]:
-    request_types = {
-        endpoint.request_type for endpoint in catalog.endpoints if endpoint.request_type
-    }
-    for endpoint in catalog.endpoints:
-        for param in endpoint.parameters:
-            location = param.get("in") or param.get("location")
-            if location not in {"body", "query"}:
-                continue
-            for key in ("ref", "type"):
-                raw_name = param.get(key)
-                if isinstance(raw_name, str) and python_name(raw_name) in known_names:
-                    request_types.add(python_name(raw_name))
-    return {name for name in request_types if name is not None}
+    return request_type_names(catalog, known_names)
 
 
 def _lookup_enum_records(lookups: dict[str, object]) -> list[TypeRecord]:

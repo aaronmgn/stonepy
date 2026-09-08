@@ -12,6 +12,7 @@ __all__ = [
     "ListResponse",
     "PassthroughResponseModel",
     "RequestModel",
+    "RequestVariantModel",
     "ResponseModel",
     "ScalarResponse",
     "StoneXDateTime",
@@ -42,6 +43,24 @@ class RequestModel(StoneXModel):
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="forbid")
+
+
+class RequestVariantModel(RequestModel):
+    """Strict request-side twin of a tolerant response DTO.
+
+    Rejects unknown fields and foreign model instances. Keys must be the exact wire alias or
+    Python field name; response-side case-insensitive key matching does not apply.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_foreign_model(cls, value: Any) -> Any:
+        if isinstance(value, BaseModel) and not isinstance(value, cls):
+            raise ValueError(
+                f"expected a mapping or a {cls.__name__} instance; "
+                "other model instances are not accepted in request positions"
+            )
+        return value
 
 
 class ResponseModel(StoneXModel):

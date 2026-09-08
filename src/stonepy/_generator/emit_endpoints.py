@@ -13,6 +13,7 @@ from typing import Any
 from stonepy._core.status import StatusDomain
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
+from stonepy._generator.request_graph import RequestTypeGraph, build_request_type_graph
 
 __all__ = [
     "emit_all",
@@ -354,6 +355,7 @@ def render_binding(
 def emit_all(catalog: Catalog, out_dir: Path) -> None:
     """Write generated endpoint modules under *out_dir*/_endpoints."""
 
+    request_graph = build_request_type_graph(catalog)
     endpoints_dir = out_dir / "_endpoints"
     if endpoints_dir.exists():
         shutil.rmtree(endpoints_dir)
@@ -363,7 +365,7 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
     grouped: dict[str, list[_Binding]] = {}
     for rec in catalog.endpoints:
         grouped.setdefault(target_module(rec.target), []).append(
-            _binding(rec, known_model_names=known_model_names)
+            _binding(rec, known_model_names=known_model_names, request_graph=request_graph)
         )
 
     for module_name, bindings in sorted(grouped.items()):
@@ -452,6 +454,7 @@ def _binding(
     rec: EndpointRecord,
     *,
     known_model_names: Collection[str] | None,
+    request_graph: RequestTypeGraph | None = None,
 ) -> _Binding:
     function_name = _function_name(rec)
     known_models = set(known_model_names) if known_model_names is not None else None
@@ -486,6 +489,14 @@ def _binding(
     )
     if request_model is None:
         request_model = _inferred_request_model(params, known_models)
+    if request_graph is not None:
+        if request_model is not None:
+            request_model = request_graph.request_name(request_model)
+        for param in params:
+            if param.location in {"body", "query"}:
+                param.annotation = request_graph.request_name(param.annotation)
+        if known_models is not None:
+            known_models.update(request_graph.variants.values())
     method = (rec.method or "GET").upper()
     has_body_param = any(param.location == "body" for param in params)
     request_annotation = request_model

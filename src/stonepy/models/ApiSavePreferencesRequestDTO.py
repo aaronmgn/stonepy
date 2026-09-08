@@ -10,13 +10,13 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
-    from .PreferenceDTO import PreferenceDTO
+    from .RequestPreferenceDTO import RequestPreferenceDTO
 
 
 class ApiSavePreferencesRequestDTO(RequestModel):
     """List of preferences to save."""
 
-    preferences: list[PreferenceDTO] | None = Field(default=None, alias="Preferences")
+    preferences: list[RequestPreferenceDTO] | None = Field(default=None, alias="Preferences")
     """List of user preferences"""
 
 

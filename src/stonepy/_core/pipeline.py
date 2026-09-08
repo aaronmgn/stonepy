@@ -178,6 +178,12 @@ class CallContext:
         """
         path_params_dict = dict(path_params or {})
         query_dict = dict(query or {})
+        if (
+            spec.request_model is not None
+            and isinstance(body, BaseModel)
+            and not isinstance(body, spec.request_model)
+        ):
+            cast(type[BaseModel], spec.request_model).model_validate(body)
         body_dict = _body_to_dict(body)
         attempt = 0
         auth_refresh_used = False
@@ -281,6 +287,12 @@ class CallContext:
 
         path_params_dict = dict(path_params or {})
         query_dict = dict(query or {})
+        if (
+            spec.request_model is not None
+            and isinstance(body, BaseModel)
+            and not isinstance(body, spec.request_model)
+        ):
+            cast(type[BaseModel], spec.request_model).model_validate(body)
         body_dict = _body_to_dict(body)
         attempt = 0
         auth_refresh_used = False

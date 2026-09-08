@@ -71,6 +71,7 @@ def test_consistency_lint_loudly_skips_catalog_when_environment_is_blank(
     else:
         monkeypatch.setenv("STONEPY_CATALOG", catalog_env)
 
+    shutil.copytree(FIX / "resources", tmp_path / "resources")
     result = consistency_lint.main([str(tmp_path / "resources")])
 
     assert result == 0
@@ -114,7 +115,9 @@ def test_consistency_lint_accepts_valid_catalog_root(
         lambda _catalog, _catalog_root: None,
     )
 
-    result = consistency_lint.main([str(tmp_path / "resources")])
+    assert consistency_lint.check_catalog_unresolved(catalog_root, validate_overrides=False) == []
+    shutil.copytree(FIX / "resources", tmp_path / "resources")
+    result = consistency_lint.main([str(tmp_path / "resources"), "--skip-override-validation"])
 
     assert result == 0
     assert capsys.readouterr().err == ""
@@ -138,3 +141,36 @@ def test_ci_runs_consistency_lint_and_handwritten_coverage_gate() -> None:
     coverage_config = (Path(__file__).parents[2] / "pyproject.toml").read_text(encoding="utf-8")
     assert '"src/stonepy/resources/*/_sync/*"' in coverage_config
     assert '"src/stonepy/resources/*/__init__.py"' in coverage_config
+
+
+def test_consistency_lint_rejects_missing_or_empty_resources(tmp_path: Path) -> None:
+    resources = tmp_path / "resources"
+    assert check_resources(resources) == [f"resources ERROR: {resources} does not exist"]
+    resources.mkdir()
+    assert check_resources(resources) == [
+        f"resources ERROR: {resources} contains no resource modules"
+    ]
+    (resources / "session").mkdir()
+    (resources / "session/__init__.py").write_text("")
+    assert check_resources(resources) == [
+        f"resources ERROR: {resources} contains no resource modules"
+    ]
+
+
+def test_consistency_lint_validates_override_consumption(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    from stonepy._generator import render
+
+    monkeypatch.setattr(consistency_lint, "assert_allowed_unresolved", lambda _catalog: None)
+    monkeypatch.setattr(consistency_lint, "assert_catalog_frozen", lambda *_args: None)
+    monkeypatch.setattr(render, "_FIELD_DOC_NOTES", {("MissingDTO", "StaleNote"): "note"})
+    errors = consistency_lint.check_catalog_unresolved(FIX)
+    assert len(errors) == 1
+    assert "unconsumed generator overrides" in errors[0]
+    assert "StaleNote" in errors[0]
+    monkeypatch.setenv("STONEPY_CATALOG", str(FIX))
+    shutil.copytree(FIX / "resources", tmp_path / "resources")
+    assert consistency_lint.main([str(tmp_path / "resources")]) == 1
+    assert "StaleNote" in capsys.readouterr().err
+    assert consistency_lint.main([str(tmp_path / "resources"), "--skip-override-validation"]) == 0

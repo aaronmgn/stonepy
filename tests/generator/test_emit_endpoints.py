@@ -722,6 +722,7 @@ def test_cli_parses_supported_commands_with_fixture_catalog(tmp_path: Path) -> N
                     str(out_dir),
                     "--allow-unresolved",
                     "--allow-unfrozen-catalog",
+                    "--skip-override-validation",
                 ]
             )
             == 0
@@ -738,6 +739,7 @@ def test_cli_rejects_unexpected_unresolved_catalog(tmp_path: Path) -> None:
                 "--out-dir",
                 str(tmp_path),
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
 

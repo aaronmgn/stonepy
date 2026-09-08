@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from types import ModuleType
 
+import pytest
+
 from stonepy._generator.__main__ import main
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord, load_catalog
 from stonepy._generator.emit_contract import emit_contract_tests
@@ -49,7 +51,7 @@ def test_emit_contract_tests_writes_importable_contract_modules(tmp_path: Path) 
     assert "from stonepy._core.models import StoneXModel" in roundtrip_text
     assert "model_cls: type[StoneXModel]" in roundtrip_text
     assert "from stonepy._core.endpoint import EndpointSpec" in endpoint_specs_text
-    assert "spec: EndpointSpec[ResponseModel]" in endpoint_specs_text
+    assert "spec: EndpointSpec[BaseModel]" in endpoint_specs_text
     assert "enum_cls: type[IntEnum]" in lookup_enums_text
 
     stonepy_modules = _snapshot_stonepy_modules()
@@ -90,6 +92,7 @@ def test_cli_all_writes_package_outputs_and_contract_tests_from_parent_catalog_r
                 str(project_root),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0
@@ -131,7 +134,7 @@ def test_endpoint_contract_uses_module_qualified_specs_to_avoid_shadowing(
     assert '"rate_limit_bucket, status_domain, request_model, params"' in rendered
 
 
-def test_endpoint_contract_rejects_empty_fallback_for_declared_response(
+def test_endpoint_contract_records_response_model_identity(
     tmp_path: Path,
 ) -> None:
     catalog = Catalog(
@@ -149,9 +152,9 @@ def test_endpoint_contract_rejects_empty_fallback_for_declared_response(
     rendered = (tmp_path / "tests" / "contract" / "test_endpoint_specs.py").read_text(
         encoding="utf-8"
     )
-    assert "from stonepy._core.models import ResponseModel" in rendered
-    assert "has_declared_response" in rendered
-    assert "assert spec.response_model is not ResponseModel" in rendered
+    assert "ResponseModel" in rendered
+    assert "has_declared_response" not in rendered
+    assert "assert spec.response_model is response_model" in rendered
     assert "_ep_news.KNOWN_SPEC" in rendered
     assert '"/news/known"' in rendered
     assert 'id="Known"' in rendered
@@ -251,21 +254,21 @@ def test_endpoint_contract_uses_endpoint_retry_safety_rules(tmp_path: Path) -> N
         "_ep_preference.DELETE_USER_PREFERENCE_SPEC,\n"
         '        "DELETE",\n'
         '        "/preference/v2/Preference",\n'
-        "        False,\n"
+        "        ResponseModel,\n"
         "        True,"
     ) in rendered
     assert (
         "_ep_order.LIST_ACTIVE_ORDERS_SPEC,\n"
         '        "POST",\n'
         '        "/order/activeorders",\n'
-        "        False,\n"
+        "        ResponseModel,\n"
         "        True,"
     ) in rendered
     assert (
         "_ep_order.SUBMIT_ORDER_SPEC,\n"
         '        "POST",\n'
         '        "/order/new",\n'
-        "        False,\n"
+        "        ResponseModel,\n"
         "        False,"
     ) in rendered
 
@@ -309,7 +312,8 @@ def test_model_contract_builds_nested_payload_for_required_model_field(
         encoding="utf-8"
     )
     assert "pytest.skip" not in rendered
-    assert 'pytest.param(ParentDTO, {"Child": {"Value": "x"}}, id="ParentDTO")' in rendered
+    assert '{"Child": {"Value": "x"}}' in rendered
+    assert "expected_dump" in rendered
 
 
 def test_recursive_required_model_graph_roundtrips_via_validate_after_cycle_break(
@@ -359,7 +363,7 @@ def test_recursive_required_model_graph_roundtrips_via_validate_after_cycle_brea
     assert "pytest.skip(skip_reason)" not in rendered
     assert "required recursive model graph has no finite validating JSON payload" not in rendered
     assert "model_construct" not in rendered
-    assert '@pytest.mark.parametrize("model_cls, payload", MODEL_CASES)' in rendered
+    assert '@pytest.mark.parametrize("model_cls, payload, expected_dump", MODEL_CASES)' in rendered
     assert "model_validate" in rendered
     assert first_name in rendered and second_name in rendered
     assert max(len(line) for line in rendered.splitlines()) <= 100
@@ -463,3 +467,91 @@ def _datatype(name: str, properties: list[dict[str, object]]) -> TypeRecord:
         last_updated=None,
         raw={"name": name, "properties": properties},
     )
+
+
+def _run_doctored_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, *, lose_field: bool
+) -> tuple[int, int]:
+    from dataclasses import replace
+
+    from stonepy._generator import emit_endpoints as endpoint_generator
+
+    child = _datatype("ChildDTO", [{"name": "Amount", "type": "decimal"}])
+    parent = _datatype("ParentDTO", [{"name": "Child", "type": "ChildDTO", "ref": "ChildDTO"}])
+    catalog = Catalog(
+        endpoints=[_endpoint("Get", target="fixture", path="/get", response_type="ParentDTO")],
+        datatypes=[child, parent],
+        lookups={},
+    )
+    package = tmp_path / "stonepy"
+    package.mkdir()
+    (package / "__init__.py").write_text(
+        "from pkgutil import extend_path\n__path__ = extend_path(__path__, __name__)\n"
+    )
+    emit_models(catalog, package)
+    emit_endpoints(catalog, package)
+    emit_contract_tests(catalog, tmp_path)
+    filename = "test_models_roundtrip.py" if lose_field else "test_endpoint_specs.py"
+    contract = tmp_path / "tests" / "contract" / filename
+    config = tmp_path / "pytest.ini"
+    config.write_text("[pytest]\n")
+    monkeypatch.setenv("PYTEST_DISABLE_PLUGIN_AUTOLOAD", "1")
+
+    def run() -> int:
+        snapshot = _snapshot_stonepy_modules()
+        old_test_module = sys.modules.pop(contract.stem, None)
+        _clear_stonepy_modules()
+        sys.path.insert(0, str(tmp_path))
+        try:
+            return int(
+                pytest.main(
+                    [
+                        str(contract),
+                        "-q",
+                        "-p",
+                        "no:cacheprovider",
+                        "-c",
+                        str(config),
+                        "--confcutdir",
+                        str(tmp_path),
+                    ]
+                )
+            )
+        finally:
+            sys.path.remove(str(tmp_path))
+            # pytest keeps imported test modules between invocations.
+            sys.modules.pop(contract.stem, None)
+            if old_test_module is not None:
+                sys.modules[contract.stem] = old_test_module
+            _restore_stonepy_modules(snapshot)
+
+    good = run()
+    if lose_field:
+        # Keep expected catalog fields, but generate a broken tolerant model that drops Amount.
+        emit_models(replace(catalog, datatypes=[replace(child, properties=[]), parent]), package)
+    else:
+        with monkeypatch.context() as patch:
+            patch.setattr(
+                endpoint_generator, "_RESPONSE_MODEL_OVERRIDES", {("fixture", "Get"): "ChildDTO"}
+            )
+            emit_endpoints(catalog, package)
+    # Invalidate bytecode as a regenerated fixture may have the same size and mtime second.
+    for bytecode in package.rglob("*.pyc"):
+        bytecode.unlink()
+    return good, run()
+
+
+def test_contract_expected_dump_detects_first_parse_field_loss(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    good, broken = _run_doctored_contract(tmp_path, monkeypatch, lose_field=True)
+    assert good == 0
+    assert broken == 1
+
+
+def test_contract_response_model_identity_detects_wrong_binding(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    good, broken = _run_doctored_contract(tmp_path, monkeypatch, lose_field=False)
+    assert good == 0
+    assert broken == 1

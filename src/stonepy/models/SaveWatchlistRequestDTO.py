@@ -10,7 +10,7 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
-    from .ApiClientAccountWatchlistDTO import ApiClientAccountWatchlistDTO
+    from .RequestApiClientAccountWatchlistDTO import RequestApiClientAccountWatchlistDTO
 
 
 class SaveWatchlistRequestDTO(RequestModel):
@@ -18,7 +18,7 @@ class SaveWatchlistRequestDTO(RequestModel):
 
     client_account_id: int = Field(alias="ClientAccountId")
     """Client account identifier"""
-    watchlist: ApiClientAccountWatchlistDTO = Field(alias="Watchlist")
+    watchlist: RequestApiClientAccountWatchlistDTO = Field(alias="Watchlist")
     """Watchlist to save"""
 
 

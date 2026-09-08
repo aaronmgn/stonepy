@@ -22,6 +22,10 @@ class ApiTradeOrderResponseDTO(ResponseModel):
     """
     The status of the order (Pending, Accepted, Open, etc.) . The table of lookup codes can be
     found at Lookup Values .
+
+    stonepy decodes this top-level value as InstructionStatus (Accepted=1, RedCard=2,
+    YellowCard=3, Error=4, Pending=5), not OrderStatus; the nested Orders[].Status values are
+    OrderStatus lifecycle codes.
     """
     status_reason: int | None = Field(default=None, alias="StatusReason")
     """

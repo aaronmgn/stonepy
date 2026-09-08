@@ -11,7 +11,6 @@ from stonepy.models import (
     ApiGetMultipleUsersDetailsResponseDTO,
     ApiGetWallItemsForUsersResponseDTO,
     ApiGetWallSubItemsResponseDTO,
-    ApiIfDoneDTOv2,
     ApiListFollowedUsersResponseDTO,
     ApiListFollowingUsersResponseDTO,
     ApiListTopholdersDTO,
@@ -23,6 +22,7 @@ from stonepy.models import (
     GetPriceTickResponseDTO,
     ListOpenPositionsResponseDTO,
     NewTradeOrderRequestDTO,
+    RequestApiIfDoneDTOv2,
     SaveClientPreferenceRequestDTO,
 )
 
@@ -64,16 +64,16 @@ def test_price_tick_response_accepts_array_payload() -> None:
 def test_nested_array_payloads_parse_as_lists() -> None:
     position = ApiOpenPositionDTOv2.model_validate({"ManagedTrades": [{"OrderId": 123}]})
     request_if_done = cast(
-        list[ApiIfDoneDTOv2],
+        list[RequestApiIfDoneDTOv2],
         TypeAdapter(NewTradeOrderRequestDTO.model_fields["if_done"].annotation).validate_python(
-            [{"Stop": {"OrderId": 456}, "Limit": {"OrderId": 789}}],
+            [{"Stop": {"TriggerPrice": "456"}, "Limit": {"TriggerPrice": "789"}}],
         ),
     )
 
     assert isinstance(position.managed_trades, list)
     assert isinstance(position.managed_trades[0], ApiManagedTradeDTO)
     assert isinstance(request_if_done, list)
-    assert isinstance(request_if_done[0], ApiIfDoneDTOv2)
+    assert isinstance(request_if_done[0], RequestApiIfDoneDTOv2)
 
 
 def test_alert_notification_zero_decodes_as_none_member() -> None:

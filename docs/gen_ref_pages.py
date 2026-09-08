@@ -12,6 +12,7 @@ import enum
 import mkdocs_gen_files
 
 import stonepy.models as models
+from stonepy._core.models import RequestModel, ResponseModel
 
 nav = mkdocs_gen_files.Nav()
 
@@ -19,9 +20,9 @@ nav = mkdocs_gen_files.Nav()
 def _category(name: str, obj: object) -> str:
     if isinstance(obj, type) and issubclass(obj, enum.Enum):
         return "Enums"
-    if name.endswith("RequestDTO"):
+    if isinstance(obj, type) and issubclass(obj, RequestModel):
         return "Request models"
-    if name.endswith("ResponseDTO"):
+    if isinstance(obj, type) and issubclass(obj, ResponseModel):
         return "Response models"
     return "Other models"
 
