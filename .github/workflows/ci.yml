@@ -105,6 +105,16 @@ jobs:
       - run: /tmp/stonepy-wheel-smoke/bin/pip install dist/*.whl "respx>=0.21" "pytest>=9.1.1"
       - run: cp -R tests/smoke_installed/. /tmp/stonepy-wheel-smoke/
       - run: cd /tmp/stonepy-wheel-smoke && env -u PYTHONPATH STONEPY_SMOKE_INSTALLED=1 ./bin/python -m pytest . --ignore=lib --ignore=lib64 -p no:cacheprovider -q
+      - name: Test extracted source distribution offline
+        env:
+          STONEX_LIVE: "0"
+        run: |
+          sdist_dir="$(mktemp -d)"
+          tar -xzf dist/*.tar.gz -C "$sdist_dir" --strip-components=1
+          cd "$sdist_dir"
+          unset PYTHONPATH VIRTUAL_ENV UV_PROJECT_ENVIRONMENT STONEPY_CATALOG STONEPY_SMOKE_INSTALLED
+          uv sync --locked --extra dev --python 3.12
+          uv run --offline --no-sync pytest -q -p no:cacheprovider -m "not pyright"
 
   pyright:
     runs-on: ubuntu-latest

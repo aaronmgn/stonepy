@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.check_release_artifacts import check_artifacts, main
+from scripts.check_release_artifacts import SDIST_REQUIRED_FILES, check_artifacts, main
 
 
 def _artifacts(
@@ -43,6 +43,7 @@ def _artifacts(
         "stonepy-0.4.1/src/stonepy/models/ExampleDTO.py": b"",
         "stonepy-0.4.1/src/stonepy/models/ExampleDTO.pyi": b"",
     }
+    source_members.update(dict.fromkeys((f"stonepy-0.4.1/{p}" for p in SDIST_REQUIRED_FILES), b""))
     source_members.update(dict.fromkeys(sdist_extra, b""))
     with tarfile.open(sdist, "w:gz") as source_archive:
         for name, content in source_members.items():
@@ -117,6 +118,14 @@ def test_release_artifacts_require_package_members(tmp_path: Path, omit: str, me
     _artifacts(tmp_path, omit=omit)
     with pytest.raises(ValueError, match=message):
         check_artifacts(tmp_path, source_version="0.4.1")
+
+
+@pytest.mark.parametrize("required", SDIST_REQUIRED_FILES)
+def test_sdist_requires_offline_suite_and_supporting_files(tmp_path: Path, required: str) -> None:
+    _artifacts(tmp_path, omit=f"stonepy-0.4.1/{required}")
+    with pytest.raises(ValueError, match="missing offline test suite files") as exc_info:
+        check_artifacts(tmp_path, source_version="0.4.1")
+    assert required in str(exc_info.value)
 
 
 @pytest.mark.parametrize(

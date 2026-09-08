@@ -11,6 +11,46 @@ from collections.abc import Sequence
 from email.parser import Parser
 from pathlib import Path
 
+SDIST_REQUIRED_FILES = (
+    "pyproject.toml",
+    "CATALOG_VERSION",
+    "uv.lock",
+    ".gitignore",
+    ".pre-commit-config.yaml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/docs.yml",
+    ".github/workflows/drift.yml",
+    ".github/workflows/live.yml",
+    ".github/workflows/release.yml",
+    "mkdocs.yml",
+    "docs/API_REFERENCE.md",
+    "docs/gen_ref_pages.py",
+    "scripts/check_release_artifacts.py",
+    "scripts/consistency_lint.py",
+    "tests/__init__.py",
+    "tests/test_release_artifacts.py",
+    "tests/test_project_metadata.py",
+    "tests/test_live_safety.py",
+    "tests/core/test_session.py",
+    "tests/core/test_models.py",
+    "tests/contract/test_models_roundtrip.py",
+    "tests/generator/test_consistency_lint.py",
+    "tests/generator/fixtures/endpoints.json",
+    "tests/generator/fixtures/data-types.json",
+    "tests/generator/fixtures/lookup-codes.json",
+    "tests/generator/fixtures/resources/session/log_on.py",
+    "tests/generator/fixtures/request_graph/endpoints.json",
+    "tests/generator/fixtures/request_graph/data-types.json",
+    "tests/generator/fixtures/request_graph/lookup-codes.json",
+    "tests/live/conftest.py",
+    "tests/live/_safety.py",
+    "tests/resources/session/test_log_on.py",
+    "tests/smoke_installed/test_installed_wheel.py",
+    "tests/typing/consumer_model_constructors.py",
+    "tests/typing/from_env_overrides.py",
+)
+"""Suite entry points and supporting files required for offline source-distribution tests."""
+
 
 def _version(metadata: bytes) -> str:
     headers = Parser().parsestr(metadata.decode("utf-8"))
@@ -104,6 +144,11 @@ def check_artifacts(
             raise ValueError(
                 f"sdist version {sdist_version!r} != source version {source_version!r}"
             )
+        root = Path(pkg_info[0].name).parent
+        files = {member.name for member in source_members if member.isfile()}
+        missing = [name for name in SDIST_REQUIRED_FILES if (root / name).as_posix() not in files]
+        if missing:
+            raise ValueError("sdist is missing offline test suite files: " + ", ".join(missing))
 
     return {path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in (wheel, sdist)}
 

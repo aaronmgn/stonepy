@@ -67,7 +67,23 @@ path = "src/stonepy/_version.py"
 packages = ["src/stonepy"]
 
 [tool.hatch.build.targets.sdist]
-include = ["/src/stonepy", "/README.md", "/LICENSE", "/CHANGELOG.md", "/pyproject.toml"]
+include = [
+    "/src/stonepy",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+    "/pyproject.toml",
+    "/tests",
+    "/scripts",
+    "/CATALOG_VERSION",
+    "/uv.lock",
+    "/.gitignore",
+    "/.pre-commit-config.yaml",
+    "/.github/workflows",
+    "/mkdocs.yml",
+    "/docs/API_REFERENCE.md",
+    "/docs/gen_ref_pages.py",
+]
 
 [tool.ruff]
 line-length = 100
