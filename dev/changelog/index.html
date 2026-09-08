@@ -11057,6 +11057,10 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   runs without <code>STONEX_LIVE=1</code> continue to skip live tests.</li>
 <li>Require full commit SHA pins for workflow actions and run the complete installed-wheel
   smoke test directory.</li>
+<li><strong>BREAKING:</strong> <code>price_alert.get_pa</code> now sends its filters in the query string, where the
+  demo API honors <code>alertId</code>; the previous body binding returned every alert regardless of it.</li>
+<li>MD-M5 live probes classify known contract rejections, including HTTP 404, as restricted
+  expected failures while preserving authentication, throttling, server, and transport failures.</li>
 </ul>
 <h3 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h3>
 <ul>
