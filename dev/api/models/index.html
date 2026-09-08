@@ -9793,8 +9793,11 @@ DTO naming follows the upstream API:</p>
 <li>shared DTOs used in requests have strict request-side twins named <code>Request&lt;Name&gt;</code>.</li>
 </ul>
 <p>Model annotations support editor autocomplete and static checks; Pydantic performs runtime payload
-validation. See the <a href="../../installation/#type-checking-pep-561">constructor typing notes</a> for current
-checker limitations. Generated DTOs carry descriptions and per-field documentation sourced from
+validation. Every model accepts both the wire alias and the snake_case field name, and both
+spellings are checked statically by mypy and pyright. Mixing alias and snake_case keywords in one
+call is valid at runtime but rejected by type checkers. See the
+<a href="../../installation/#type-checking-pep-561">constructor typing notes</a> for examples.
+Generated DTOs carry descriptions and per-field documentation sourced from
 the upstream API; the same prose feeds editor tooltips and each model's JSON schema
 (<code>model_json_schema()</code>).</p>
 <p><code>preference.delete_user_preference</code>, <code>preference.save_user_preference</code>, and <code>price_alert.save_pa</code>

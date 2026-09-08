@@ -9937,18 +9937,19 @@ heavyweight transitive trees beyond what these three require.</p>
 <p>The generator ships in the wheel but needs the dev tools (<code>ruff</code>, <code>unasync</code>)
 and the repository <code>pyproject.toml</code>; run it from a source checkout or editable install.</p>
 <h2 id="type-checking-pep-561">Type checking (PEP 561)<a class="headerlink" href="#type-checking-pep-561" title="Permanent link">&para;</a></h2>
-<p><code>stonepy</code> ships annotations and a <code>py.typed</code> marker for <a href="https://peps.python.org/pep-0561/">PEP 561</a> type discovery. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
+<p><code>stonepy</code> ships annotations, generated companion model stubs, and a <code>py.typed</code> marker for <a href="https://peps.python.org/pep-0561/">PEP 561</a> type discovery. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
 <p>You can check consumer code with <code>mypy</code> or <code>pyright</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>mypy<span class="w"> </span>your_script.py
 <a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="c1"># or</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pyright<span class="w"> </span>your_script.py
 </code></pre></div>
 <p>Editor features such as autocomplete and inline type hints (in VS Code, PyCharm, and other LSP-aware editors) work the same way, with no extra configuration.</p>
-<p>Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
-<code>UserName</code> when constructing DTOs in statically checked code; the equivalent snake_case names
-work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
-remains under review. The pyright CI job is advisory and currently reports 8 diagnostics;
-it is not a release gate.</p>
+<p>Generated model constructors accept either catalog aliases such as <code>UserName</code> or Python names
+such as <code>user_name</code> under both mypy and pyright. Use one naming convention throughout a call:
+mixing alias and snake_case keywords is still a static error, although it is valid at runtime.
+Aliases that cannot be Python keyword arguments, such as <code>"Price Tolerance"</code>, use the Python
+field name in either constructor signature. Both checkers enforce field types and required
+arguments. Pyright participates in the required aggregate CI check alongside mypy.</p>
 <p><code>ClientConfig.from_env()</code> exposes typed keyword overrides through <code>ClientConfigOverrides</code>.
 Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate
 their keys and values.</p>
