@@ -108,7 +108,10 @@ such as `user_name` under both mypy and pyright. Use one naming convention throu
 mixing alias and snake_case keywords is still a static error, although it is valid at runtime.
 Aliases that cannot be Python keyword arguments, such as `"Price Tolerance"`, use the Python
 field name in either constructor signature. Both checkers enforce field types and required
-arguments. Pyright participates in the required aggregate CI check alongside mypy.
+arguments. The required Python 3.12 typing job runs `pyright src tests`, model stubtest, and
+selected consumer typing cases. Strict mypy runs in the Python 3.11-3.14 test matrix. Separate
+stub/field parity tests check runtime fields and aliases; freshness against the private catalog
+is checked by the manual drift workflow.
 
 `ClientConfig.from_env()` exposes typed keyword overrides through `ClientConfigOverrides`.
 Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate
@@ -117,4 +120,4 @@ their keys and values.
 ## Stability
 
 !!! warning "Pre-1.0 / alpha"
-    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.5.0`) if you need reproducible builds, and review the changelog before upgrading.
+    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.6.0`) if you need reproducible builds, and review the changelog before upgrading.

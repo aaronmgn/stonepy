@@ -128,6 +128,8 @@ config = ClientConfig.from_env(
 
 `ClientConfig` validates on construction, including through `from_env()`. Invalid types raise
 builtin `TypeError`; invalid values raise builtin `ValueError`.
+It remains a mutable dataclass and does not validate later field assignments. Request DTOs
+have separate [assignment validation](../api/models.md#assignment-validation).
 
 - `base_url` must be a non-blank string without surrounding whitespace, with an `http` or `https`
   scheme, a hostname, and no embedded username or password. An explicit port must be in `1..65535`.
