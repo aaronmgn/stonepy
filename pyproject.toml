@@ -86,6 +86,7 @@ addopts = "-q"
 testpaths = ["tests"]
 filterwarnings = ["error"]
 markers = [
+    "pyright: consumer checks run once in the dedicated pyright CI job",
     "live: exercises the CIAPI demo account (skipped unless STONEX_LIVE=1; opted-in runs require STONEX_* credentials and an approved STONEX_LIVE_CLIENT_ACCOUNT_ID)",
 ]
 

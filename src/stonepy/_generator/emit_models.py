@@ -69,34 +69,38 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
         force_optional = cyclic_fields.get(rec.name, set()) | _FORCE_OPTIONAL_FIELDS.get(
             rec.name, set()
         )
-        (models_dir / f"{rec.name}.py").write_text(
-            render_model(
-                rec,
-                known_names,
-                request_types=request_types,
-                enum_names=enum_names,
-                force_optional=force_optional or None,
-                request_variants=graph.variants if rec.name in graph.roots else None,
-            ),
-            encoding="utf-8",
-        )
+        for suffix, stub in ((".py", False), (".pyi", True)):
+            (models_dir / f"{rec.name}{suffix}").write_text(
+                render_model(
+                    rec,
+                    known_names,
+                    stub=stub,
+                    request_types=request_types,
+                    enum_names=enum_names,
+                    force_optional=force_optional or None,
+                    request_variants=graph.variants if rec.name in graph.roots else None,
+                ),
+                encoding="utf-8",
+            )
 
     by_name = {rec.name: rec for rec in catalog.datatypes}
     for name in sorted(graph.reachable):
-        (models_dir / f"{graph.request_name(name)}.py").write_text(
-            render_model(
-                by_name[name],
-                known_names,
-                request_types=graph.roots,
-                enum_names=enum_names,
-                force_optional=cyclic_fields.get(name, set())
-                | _FORCE_OPTIONAL_FIELDS.get(name, set()),
-                emitted_name=graph.request_name(name),
-                request_variants=graph.variants,
-                request_variant=True,
-            ),
-            encoding="utf-8",
-        )
+        for suffix, stub in ((".py", False), (".pyi", True)):
+            (models_dir / f"{graph.request_name(name)}{suffix}").write_text(
+                render_model(
+                    by_name[name],
+                    known_names,
+                    stub=stub,
+                    request_types=graph.roots,
+                    enum_names=enum_names,
+                    force_optional=cyclic_fields.get(name, set())
+                    | _FORCE_OPTIONAL_FIELDS.get(name, set()),
+                    emitted_name=graph.request_name(name),
+                    request_variants=graph.variants,
+                    request_variant=True,
+                ),
+                encoding="utf-8",
+            )
 
     (models_dir / "enums.py").write_text(render_enums(enum_records), encoding="utf-8")
     (models_dir / "__init__.py").write_text(

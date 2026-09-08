@@ -91,7 +91,7 @@ and the repository `pyproject.toml`; run it from a source checkout or editable i
 
 ## Type checking (PEP 561)
 
-`stonepy` ships annotations and a `py.typed` marker for [PEP 561](https://peps.python.org/pep-0561/) type discovery. The package is also flagged `Typing :: Typed` on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.
+`stonepy` ships annotations, generated companion model stubs, and a `py.typed` marker for [PEP 561](https://peps.python.org/pep-0561/) type discovery. The package is also flagged `Typing :: Typed` on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.
 
 You can check consumer code with `mypy` or `pyright`:
 
@@ -103,11 +103,12 @@ pyright your_script.py
 
 Editor features such as autocomplete and inline type hints (in VS Code, PyCharm, and other LSP-aware editors) work the same way, with no extra configuration.
 
-Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
-`UserName` when constructing DTOs in statically checked code; the equivalent snake_case names
-work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
-remains under review. The pyright CI job is advisory and currently reports 8 diagnostics;
-it is not a release gate.
+Generated model constructors accept either catalog aliases such as `UserName` or Python names
+such as `user_name` under both mypy and pyright. Use one naming convention throughout a call:
+mixing alias and snake_case keywords is still a static error, although it is valid at runtime.
+Aliases that cannot be Python keyword arguments, such as `"Price Tolerance"`, use the Python
+field name in either constructor signature. Both checkers enforce field types and required
+arguments. Pyright participates in the required aggregate CI check alongside mypy.
 
 `ClientConfig.from_env()` exposes typed keyword overrides through `ClientConfigOverrides`.
 Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate

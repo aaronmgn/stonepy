@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import ast
 import importlib
+import importlib.util
 import sys
 from pathlib import Path
+
+import pytest
 
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord, load_catalog
 from stonepy._generator.emit_models import emit_all
@@ -140,6 +144,110 @@ def test_render_model_uses_exact_alias_and_snake_case_field_names() -> None:
     )
 
 
+@pytest.mark.parametrize("request_variant", [False, True])
+def test_constructor_overloads_preserve_field_contract(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request_variant: bool
+) -> None:
+    record = _datatype(
+        "ConstructorRequestDTO",
+        [
+            {"name": "UserName", "type": "string"},
+            {"name": "Password", "type": "string"},
+            {"name": "Comment", "type": "string", "required": False},
+            {"name": "Price Tolerance", "type": "integer", "required": False},
+            {"name": "class", "type": "string", "required": False},
+        ],
+    )
+    source = render_model(record, {record.name}, request_variant=request_variant)
+    stub = render_model(record, {record.name}, request_variant=request_variant, stub=True)
+    cls = next(node for node in ast.parse(stub).body if isinstance(node, ast.ClassDef))
+    constructors = [node for node in cls.body if isinstance(node, ast.FunctionDef)]
+    assert len(constructors) == 2
+    aliases, python_names = constructors
+    assert "__init__" not in source
+    assert "model_rebuild" not in stub
+    assert [arg.arg for arg in aliases.args.kwonlyargs] == [
+        "UserName",
+        "Password",
+        "Comment",
+        "price_tolerance",
+        "class_",
+    ]
+    assert [arg.arg for arg in python_names.args.kwonlyargs] == [
+        "user_name",
+        "password",
+        "comment",
+        "price_tolerance",
+        "class_",
+    ]
+    for overload in (aliases, python_names):
+        assert [ast.unparse(decorator) for decorator in overload.decorator_list] == ["overload"]
+        assert [default is None for default in overload.args.kw_defaults] == [
+            not request_variant,
+            not request_variant,
+            False,
+            False,
+            False,
+        ]
+        assert all(
+            default is None or ast.unparse(default) == "..."
+            for default in overload.args.kw_defaults
+        )
+    assert all(overload.args.kwarg is None for overload in constructors)
+
+    path = tmp_path / "constructor_model.py"
+    path.write_text(source)
+    spec = importlib.util.spec_from_file_location("constructor_model", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, module)
+    spec.loader.exec_module(module)
+    model = module.ConstructorRequestDTO
+    assert "__init__" not in model.__dict__
+    assert model.__pydantic_custom_init__ is False
+    assert model.model_fields["price_tolerance"].alias == "Price Tolerance"
+    assert model.model_fields["password"].repr is False
+    alias = model(UserName="user", Password="secret", price_tolerance=1, class_="x")
+    python = model(user_name="user", password="secret", price_tolerance=1, class_="x")
+    assert alias == python
+    assert "secret" not in repr(alias)
+    assert alias.model_dump(by_alias=True)["Price Tolerance"] == 1
+    schema = model.model_json_schema()
+    assert "Price Tolerance" in schema["properties"]
+    assert schema.get("required", []) == ([] if request_variant else ["UserName", "Password"])
+
+
+@pytest.mark.parametrize(
+    "wire_name, python_name",
+    [("Price Tolerance", "price_tolerance"), ("class", "class_"), ("value", "value")],
+)
+def test_identical_constructor_forms_have_one_typed_signature(
+    wire_name: str, python_name: str
+) -> None:
+    record = _datatype(
+        "FallbackRequestDTO",
+        [
+            {"name": wire_name, "type": "integer"},
+            {"name": "comment", "type": "string", "required": False},
+        ],
+    )
+    stub = render_model(record, {record.name}, stub=True)
+    cls = next(node for node in ast.parse(stub).body if isinstance(node, ast.ClassDef))
+    constructors = [node for node in cls.body if isinstance(node, ast.FunctionDef)]
+    assert len(constructors) == 1
+    constructor = constructors[0]
+    assert constructor.name == "__init__" and not constructor.decorator_list
+    assert "overload" not in stub
+    assert [arg.arg for arg in constructor.args.kwonlyargs] == [python_name, "comment"]
+    assert [
+        ast.unparse(arg.annotation) for arg in constructor.args.kwonlyargs if arg.annotation
+    ] == ["int", "str | None"]
+    assert constructor.args.kw_defaults[0] is None
+    default = constructor.args.kw_defaults[1]
+    assert default is not None and ast.unparse(default) == "..."
+    assert constructor.args.kwarg is None
+
+
 def test_render_model_imports_and_annotates_stonex_datetime_and_decimal() -> None:
     cat = load_catalog(FIX)
     alert = next(rec for rec in cat.datatypes if rec.name == "AlertDTO")
@@ -212,7 +320,13 @@ def test_emit_all_writes_models_enums_init_and_uses_endpoint_request_context(
 
     emit_all(catalog, tmp_path)
     first_init = (tmp_path / "models" / "__init__.py").read_text(encoding="utf-8")
+    first_files = {path.name: path.read_bytes() for path in (tmp_path / "models").iterdir()}
     emit_all(catalog, tmp_path)
+    assert {path.name: path.read_bytes() for path in (tmp_path / "models").iterdir()} == first_files
+    assert {path.stem for path in (tmp_path / "models").glob("*.pyi")} == {
+        "AlertDTO",
+        "SubmitAlertDTO",
+    }
 
     assert (tmp_path / "models" / "AlertDTO.py").exists()
     assert (tmp_path / "models" / "SubmitAlertDTO.py").exists()
@@ -385,10 +499,13 @@ def test_emit_all_removes_stale_model_files(tmp_path: Path) -> None:
 
     emit_all(Catalog(endpoints=[], datatypes=[old], lookups={}, unresolved=set()), tmp_path)
     assert (tmp_path / "models" / "OldDTO.py").exists()
+    assert (tmp_path / "models" / "OldDTO.pyi").exists()
 
     emit_all(Catalog(endpoints=[], datatypes=[new], lookups={}, unresolved=set()), tmp_path)
 
     assert not (tmp_path / "models" / "OldDTO.py").exists()
+    assert not (tmp_path / "models" / "OldDTO.pyi").exists()
+    assert (tmp_path / "models" / "NewDTO.pyi").exists()
     assert (tmp_path / "models" / "NewDTO.py").exists()
 
 
@@ -472,3 +589,13 @@ def test_trade_status_doc_names_instruction_domain() -> None:
     assert "Accepted=1, RedCard=2, YellowCard=3, Error=4, Pending=5" in normalized
     assert "nested Orders[].Status values are OrderStatus lifecycle codes" in normalized
     assert "\n\n" in description
+
+
+def test_catalog_drift_gate_covers_model_sources_and_stubs() -> None:
+    text = (Path(__file__).parents[2] / ".github/workflows/drift.yml").read_text()
+    diff = next(line for line in text.splitlines() if "git diff --exit-code" in line)
+    status = next(line for line in text.splitlines() if "git status --porcelain" in line)
+    # Directory pathspecs include both .py and .pyi; status also detects newly generated stubs.
+    assert "-- src/stonepy/models " in diff
+    assert "-- src/stonepy/models " in status
+    assert "--untracked-files=all" in status

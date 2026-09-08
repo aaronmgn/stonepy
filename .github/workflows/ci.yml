@@ -30,7 +30,7 @@ jobs:
       - run: uv run --locked ruff format --check .
       - run: uv run --locked mypy
       - run: uv run --locked python scripts/consistency_lint.py
-      - run: uv run --locked pytest --cov
+      - run: uv run --locked pytest --cov -m "not pyright"
       - run: uv build
       - run: uv run --locked twine check dist/*
 
@@ -108,7 +108,6 @@ jobs:
 
   pyright:
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
@@ -116,11 +115,13 @@ jobs:
           version: "0.12.10"
       - run: uv python install 3.12
       - run: uv sync --locked --extra dev --python 3.12
-      - run: uv run --locked pyright tests
+      - run: uv run --locked pyright tests src/stonepy/models
+      - run: uv run --locked python -m mypy.stubtest stonepy.models
+      - run: uv run --locked pytest -q -p no:cacheprovider -m pyright tests/test_consumer_typing.py
 
   ci:
     if: always()
-    needs: [test, docs, generated-client, lowest-direct, wheel-smoke]
+    needs: [test, docs, generated-client, lowest-direct, wheel-smoke, pyright]
     runs-on: ubuntu-latest
     steps:
       - run: |
@@ -129,3 +130,4 @@ jobs:
           test "${{ needs.generated-client.result }}" = success
           test "${{ needs.lowest-direct.result }}" = success
           test "${{ needs.wheel-smoke.result }}" = success
+          test "${{ needs.pyright.result }}" = success

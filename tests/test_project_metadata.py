@@ -229,6 +229,7 @@ def test_ruff_is_the_only_configured_formatter() -> None:
     assert "uv run black" not in ci
     assert "uv run --locked ruff format" in pre_commit
     assert "entry: black" not in pre_commit
+    assert pre_commit.count("types_or: [python, pyi]") == 2
 
 
 def test_user_docs_cover_install_async_errors_pagination_and_reference() -> None:

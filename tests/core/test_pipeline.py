@@ -1859,6 +1859,7 @@ def test_retry_after_http_date_pipeline_matches_error(seconds: int) -> None:
     parts = _ctx(FakeTransport([response, httpx.Response(200, json={"OrderId": 1})]), [])
     parts.ctx.utc_now = parts.clock.utcnow
     parts.ctx.invoke(_spec(), path_params={"OrderId": 1})
+    assert error.retry_after is not None
     assert error.retry_after == float(seconds)
     assert parts.clock.now() == max(1.0, error.retry_after)
 
@@ -2106,15 +2107,15 @@ def test_peer_advance_after_coherent_snapshot_skips_duplicate_refresh(asynchrono
             def __init__(self) -> None:
                 self.sent = []
 
-            def send(self, request: Request) -> httpx.Response:
-                self.sent.append(request)
+            def send(self, req: Request) -> httpx.Response:
+                self.sent.append(req)
                 if len(self.sent) == 1:
                     parts.ctx.session.set_token("PEER", "alice")
                     return httpx.Response(401)
                 return httpx.Response(200, json={"OrderId": 1})
 
-            async def asend(self, request: Request) -> httpx.Response:
-                return self.send(request)
+            async def asend(self, req: Request) -> httpx.Response:
+                return self.send(req)
 
         transport = PeerTransport()
         parts.ctx.transport = transport

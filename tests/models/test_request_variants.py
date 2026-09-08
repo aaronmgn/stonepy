@@ -183,7 +183,7 @@ def test_every_request_reachable_model_forbids_extra() -> None:
             continue
         visited.add(model)
         assert issubclass(model, RequestModel)
-        assert model.model_config["extra"] == "forbid"
+        assert model.model_config.get("extra") == "forbid"
         for field in model.model_fields.values():
             pending.extend(_annotation_types(field.annotation) - visited)
     assert len(visited) == 55
