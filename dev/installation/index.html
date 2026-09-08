@@ -9919,7 +9919,7 @@ heavyweight transitive trees beyond what these three require.</p>
 <p>Test, lint, type-check, and release tooling:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pip<span class="w"> </span>install<span class="w"> </span><span class="s2">"stonepy[dev]"</span>
 </code></pre></div>
-<p>Includes <code>pytest</code>, <code>pytest-cov</code>, <code>respx</code>, <code>mypy</code>, <code>ruff</code>, <code>unasync</code>, <code>pre-commit</code>, <code>types-simplejson</code>, and <code>twine</code>.</p>
+<p>Includes <code>pytest</code>, <code>pytest-cov</code>, <code>respx</code>, <code>mypy</code>, <code>pyright</code>, <code>ruff</code>, <code>unasync</code>, <code>pre-commit</code>, <code>types-simplejson</code>, and <code>twine</code>.</p>
 </div>
 <div class="tabbed-block">
 <p>Documentation build tooling:</p>
@@ -9934,6 +9934,8 @@ heavyweight transitive trees beyond what these three require.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[dev]"</span>
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span><span class="s2">".[docs]"</span>
 </code></pre></div>
+<p>The generator ships in the wheel but needs the dev tools (<code>ruff</code>, <code>unasync</code>)
+and the repository <code>pyproject.toml</code>; run it from a source checkout or editable install.</p>
 <h2 id="type-checking-pep-561">Type checking (PEP 561)<a class="headerlink" href="#type-checking-pep-561" title="Permanent link">&para;</a></h2>
 <p><code>stonepy</code> is fully typed and ships a <code>py.typed</code> marker, so it is <a href="https://peps.python.org/pep-0561/">PEP 561</a> compliant. The package is also flagged <code>Typing :: Typed</code> on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.</p>
 <p>This means tools like <code>mypy</code> and <code>pyright</code> work out of the box:</p>
@@ -9942,6 +9944,10 @@ heavyweight transitive trees beyond what these three require.</p>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>pyright<span class="w"> </span>your_script.py
 </code></pre></div>
 <p>Editor features such as autocomplete and inline type hints (in VS Code, PyCharm, and other LSP-aware editors) work the same way, with no extra configuration.</p>
+<p>Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
+<code>UserName</code> when constructing DTOs in statically checked code; the equivalent snake_case names
+work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
+remains under review.</p>
 <h2 id="stability">Stability<a class="headerlink" href="#stability" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Pre-1.0 / alpha</p>

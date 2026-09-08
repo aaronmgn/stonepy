@@ -797,6 +797,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#error-hierarchy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9802,6 +9813,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#extensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extensions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#error-hierarchy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9907,6 +9929,10 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <td>Connection, credential, timeout, retry, and rate-limit configuration. Build it directly or via <code>ClientConfig.from_env()</code>.</td>
 </tr>
 <tr>
+<td><code>ClientConfigOverrides</code></td>
+<td>TypedDict for optional <code>ClientConfig.from_env()</code> keyword overrides.</td>
+</tr>
+<tr>
 <td><code>StoneXClient</code></td>
 <td>Synchronous client; use as a context manager (<code>with StoneXClient(config) as client:</code>).</td>
 </tr>
@@ -9916,10 +9942,15 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 </tr>
 <tr>
 <td><code>StoneXError</code></td>
-<td>Base class for the public runtime error hierarchy. Configuration, validation, and plugin setup can also raise builtin <code>TypeError</code> or <code>ValueError</code>.</td>
+<td>Base class for the public runtime error hierarchy. Configuration and validation can also raise builtin <code>TypeError</code> or <code>ValueError</code>.</td>
 </tr>
 </tbody>
 </table>
+<h3 id="extensions">Extensions<a class="headerlink" href="#extensions" title="Permanent link">&para;</a></h3>
+<p><code>stonepy.extensions</code> exports <code>BaseResource</code>, <code>CallContext</code>, <code>EndpointSpec</code>, <code>Param</code>, <code>AuthPolicy</code>,
+and <code>StatusDomain</code>. Construct out-of-tree resources with <code>MyResource(client.call_context)</code>;
+clients and resources expose read-only <code>call_context</code> properties. See the
+<a href="../guide/extensibility/">extensibility guide</a> for a complete example.</p>
 <h3 id="error-hierarchy">Error Hierarchy<a class="headerlink" href="#error-hierarchy" title="Permanent link">&para;</a></h3>
 <p>The public runtime exceptions inherit from <code>StoneXError</code>:</p>
 <ul>
@@ -9934,9 +9965,14 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 </ul>
 <h2 id="resource-groups">Resource Groups<a class="headerlink" href="#resource-groups" title="Permanent link">&para;</a></h2>
 <p>Resource groups are exposed as properties on both clients and mirror the StoneX API surface:</p>
-<p><code>cfd</code>, <code>client_preference</code>, <code>clientapplication</code>, <code>clientpreference</code>, <code>fixedmargin</code>, <code>margin</code>,
-<code>market</code>, <code>message</code>, <code>news</code>, <code>order</code>, <code>order_including_closed</code>, <code>pm</code>, <code>preference</code>,
-<code>price_alert</code>, <code>session</code>, <code>spread</code>, <code>tradingadvisor</code>, <code>user_account</code>, and <code>watchlist</code>.</p>
+<p><code>cfd</code>, <code>client_preference</code>, <code>client_application</code>, <code>clientpreference</code>, <code>fixed_margin</code>, <code>margin</code>,
+<code>market</code>, <code>message</code>, <code>news</code>, <code>order</code>, <code>pm</code>, <code>preference</code>, <code>price_alert</code>, <code>session</code>, <code>spread</code>,
+<code>trading_advisor</code>, <code>user_account</code>, and <code>watchlist</code>.</p>
+<p>Deprecated compatibility aliases <code>clientapplication</code>, <code>fixedmargin</code>, and <code>tradingadvisor</code>
+emit <code>DeprecationWarning</code>; use <code>client_application</code>, <code>fixed_margin</code>, and <code>trading_advisor</code>,
+respectively. The <code>order_including_closed</code> group is also deprecated; replace
+<code>client.order_including_closed.get_order_including_closed(...)</code> with
+<code>client.order.get_order_including_closed(...)</code>.</p>
 <p>Each generated method maps to a single CIAPI v2 endpoint. The documented <code>place_order</code> alias
 below maps to the same endpoint as the generated <code>order</code> method:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">session</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">log_on</span><span class="p">(</span><span class="n">request_dto</span><span class="p">)</span>

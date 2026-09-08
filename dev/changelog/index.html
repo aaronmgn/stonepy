@@ -9692,6 +9692,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -10344,6 +10355,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#deprecated" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deprecated
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#removed" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -10958,6 +10980,13 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   remain supported, including replacement after client construction.</li>
 <li>Session managers expose atomic generation/header snapshots and manual-logon commits.</li>
 <li>Public exceptions support pickle round-trips with arguments and diagnostic attributes intact.</li>
+<li>Added <code>client_application</code>, <code>fixed_margin</code>, and <code>trading_advisor</code> client properties and
+  <code>order.get_order_including_closed(order_id, client_account_id)</code> on both clients.</li>
+<li>Public <code>stonepy.extensions</code> exports <code>BaseResource</code>, <code>CallContext</code>, <code>EndpointSpec</code>, <code>Param</code>,
+  <code>AuthPolicy</code>, and <code>StatusDomain</code>. Clients and resources expose a read-only <code>call_context</code>
+  property for explicitly constructed resources.</li>
+<li>Export <code>ClientConfigOverrides</code>, a TypedDict for typed <code>ClientConfig.from_env()</code> keyword
+  overrides, and add consumer typing probes plus a non-blocking pyright CI job.</li>
 </ul>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
@@ -11027,10 +11056,28 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
   <code>STONEX_LIVE_CLIENT_ACCOUNT_ID</code>; a session-wide account assertion runs before any live test.</li>
 <li>GetPA live probes compare query and body filters using temporary alert ids, check the
   production binding, and clean up by id. Strict live xfails now cover only contract mismatches.</li>
+<li><strong>BREAKING:</strong> <code>ClientConfig.from_env()</code> now exposes typed keyword names and values through
+  <code>Unpack[ClientConfigOverrides]</code>; static checkers reject unknown keys and incompatible values.
+  Annotate dynamic override dictionaries with <code>ClientConfigOverrides</code>. Invalid non-None <code>base_url</code>
+  overrides now reach constructor validation and raise <code>TypeError("base_url must be a string")</code>
+  instead of <code>AttributeError</code>.</li>
+<li>Document that the bundled generator requires dev tools and the repository <code>pyproject.toml</code>;
+  run generator commands from a source checkout or editable install. The generator stays in the wheel.</li>
+</ul>
+<h3 id="deprecated">Deprecated<a class="headerlink" href="#deprecated" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>BREAKING:</strong> <code>clientapplication</code>, <code>fixedmargin</code>, <code>tradingadvisor</code>, and
+  <code>order_including_closed</code> client properties now emit <code>DeprecationWarning</code>. Migrate to
+  <code>client_application</code>, <code>fixed_margin</code>, <code>trading_advisor</code>, and
+  <code>client.order.get_order_including_closed</code>, respectively.</li>
 </ul>
 <h3 id="removed">Removed<a class="headerlink" href="#removed" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Removed the private <code>BucketedSlidingWindowLimiter</code> and <code>PassthroughResponseModel</code> helpers.</li>
+<li><strong>BREAKING:</strong> Removed entry-point plugin discovery, <code>ClientConfig.enable_plugins</code>,
+  <code>ClientConfig.allow_overrides</code>, <code>client.plugin()</code>, <code>requires_stonepy</code>, and <code>ABI_VERSION</code>.
+  Remove plugin registrations and configuration; import <code>BaseResource</code> from
+  <code>stonepy.extensions</code> and construct <code>MyResource(client.call_context)</code> instead.</li>
 </ul>
 <h3 id="fixed">Fixed<a class="headerlink" href="#fixed" title="Permanent link">&para;</a></h3>
 <ul>
