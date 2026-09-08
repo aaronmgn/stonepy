@@ -174,6 +174,9 @@ _SCALAR_RESPONSE_OVERRIDES: dict[tuple[str, str], str] = {
 # Per-endpoint parameter-location corrections where the catalog declares the wrong location. Keyed
 # by (target_module, endpoint name) -> {wire param name: location}. Verified live.
 _PARAM_LOCATION_OVERRIDES: dict[tuple[str, str], dict[str, str]] = {
+    # Host live run 34211196782 on 2026-09-08: both bindings returned HTTP 200;
+    # query honored alertId, while body ignored the filter and returned every alert.
+    ("price_alert", "GetPA"): {"alertId": "query", "ClientAccountId": "query"},
     # The catalog marks both delete params as body, but the live API only honors them as query
     # params (a body request 400s with "The ClientAccountId field is required").
     ("watchlist", "DeleteWatchlist v2"): {

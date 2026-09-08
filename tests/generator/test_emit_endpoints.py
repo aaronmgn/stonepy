@@ -435,12 +435,18 @@ def test_nullable_query_params_are_optional_keyword_defaults() -> None:
     assert '"maxResults": max_results' in rendered
 
 
-def test_nullable_body_param_is_optional_while_required_body_param_stays_positional() -> None:
+@pytest.mark.parametrize(
+    ("name", "target", "location"),
+    [("ReadBody", "example", "body"), ("GetPA", "pricealert", "query")],
+)
+def test_parameter_location_overrides_preserve_required_and_optional_arguments(
+    name: str, target: str, location: str
+) -> None:
     rec = _endpoint(
-        name="GetPA",
-        logical_name="GetPA",
+        name=name,
+        logical_name=name,
         method="GET",
-        target="pricealert",
+        target=target,
         path="/pricealert/",
         parameters=[
             {"name": "alertId", "type": "integer nullable true", "ref": None, "in": "body"},
@@ -454,8 +460,15 @@ def test_nullable_body_param_is_optional_while_required_body_param_stays_positio
 
     assert "client_account_id: int" in rendered
     assert "alert_id: int | None = None" in rendered
-    assert '"alertId": alert_id' in rendered
-    assert '"ClientAccountId": client_account_id' in rendered
+    assert f'Param(name="alertId", location="{location}", python_name="alert_id")' in rendered
+    assert (
+        f'Param(name="ClientAccountId", location="{location}", python_name="client_account_id")'
+        in rendered
+    )
+    assert (
+        rendered.count(f'{location}={{"alertId": alert_id, "ClientAccountId": client_account_id}}')
+        == 2
+    )
 
 
 def test_documented_optional_filters_are_forced_optional_via_override() -> None:

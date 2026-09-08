@@ -54,8 +54,8 @@ GET_PA_SPEC: EndpointSpec[PriceAlertResponseDTO] = EndpointSpec(
     rate_limit_bucket="price_alert",
     response_model=PriceAlertResponseDTO,
     params=(
-        Param(name="alertId", location="body", python_name="alert_id"),
-        Param(name="ClientAccountId", location="body", python_name="client_account_id"),
+        Param(name="alertId", location="query", python_name="alert_id"),
+        Param(name="ClientAccountId", location="query", python_name="client_account_id"),
     ),
 )
 
@@ -67,7 +67,9 @@ def get_pa(
     Perform a retrieve operation for the specified client price alert, or where no parameter
     is supplied for all price alerts on this client account.
     """
-    return ctx.invoke(GET_PA_SPEC, body={"alertId": alert_id, "ClientAccountId": client_account_id})
+    return ctx.invoke(
+        GET_PA_SPEC, query={"alertId": alert_id, "ClientAccountId": client_account_id}
+    )
 
 
 async def aget_pa(
@@ -78,7 +80,7 @@ async def aget_pa(
     is supplied for all price alerts on this client account.
     """
     return await ctx.ainvoke(
-        GET_PA_SPEC, body={"alertId": alert_id, "ClientAccountId": client_account_id}
+        GET_PA_SPEC, query={"alertId": alert_id, "ClientAccountId": client_account_id}
     )
 
 

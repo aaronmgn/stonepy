@@ -1693,8 +1693,8 @@ ENDPOINT_CASES = [
         "NONE",
         None,
         (
-            ("alertId", "body", "alert_id"),
-            ("ClientAccountId", "body", "client_account_id"),
+            ("alertId", "query", "alert_id"),
+            ("ClientAccountId", "query", "client_account_id"),
         ),
         id="GetPA",
     ),
