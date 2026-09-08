@@ -37,6 +37,31 @@ Coverage measures `src/stonepy/_core`, `_generator`, `resources` (without `_sync
 to enable them. The hooks are a fast subset of CI (ruff, format, mypy); CI also runs the tests,
 consistency lint, packaging, and strict docs.
 
+## Live tests
+
+The live suite requires explicit opt-in and an approved account. Configure the following with
+your demo credentials and the positive id of the **first** client account returned by
+`client.user_account.get_client_and_trading_account()`:
+
+```bash
+export STONEX_LIVE=1
+export STONEX_USERNAME="your-demo-username"
+export STONEX_PASSWORD="your-demo-password"
+export STONEX_APP_KEY="your-app-key"
+export STONEX_BASE_URL="https://ciapi.cityindex.com/TradingAPI"
+export STONEX_LIVE_CLIENT_ACCOUNT_ID="12345"  # replace with the approved first client-account id
+uv run pytest tests/live -m live
+```
+
+`STONEX_BASE_URL` must use HTTPS with one of these exact host/port combinations:
+
+- `ciapi.cityindex.com` on the default HTTPS port or explicit port `443`.
+- `ciapipreprod.cityindextest9.co.uk` on the default HTTPS port, explicit port `443`, or `8443`.
+
+Without `STONEX_LIVE=1`, live tests are skipped. After opt-in, missing credentials or a missing
+account id fail collection loudly; a disallowed target or an account mismatch fails at setup.
+The session-wide account assertion runs before any live test, including write round-trips.
+
 ## Documentation
 
 The documentation site is built with [MkDocs](https://www.mkdocs.org/) and Material for MkDocs.

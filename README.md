@@ -12,19 +12,28 @@ Python client for the StoneX (CIAPI) v2 trading API.
 
 ## Features
 
-- **Fully typed.** Request and response DTO bodies are
+- **Typed models.** Request and response DTO bodies are
   [Pydantic](https://docs.pydantic.dev/) v2 models; some methods take primitive parameters or
   return bare scalars or lists. The package ships a `py.typed` marker, so editors autocomplete
-  fields and `mypy` checks your calls.
+  fields and type checkers can check your calls. See the
+  [constructor typing notes](https://aaronmgn.github.io/stonepy/latest/installation/#type-checking-pep-561)
+  for current limitations.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
 - **Complete coverage.** All 128 endpoints of the frozen catalog revision (`CATALOG_VERSION`)
   across 19 resource groups, using the v2 variant of every endpoint that has one.
 - **Batteries included.** Automatic session refresh, configurable retries, client-side rate
-  limiting, masking for app key, password, session, authorization, and proxy values in
-  client-owned object representations, and a clear exception hierarchy.
+  limiting, secret-field omission in configuration and model representations, redaction in
+  request representations, and a clear exception hierarchy.
 
 > **Project status:** `stonepy` is pre-1.0 (alpha). The public API may change between minor
 > releases until 1.0; pin a version for production use.
+
+When upgrading, migrate shared request DTOs to `Request<Name>` variants, replace entry-point
+plugins with explicitly constructed resources, and update deprecated resource names. See the
+[release notes](https://aaronmgn.github.io/stonepy/latest/changelog/),
+[model guide](https://aaronmgn.github.io/stonepy/latest/api/models/), and
+[extensibility guide](https://aaronmgn.github.io/stonepy/latest/guide/extensibility/)
+for migration details.
 
 ## Installation
 
@@ -38,8 +47,9 @@ Or with [uv](https://docs.astral.sh/uv/):
 uv add stonepy
 ```
 
-Requires Python >= 3.11. `stonepy` ships type information (PEP 561 `py.typed`), so it works out
-of the box with `mypy` and `pyright`.
+Requires Python >= 3.11 and pydantic >= 2.7 (< 3.0), with pydantic >= 2.12 on Python 3.14
+and newer. `stonepy` ships type information (PEP 561 `py.typed`) that `mypy` and `pyright`
+discover automatically; pyright CI is currently advisory.
 
 ## Quickstart
 
@@ -170,6 +180,10 @@ Important subclasses include `AuthenticationError`, `RateLimitError`,
 `OrderRejectedError`, `OrderStatusUnknownError`, `ResponseParseError`, `StoneXAPIError`, and
 `TransportError`.
 
+Unknown fields in nested request DTOs raise Pydantic `ValidationError` before sending an order.
+With the default status checks, an order acknowledgement without a usable status raises
+`OrderStatusUnknownError`; verify the order state before resubmitting.
+
 ## Pagination
 
 Paginated API methods return the page DTO documented by StoneX. For example,
@@ -210,7 +224,8 @@ uv run mypy
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the full contributor guide and
-[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [CHANGELOG.md](CHANGELOG.md) for release notes.
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and the
+[changelog](https://aaronmgn.github.io/stonepy/latest/changelog/) for release notes.
 
 ## Support
 

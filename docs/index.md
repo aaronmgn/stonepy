@@ -9,9 +9,10 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 
 ## Why stonepy
 
-- **Fully typed.** Request and response DTO bodies are
+- **Typed models.** Request and response DTO bodies are
   [Pydantic](https://docs.pydantic.dev/) models; some methods take primitive parameters or return
-  bare scalars or lists. Your editor autocompletes model fields and `mypy` checks your calls.
+  bare scalars or lists. Your editor autocompletes model fields and type checkers can check your
+  calls, subject to the [constructor typing limitations](installation.md#type-checking-pep-561).
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
 - **Complete coverage.** All 128 endpoints of the frozen catalog revision (`CATALOG_VERSION`)
   are bound, using the v2 variant of every endpoint that has one.
@@ -24,7 +25,8 @@ synchronous and asynchronous clients generated from the upstream API catalog.
 pip install stonepy
 ```
 
-Requires Python >= 3.11.
+Requires Python >= 3.11 and pydantic >= 2.7 (< 3.0), with pydantic >= 2.12 on Python 3.14
+and newer.
 
 ## At a glance
 
@@ -71,6 +73,11 @@ Requires Python >= 3.11.
     ```
 
 Continue with the [Quickstart](quickstart.md), or jump to the [API reference](api/client.md).
+
+When upgrading, use the strict `Request<Name>` DTO variants for shared request data, replace
+entry-point plugins with explicitly constructed resources, and update deprecated resource names.
+See the [model migration notes](api/models.md#request-side-variants-of-shared-dtos),
+[extensibility guide](guide/extensibility.md), and [changelog](changelog.md) for details.
 
 ## Disclaimer
 

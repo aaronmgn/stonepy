@@ -67,6 +67,20 @@ write, stonepy uses the endpoint's documented status domain:
 | Order | `OrderStatus` `Rejected` (5) and `RedCard` (10) raise. Other lifecycle values, including unknown numeric values, are informational. Simulation responses use this domain. |
 | Execution text | `save_order` accepts `Success`, raises `OrderRejectedError` for `Failure`, and raises `OrderStatusUnknownError` for every other supplied text or numeric status. Matching ignores case and surrounding whitespace. |
 
+With status checks enabled, every acknowledgement endpoint in the instruction, order, and
+execution-text domains raises `OrderStatusUnknownError` for an empty body or a missing, null,
+boolean, or malformed status. These are the affected methods (on both clients):
+
+| Domain | Methods |
+| --- | --- |
+| Instruction | `order.cancel_order`, `order.order` (also `order.place_order`), `order.trade`, `order.update_order`, `order.update_trade`, `fixed_margin.trade_fm`, `fixed_margin.update_trade_fm` |
+| Order | `order.simulate_cancel_order`, `order.simulate_order`, `order.simulate_trade`, `order.simulate_update_order`, `order.simulate_update_trade` |
+| Execution text | `order.save_order` |
+
+See the [order](../api/resources.md#order) and [fixed-margin](../api/resources.md#fixed_margin)
+endpoint references for their signatures. Setting `status_decoder=None` bypasses these checks;
+JSON decoding and response-model validation still apply.
+
 After an instruction acknowledgement passes, stonepy also checks each `Orders[]` item using the
 order domain. Fixed-margin responses expose the same two layers as
 `InstructionStatusId`/`InstructionStatusReasonId` and `OrderStatusId`/`OrderStatusReasonId`.

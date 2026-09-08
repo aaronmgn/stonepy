@@ -130,9 +130,10 @@ config = ClientConfig.from_env(
 builtin `TypeError`; invalid values raise builtin `ValueError`.
 
 - `base_url` must be a non-blank string without surrounding whitespace, with an `http` or `https`
-  scheme, a hostname, a valid port, and no embedded username or password.
-- Timeouts, `rate_limit_window_seconds`, and `proactive_refresh_seconds` must be finite positive
-  integers or floats.
+  scheme, a hostname, and no embedded username or password. An explicit port must be in `1..65535`.
+- `connect_timeout`, `read_timeout`, `write_timeout`, `pool_timeout`,
+  `rate_limit_window_seconds`, and `proactive_refresh_seconds` must be finite positive integers
+  or floats.
 - `max_connections` and `rate_limit_max` must be positive integers; `max_retries` must be a
   non-negative integer.
 - `retry_budget_seconds` must be a finite non-negative number. Booleans are rejected for all
@@ -155,6 +156,11 @@ def legacy_decoder(status: int, status_reason: int | None) -> StatusDecision: ..
 
 A decoder receives the endpoint's `INSTRUCTION` or `ORDER` domain through the `domain` keyword
 when its signature accepts it. Legacy two-argument callables retain their calling convention.
+For existing two-argument decoder annotations, use `LegacyStatusDecoder` from
+`stonepy._core.status`; `StatusDecoder` is now a protocol whose signature includes `domain`.
+An inspectable signature that accepts neither supported form raises
+`TypeError("status_decoder must accept (status, status_reason) or (status, status_reason, *, domain)")`.
+If signature inspection itself fails, the decoder is called with two arguments.
 The signature is inspected once per callable identity; replacing `config.status_decoder` after
 client construction takes effect on the next response. Runtime exceptions from a decoder propagate
 without retrying the callable. `StatusDecision` is `BusinessStatus | bool | str | None`.
