@@ -17,6 +17,9 @@ from ._sync.get_markets_trades_wall import (
 from ._sync.get_open_position import _GetOpenPositionMixin as _SyncGetOpenPositionMixin
 from ._sync.get_order import _GetOrderMixin as _SyncGetOrderMixin
 from ._sync.get_order_history import _GetOrderHistoryMixin as _SyncGetOrderHistoryMixin
+from ._sync.get_order_including_closed import (
+    _GetOrderIncludingClosedMixin as _SyncGetOrderIncludingClosedMixin,
+)
 from ._sync.get_orders import _GetOrdersMixin as _SyncGetOrdersMixin
 from ._sync.get_orders_by_reference import (
     _GetOrdersByReferenceMixin as _SyncGetOrdersByReferenceMixin,
@@ -51,6 +54,9 @@ from .get_markets_trades_wall import _GetMarketsTradesWallMixin as _AsyncGetMark
 from .get_open_position import _GetOpenPositionMixin as _AsyncGetOpenPositionMixin
 from .get_order import _GetOrderMixin as _AsyncGetOrderMixin
 from .get_order_history import _GetOrderHistoryMixin as _AsyncGetOrderHistoryMixin
+from .get_order_including_closed import (
+    _GetOrderIncludingClosedMixin as _AsyncGetOrderIncludingClosedMixin,
+)
 from .get_orders import _GetOrdersMixin as _AsyncGetOrdersMixin
 from .get_orders_by_reference import _GetOrdersByReferenceMixin as _AsyncGetOrdersByReferenceMixin
 from .list_active_orders import _ListActiveOrdersMixin as _AsyncListActiveOrdersMixin
@@ -84,6 +90,7 @@ class OrderResource(
     _SyncGetOpenPositionMixin,
     _SyncGetOrderMixin,
     _SyncGetOrderHistoryMixin,
+    _SyncGetOrderIncludingClosedMixin,
     _SyncGetOrdersMixin,
     _SyncGetOrdersByReferenceMixin,
     _SyncListActiveOrdersMixin,
@@ -119,6 +126,7 @@ class AsyncOrderResource(
     _AsyncGetOpenPositionMixin,
     _AsyncGetOrderMixin,
     _AsyncGetOrderHistoryMixin,
+    _AsyncGetOrderIncludingClosedMixin,
     _AsyncGetOrdersMixin,
     _AsyncGetOrdersByReferenceMixin,
     _AsyncListActiveOrdersMixin,

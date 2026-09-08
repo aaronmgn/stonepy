@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   remain supported, including replacement after client construction.
 - Session managers expose atomic generation/header snapshots and manual-logon commits.
 - Public exceptions support pickle round-trips with arguments and diagnostic attributes intact.
+- Added `client_application`, `fixed_margin`, and `trading_advisor` client properties and
+  `order.get_order_including_closed(order_id, client_account_id)` on both clients.
+- Public `stonepy.extensions` exports `BaseResource`, `CallContext`, `EndpointSpec`, `Param`,
+  `AuthPolicy`, and `StatusDomain`. Clients and resources expose a read-only `call_context`
+  property for explicitly constructed resources.
+- Export `ClientConfigOverrides`, a TypedDict for typed `ClientConfig.from_env()` keyword
+  overrides, and add consumer typing probes plus a non-blocking pyright CI job.
 
 ### Changed
 
@@ -82,10 +89,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `STONEX_LIVE_CLIENT_ACCOUNT_ID`; a session-wide account assertion runs before any live test.
 - GetPA live probes compare query and body filters using temporary alert ids, check the
   production binding, and clean up by id. Strict live xfails now cover only contract mismatches.
+- **BREAKING:** `ClientConfig.from_env()` now exposes typed keyword names and values through
+  `Unpack[ClientConfigOverrides]`; static checkers reject unknown keys and incompatible values.
+  Annotate dynamic override dictionaries with `ClientConfigOverrides`. Invalid non-None `base_url`
+  overrides now reach constructor validation and raise `TypeError("base_url must be a string")`
+  instead of `AttributeError`.
+- Document that the bundled generator requires dev tools and the repository `pyproject.toml`;
+  run generator commands from a source checkout or editable install. The generator stays in the wheel.
+
+### Deprecated
+
+- **BREAKING:** `clientapplication`, `fixedmargin`, `tradingadvisor`, and
+  `order_including_closed` client properties now emit `DeprecationWarning`. Migrate to
+  `client_application`, `fixed_margin`, `trading_advisor`, and
+  `client.order.get_order_including_closed`, respectively.
 
 ### Removed
 
 - Removed the private `BucketedSlidingWindowLimiter` and `PassthroughResponseModel` helpers.
+- **BREAKING:** Removed entry-point plugin discovery, `ClientConfig.enable_plugins`,
+  `ClientConfig.allow_overrides`, `client.plugin()`, `requires_stonepy`, and `ABI_VERSION`.
+  Remove plugin registrations and configuration; import `BaseResource` from
+  `stonepy.extensions` and construct `MyResource(client.call_context)` instead.
 
 ### Fixed
 

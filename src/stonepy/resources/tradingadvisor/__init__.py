@@ -33,8 +33,8 @@ class TradingadvisorResource(
     BaseResource,
 ):
     """
-    Synchronous `tradingadvisor` resource group; access it via `StoneXClient.tradingadvisor`.
-    Each method maps to one StoneX CIAPI v2 endpoint.
+    Synchronous `trading_advisor` resource group; access it via
+    `StoneXClient.trading_advisor`. Each method maps to one StoneX CIAPI v2 endpoint.
     """
 
 
@@ -46,8 +46,8 @@ class AsyncTradingadvisorResource(
     BaseResource,
 ):
     """
-    Asynchronous `tradingadvisor` resource group; access it via
-    `AsyncStoneXClient.tradingadvisor`. Each method is the awaitable twin of the synchronous
+    Asynchronous `trading_advisor` resource group; access it via
+    `AsyncStoneXClient.trading_advisor`. Each method is the awaitable twin of the synchronous
     resource's method.
     """
 

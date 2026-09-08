@@ -56,7 +56,7 @@ def test_from_env_status_decoder_none_disables_default() -> None:
 
 def test_from_env_unknown_override_raises_type_error() -> None:
     with pytest.raises(TypeError):
-        ClientConfig.from_env(base_url="https://x", unknown=True)
+        ClientConfig.from_env(base_url="https://x", unknown=True)  # type: ignore[call-arg]
 
 
 def test_config_repr_omits_secret_fields() -> None:
@@ -109,7 +109,7 @@ def test_from_env_uses_dataclass_defaults(monkeypatch: pytest.MonkeyPatch) -> No
 
 def test_from_env_unknown_none_override_raises_type_error() -> None:
     with pytest.raises(TypeError, match="unexpected ClientConfig override: unknown"):
-        ClientConfig.from_env(base_url="https://x", unknown=None)
+        ClientConfig.from_env(base_url="https://x", unknown=None)  # type: ignore[call-arg]
 
 
 @pytest.mark.parametrize(
@@ -188,4 +188,18 @@ def test_config_accepts_zero_retry_settings() -> None:
 def test_from_env_uses_constructor_validation(overrides: dict[str, object]) -> None:
     values = {"base_url": "https://x", **overrides}
     with pytest.raises((TypeError, ValueError)):
-        ClientConfig.from_env(**values)
+        ClientConfig.from_env(**values)  # type: ignore[arg-type]
+
+
+def test_from_env_override_types_cover_all_init_fields() -> None:
+    from dataclasses import fields
+    from typing import get_type_hints
+
+    from stonepy import ClientConfigOverrides
+
+    config_types = get_type_hints(ClientConfig)
+    override_types = get_type_hints(ClientConfigOverrides)
+    assert set(override_types) == {field.name for field in fields(ClientConfig) if field.init}
+    assert not ClientConfigOverrides.__required_keys__
+    for name, annotation in override_types.items():
+        assert annotation == config_types[name] | None

@@ -247,7 +247,6 @@ def test_user_docs_cover_install_async_errors_pagination_and_reference() -> None
 
 def test_version_consumers_use_single_source() -> None:
     import stonepy
-    from stonepy._core import plugins
 
     source = (ROOT / "src/stonepy/_version.py").read_text()
     match = re.search(r'^__version__ = "([^\"]+)"$', source, re.MULTILINE)
@@ -255,14 +254,7 @@ def test_version_consumers_use_single_source() -> None:
     expected = match.group(1)
     assert stonepy.__version__ == expected
     assert stonepy.ClientConfig(base_url="https://x").user_agent == f"stonepy/{expected}"
-    assert plugins._current_stonepy_version() == expected
     assert "importlib.metadata" not in (ROOT / "src/stonepy/_core/config.py").read_text()
-    imports = [
-        line
-        for line in (ROOT / "src/stonepy/_core/plugins.py").read_text().splitlines()
-        if "importlib.metadata" in line
-    ]
-    assert imports == ["from importlib.metadata import entry_points as metadata_entry_points"]
 
 
 def test_user_agent_ignores_installed_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -275,3 +267,11 @@ def test_user_agent_ignores_installed_metadata(monkeypatch: pytest.MonkeyPatch) 
 
     monkeypatch.setattr(importlib.metadata, "version", fail_version)
     assert stonepy.ClientConfig(base_url="https://x").user_agent == f"stonepy/{stonepy.__version__}"
+
+
+def test_wheel_intentionally_contains_generator() -> None:
+    wheel = _pyproject()["tool"]["hatch"]["build"]["targets"]["wheel"]
+    assert wheel["packages"] == ["src/stonepy"]
+    assert not any("_generator" in entry for entry in wheel.get("exclude", []))
+    checker = (ROOT / "scripts/check_release_artifacts.py").read_text()
+    assert "stonepy/_generator/__init__.py" in checker

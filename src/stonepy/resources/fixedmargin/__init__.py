@@ -17,7 +17,7 @@ class FixedmarginResource(
     _SyncGetFreeCashToTradeMixin, _SyncTradeFmMixin, _SyncUpdateTradeFmMixin, BaseResource
 ):
     """
-    Synchronous `fixedmargin` resource group; access it via `StoneXClient.fixedmargin`. Each
+    Synchronous `fixed_margin` resource group; access it via `StoneXClient.fixed_margin`. Each
     method maps to one StoneX CIAPI v2 endpoint.
     """
 
@@ -26,8 +26,9 @@ class AsyncFixedmarginResource(
     _AsyncGetFreeCashToTradeMixin, _AsyncTradeFmMixin, _AsyncUpdateTradeFmMixin, BaseResource
 ):
     """
-    Asynchronous `fixedmargin` resource group; access it via `AsyncStoneXClient.fixedmargin`.
-    Each method is the awaitable twin of the synchronous resource's method.
+    Asynchronous `fixed_margin` resource group; access it via
+    `AsyncStoneXClient.fixed_margin`. Each method is the awaitable twin of the synchronous
+    resource's method.
     """
 
 

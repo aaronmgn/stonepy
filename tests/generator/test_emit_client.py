@@ -41,12 +41,6 @@ def test_emit_client_writes_sync_async_resources_and_typed_client(tmp_path: Path
     assert "transport = AsyncTransport(config)" in client_text
     assert "class StoneXClient:" in client_text
     assert '"""Synchronous StoneX CIAPI v2 client.' in client_text
-    assert "        try:\n            self._plugins: dict[str, BaseResource] = {\n" in client_text
-    assert (
-        "        except BaseException:\n"
-        "            self._transport.close()\n"
-        "            raise\n" in client_text
-    )
     assert "def session(self) -> SessionResource:" in client_text
     assert '"""Close the underlying synchronous HTTP transport."""' in client_text
     assert "class AsyncStoneXClient:" in client_text
@@ -231,8 +225,10 @@ def test_ci_drift_gate_checks_generated_client_outputs() -> None:
     assert "git status --porcelain --untracked-files=all" in text
 
 
-def test_generated_clients_share_builtin_resource_names(tmp_path: Path) -> None:
+def test_generated_clients_have_no_plugin_discovery(tmp_path: Path) -> None:
     emit_client(FIX / "resources", tmp_path)
     text = (tmp_path / "client.py").read_text()
-    assert text.count("_BUILTIN_RESOURCE_NAMES: frozenset[str] =") == 1
-    assert text.count("_BUILTIN_RESOURCE_NAMES") == 3
+    assert "_load_plugin_resources" not in text
+    assert "def plugin(" not in text
+    assert "_BUILTIN_RESOURCE_NAMES" not in text
+    assert text.count("def call_context(self) -> CallContext:") == 2

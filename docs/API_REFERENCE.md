@@ -20,9 +20,17 @@ The top-level `stonepy` package exports the client entry points and the error hi
 | Export | Description |
 | --- | --- |
 | `ClientConfig` | Connection, credential, timeout, retry, and rate-limit configuration. Build it directly or via `ClientConfig.from_env()`. |
+| `ClientConfigOverrides` | TypedDict for optional `ClientConfig.from_env()` keyword overrides. |
 | `StoneXClient` | Synchronous client; use as a context manager (`with StoneXClient(config) as client:`). |
 | `AsyncStoneXClient` | Asynchronous client; use as `async with AsyncStoneXClient(config) as client:`. |
-| `StoneXError` | Base class for the public runtime error hierarchy. Configuration, validation, and plugin setup can also raise builtin `TypeError` or `ValueError`. |
+| `StoneXError` | Base class for the public runtime error hierarchy. Configuration and validation can also raise builtin `TypeError` or `ValueError`. |
+
+### Extensions
+
+`stonepy.extensions` exports `BaseResource`, `CallContext`, `EndpointSpec`, `Param`, `AuthPolicy`,
+and `StatusDomain`. Construct out-of-tree resources with `MyResource(client.call_context)`;
+clients and resources expose read-only `call_context` properties. See the
+[extensibility guide](guide/extensibility.md) for a complete example.
 
 ### Error Hierarchy
 
@@ -41,9 +49,15 @@ The public runtime exceptions inherit from `StoneXError`:
 
 Resource groups are exposed as properties on both clients and mirror the StoneX API surface:
 
-`cfd`, `client_preference`, `clientapplication`, `clientpreference`, `fixedmargin`, `margin`,
-`market`, `message`, `news`, `order`, `order_including_closed`, `pm`, `preference`,
-`price_alert`, `session`, `spread`, `tradingadvisor`, `user_account`, and `watchlist`.
+`cfd`, `client_preference`, `client_application`, `clientpreference`, `fixed_margin`, `margin`,
+`market`, `message`, `news`, `order`, `pm`, `preference`, `price_alert`, `session`, `spread`,
+`trading_advisor`, `user_account`, and `watchlist`.
+
+Deprecated compatibility aliases `clientapplication`, `fixedmargin`, and `tradingadvisor`
+emit `DeprecationWarning`; use `client_application`, `fixed_margin`, and `trading_advisor`,
+respectively. The `order_including_closed` group is also deprecated; replace
+`client.order_including_closed.get_order_including_closed(...)` with
+`client.order.get_order_including_closed(...)`.
 
 Each generated method maps to a single CIAPI v2 endpoint. The documented `place_order` alias
 below maps to the same endpoint as the generated `order` method:

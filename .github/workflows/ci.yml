@@ -106,6 +106,18 @@ jobs:
       - run: cp -R tests/smoke_installed/. /tmp/stonepy-wheel-smoke/
       - run: cd /tmp/stonepy-wheel-smoke && env -u PYTHONPATH STONEPY_SMOKE_INSTALLED=1 ./bin/python -m pytest . --ignore=lib --ignore=lib64 -p no:cacheprovider -q
 
+  pyright:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.10"
+      - run: uv python install 3.12
+      - run: uv sync --locked --extra dev --python 3.12
+      - run: uv run --locked pyright tests
+
   ci:
     if: always()
     needs: [test, docs, generated-client, lowest-direct, wheel-smoke]

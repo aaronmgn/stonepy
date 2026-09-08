@@ -64,6 +64,9 @@ The model reference pages under "API reference > Models" are generated from `sto
 
 ## Generated Files
 
+The generator ships in the wheel but needs the dev tools (`ruff`, `unasync`)
+and the repository `pyproject.toml`; run it from a source checkout or editable install.
+
 Models, endpoint bindings, contract tests, `client.py`, resource `__init__.py` files, and
 `_sync` resource files are generated from the StoneX catalog. **Do not edit them by hand** -
 regenerate them instead:

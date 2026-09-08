@@ -20,7 +20,7 @@ def test_get_free_cash_to_trade_returns_response() -> None:
     client = StoneXClient(ClientConfig(base_url="https://api.example"))
     try:
         client._ctx.session.set_token("TOKEN", "user")
-        resp = client.fixedmargin.get_free_cash_to_trade()
+        resp = client.fixed_margin.get_free_cash_to_trade()
         assert isinstance(resp, ApiFreeCashToTradeResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
@@ -38,7 +38,7 @@ def test_get_free_cash_to_trade_async() -> None:
         client = AsyncStoneXClient(ClientConfig(base_url="https://api.example"))
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
-            resp = await client.fixedmargin.get_free_cash_to_trade()
+            resp = await client.fixed_margin.get_free_cash_to_trade()
             assert isinstance(resp, ApiFreeCashToTradeResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "GET"

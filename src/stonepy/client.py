@@ -3,16 +3,15 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Collection
+import warnings
+from collections.abc import Awaitable, Callable
 from types import TracebackType
 
 from stonepy._core.clock import Clock, SystemClock
 from stonepy._core.config import ClientConfig
 from stonepy._core.errors import ConfigurationError
 from stonepy._core.pipeline import CallContext
-from stonepy._core.plugins import discover_plugin_resources
 from stonepy._core.ratelimit import SlidingWindowLimiter
-from stonepy._core.resource import BaseResource
 from stonepy._core.retry import RetryPolicy
 from stonepy._core.session import AsyncSessionManager, SessionManager, require_session_token
 from stonepy._core.transport import AsyncTransport, SyncTransport
@@ -49,30 +48,6 @@ from stonepy.resources.spread import AsyncSpreadResource, SpreadResource
 from stonepy.resources.tradingadvisor import AsyncTradingadvisorResource, TradingadvisorResource
 from stonepy.resources.user_account import AsyncUserAccountResource, UserAccountResource
 from stonepy.resources.watchlist import AsyncWatchlistResource, WatchlistResource
-
-_BUILTIN_RESOURCE_NAMES: frozenset[str] = frozenset(
-    {
-        "cfd",
-        "client_preference",
-        "clientapplication",
-        "clientpreference",
-        "fixedmargin",
-        "margin",
-        "market",
-        "message",
-        "news",
-        "order",
-        "order_including_closed",
-        "pm",
-        "preference",
-        "price_alert",
-        "session",
-        "spread",
-        "tradingadvisor",
-        "user_account",
-        "watchlist",
-    }
-)
 
 
 def _missing_logon() -> tuple[str, str]:
@@ -133,17 +108,6 @@ def _async_config_logon(
     return alogon
 
 
-def _load_plugin_resources(
-    config: ClientConfig, known: Collection[str]
-) -> dict[str, type[BaseResource]]:
-    """Discover out-of-tree resource plugins registered via entry points."""
-    return discover_plugin_resources(
-        enable=config.enable_plugins,
-        allow_overrides=config.allow_overrides,
-        known=known,
-    )
-
-
 def _build_context(
     config: ClientConfig, clock: Clock | None = None
 ) -> tuple[CallContext, SyncTransport]:
@@ -202,21 +166,11 @@ class StoneXClient:
 
     def __init__(self, config: ClientConfig) -> None:
         self._ctx, self._transport = _build_context(config)
-        try:
-            self._plugins: dict[str, BaseResource] = {
-                name: resource(self._ctx)
-                for name, resource in _load_plugin_resources(
-                    config, _BUILTIN_RESOURCE_NAMES
-                ).items()
-            }
-        except BaseException:
-            self._transport.close()
-            raise
         self._cfd: CfdResource | None = None
         self._client_preference: ClientPreferenceResource | None = None
-        self._clientapplication: ClientapplicationResource | None = None
+        self._client_application: ClientapplicationResource | None = None
         self._clientpreference: ClientpreferenceResource | None = None
-        self._fixedmargin: FixedmarginResource | None = None
+        self._fixed_margin: FixedmarginResource | None = None
         self._margin: MarginResource | None = None
         self._market: MarketResource | None = None
         self._message: MessageResource | None = None
@@ -228,9 +182,18 @@ class StoneXClient:
         self._price_alert: PriceAlertResource | None = None
         self._session: SessionResource | None = None
         self._spread: SpreadResource | None = None
-        self._tradingadvisor: TradingadvisorResource | None = None
+        self._trading_advisor: TradingadvisorResource | None = None
         self._user_account: UserAccountResource | None = None
         self._watchlist: WatchlistResource | None = None
+
+    @property
+    def call_context(self) -> CallContext:
+        """Return shared call state for explicitly constructed resources.
+
+        This property cannot be reassigned; its context contains mutable state.
+        Use it only while this client is open.
+        """
+        return self._ctx
 
     @property
     def cfd(self) -> CfdResource:
@@ -247,11 +210,21 @@ class StoneXClient:
         return self._client_preference
 
     @property
+    def client_application(self) -> ClientapplicationResource:
+        """Return the client_application resource group."""
+        if self._client_application is None:
+            self._client_application = ClientapplicationResource(self._ctx)
+        return self._client_application
+
+    @property
     def clientapplication(self) -> ClientapplicationResource:
-        """Return the clientapplication resource group."""
-        if self._clientapplication is None:
-            self._clientapplication = ClientapplicationResource(self._ctx)
-        return self._clientapplication
+        """Deprecated alias of ``client_application``."""
+        warnings.warn(
+            "StoneXClient.clientapplication is deprecated; use client_application",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.client_application
 
     @property
     def clientpreference(self) -> ClientpreferenceResource:
@@ -261,11 +234,21 @@ class StoneXClient:
         return self._clientpreference
 
     @property
+    def fixed_margin(self) -> FixedmarginResource:
+        """Return the fixed_margin resource group."""
+        if self._fixed_margin is None:
+            self._fixed_margin = FixedmarginResource(self._ctx)
+        return self._fixed_margin
+
+    @property
     def fixedmargin(self) -> FixedmarginResource:
-        """Return the fixedmargin resource group."""
-        if self._fixedmargin is None:
-            self._fixedmargin = FixedmarginResource(self._ctx)
-        return self._fixedmargin
+        """Deprecated alias of ``fixed_margin``."""
+        warnings.warn(
+            "StoneXClient.fixedmargin is deprecated; use fixed_margin",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.fixed_margin
 
     @property
     def margin(self) -> MarginResource:
@@ -305,6 +288,12 @@ class StoneXClient:
     @property
     def order_including_closed(self) -> OrderIncludingClosedResource:
         """Return the order_including_closed resource group."""
+        warnings.warn(
+            "StoneXClient.order_including_closed is deprecated; "
+            "use client.order.get_order_including_closed",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self._order_including_closed is None:
             self._order_including_closed = OrderIncludingClosedResource(self._ctx)
         return self._order_including_closed
@@ -345,11 +334,21 @@ class StoneXClient:
         return self._spread
 
     @property
+    def trading_advisor(self) -> TradingadvisorResource:
+        """Return the trading_advisor resource group."""
+        if self._trading_advisor is None:
+            self._trading_advisor = TradingadvisorResource(self._ctx)
+        return self._trading_advisor
+
+    @property
     def tradingadvisor(self) -> TradingadvisorResource:
-        """Return the tradingadvisor resource group."""
-        if self._tradingadvisor is None:
-            self._tradingadvisor = TradingadvisorResource(self._ctx)
-        return self._tradingadvisor
+        """Deprecated alias of ``trading_advisor``."""
+        warnings.warn(
+            "StoneXClient.tradingadvisor is deprecated; use trading_advisor",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.trading_advisor
 
     @property
     def user_account(self) -> UserAccountResource:
@@ -364,10 +363,6 @@ class StoneXClient:
         if self._watchlist is None:
             self._watchlist = WatchlistResource(self._ctx)
         return self._watchlist
-
-    def plugin(self, name: str) -> BaseResource:
-        """Return a loaded plugin resource by name."""
-        return self._plugins[name]
 
     def __enter__(self) -> StoneXClient:
         """Enter the synchronous client context."""
@@ -396,15 +391,11 @@ class AsyncStoneXClient:
 
     def __init__(self, config: ClientConfig) -> None:
         self._ctx, self._transport = _build_async_context(config)
-        self._plugins: dict[str, BaseResource] = {
-            name: resource(self._ctx)
-            for name, resource in _load_plugin_resources(config, _BUILTIN_RESOURCE_NAMES).items()
-        }
         self._cfd: AsyncCfdResource | None = None
         self._client_preference: AsyncClientPreferenceResource | None = None
-        self._clientapplication: AsyncClientapplicationResource | None = None
+        self._client_application: AsyncClientapplicationResource | None = None
         self._clientpreference: AsyncClientpreferenceResource | None = None
-        self._fixedmargin: AsyncFixedmarginResource | None = None
+        self._fixed_margin: AsyncFixedmarginResource | None = None
         self._margin: AsyncMarginResource | None = None
         self._market: AsyncMarketResource | None = None
         self._message: AsyncMessageResource | None = None
@@ -416,9 +407,18 @@ class AsyncStoneXClient:
         self._price_alert: AsyncPriceAlertResource | None = None
         self._session: AsyncSessionResource | None = None
         self._spread: AsyncSpreadResource | None = None
-        self._tradingadvisor: AsyncTradingadvisorResource | None = None
+        self._trading_advisor: AsyncTradingadvisorResource | None = None
         self._user_account: AsyncUserAccountResource | None = None
         self._watchlist: AsyncWatchlistResource | None = None
+
+    @property
+    def call_context(self) -> CallContext:
+        """Return shared call state for explicitly constructed resources.
+
+        This property cannot be reassigned; its context contains mutable state.
+        Use it only while this client is open.
+        """
+        return self._ctx
 
     @property
     def cfd(self) -> AsyncCfdResource:
@@ -435,11 +435,21 @@ class AsyncStoneXClient:
         return self._client_preference
 
     @property
+    def client_application(self) -> AsyncClientapplicationResource:
+        """Return the client_application resource group."""
+        if self._client_application is None:
+            self._client_application = AsyncClientapplicationResource(self._ctx)
+        return self._client_application
+
+    @property
     def clientapplication(self) -> AsyncClientapplicationResource:
-        """Return the clientapplication resource group."""
-        if self._clientapplication is None:
-            self._clientapplication = AsyncClientapplicationResource(self._ctx)
-        return self._clientapplication
+        """Deprecated alias of ``client_application``."""
+        warnings.warn(
+            "AsyncStoneXClient.clientapplication is deprecated; use client_application",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.client_application
 
     @property
     def clientpreference(self) -> AsyncClientpreferenceResource:
@@ -449,11 +459,21 @@ class AsyncStoneXClient:
         return self._clientpreference
 
     @property
+    def fixed_margin(self) -> AsyncFixedmarginResource:
+        """Return the fixed_margin resource group."""
+        if self._fixed_margin is None:
+            self._fixed_margin = AsyncFixedmarginResource(self._ctx)
+        return self._fixed_margin
+
+    @property
     def fixedmargin(self) -> AsyncFixedmarginResource:
-        """Return the fixedmargin resource group."""
-        if self._fixedmargin is None:
-            self._fixedmargin = AsyncFixedmarginResource(self._ctx)
-        return self._fixedmargin
+        """Deprecated alias of ``fixed_margin``."""
+        warnings.warn(
+            "AsyncStoneXClient.fixedmargin is deprecated; use fixed_margin",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.fixed_margin
 
     @property
     def margin(self) -> AsyncMarginResource:
@@ -493,6 +513,12 @@ class AsyncStoneXClient:
     @property
     def order_including_closed(self) -> AsyncOrderIncludingClosedResource:
         """Return the order_including_closed resource group."""
+        warnings.warn(
+            "AsyncStoneXClient.order_including_closed is deprecated; "
+            "use client.order.get_order_including_closed",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         if self._order_including_closed is None:
             self._order_including_closed = AsyncOrderIncludingClosedResource(self._ctx)
         return self._order_including_closed
@@ -533,11 +559,21 @@ class AsyncStoneXClient:
         return self._spread
 
     @property
+    def trading_advisor(self) -> AsyncTradingadvisorResource:
+        """Return the trading_advisor resource group."""
+        if self._trading_advisor is None:
+            self._trading_advisor = AsyncTradingadvisorResource(self._ctx)
+        return self._trading_advisor
+
+    @property
     def tradingadvisor(self) -> AsyncTradingadvisorResource:
-        """Return the tradingadvisor resource group."""
-        if self._tradingadvisor is None:
-            self._tradingadvisor = AsyncTradingadvisorResource(self._ctx)
-        return self._tradingadvisor
+        """Deprecated alias of ``trading_advisor``."""
+        warnings.warn(
+            "AsyncStoneXClient.tradingadvisor is deprecated; use trading_advisor",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.trading_advisor
 
     @property
     def user_account(self) -> AsyncUserAccountResource:
@@ -552,10 +588,6 @@ class AsyncStoneXClient:
         if self._watchlist is None:
             self._watchlist = AsyncWatchlistResource(self._ctx)
         return self._watchlist
-
-    def plugin(self, name: str) -> BaseResource:
-        """Return a loaded plugin resource by name."""
-        return self._plugins[name]
 
     async def __aenter__(self) -> AsyncStoneXClient:
         """Enter the asynchronous client context."""
