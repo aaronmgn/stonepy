@@ -6,7 +6,7 @@ import pytest
 import respx
 from pydantic import BaseModel
 
-from stonepy import AsyncStoneXClient, ClientConfig, StoneXClient
+from stonepy import AsyncStoneXClient, ClientConfig, StoneXClient, UnspecifiedResponse
 from stonepy.extensions import (
     AuthPolicy,
     BaseResource,
@@ -34,6 +34,7 @@ def test_public_exports() -> None:
         "OrderStatusUnknownError",
         "ResponseParseError",
         "TransportError",
+        "UnspecifiedResponse",
         "__version__",
     }
 
@@ -54,6 +55,14 @@ def test_public_exports() -> None:
     assert not issubclass(stonepy.OrderStatusUnknownError, stonepy.OrderRejectedError)
     assert issubclass(stonepy.ResponseParseError, stonepy.StoneXError)
     assert issubclass(stonepy.TransportError, stonepy.StoneXError)
+
+
+def test_unspecified_response_is_public_endpoint_result() -> None:
+    from stonepy._endpoints.preference import DELETE_USER_PREFERENCE_SPEC, SAVE_USER_PREFERENCE_SPEC
+    from stonepy._endpoints.price_alert import SAVE_PA_SPEC
+
+    for spec in (DELETE_USER_PREFERENCE_SPEC, SAVE_USER_PREFERENCE_SPEC, SAVE_PA_SPEC):
+        assert spec.response_model is UnspecifiedResponse, spec.name
 
 
 def test_public_errors_module_reexports_exception_hierarchy() -> None:

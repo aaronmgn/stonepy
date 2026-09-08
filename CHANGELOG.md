@@ -7,45 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-08
+
+This release makes order handling safer: unknown nested request fields that were silently
+dropped now raise validation errors, and acknowledgements without a usable status raise
+`OrderStatusUnknownError`. Migrate shared request DTOs to their `Request<Name>` variants,
+replace entry-point plugins with explicitly constructed resources, and update deprecated
+resource names. Migration notes cover
+[request DTO conversion](https://aaronmgn.github.io/stonepy/latest/api/models/#request-side-variants-of-shared-dtos),
+[acknowledgement errors and affected endpoints](https://aaronmgn.github.io/stonepy/latest/guide/error-handling/#rejection-semantics),
+[configuration validation](https://aaronmgn.github.io/stonepy/latest/guide/configuration/#validation),
+and [extension migration](https://aaronmgn.github.io/stonepy/latest/guide/extensibility/);
+resource renames are listed below.
+
 ### Added
 
 - `status_decoder` can receive the endpoint `domain` keyword; legacy two-argument callables
   remain supported, including replacement after client construction.
-- Session managers expose atomic generation/header snapshots and manual-logon commits.
+  Migrate existing two-argument `StatusDecoder` annotations to `LegacyStatusDecoder` from
+  `stonepy._core.status`; `StatusDecoder` is now a protocol requiring `domain`.
+  Signature normalization raises `TypeError("status_decoder must accept (status, status_reason) or (status, status_reason, *, domain)")`
+  when an inspectable signature accepts neither form; uninspectable signatures retain
+  two-argument invocation.
+- `CallContext.utc_now` provides an injectable UTC source for HTTP-date `Retry-After`
+  interpretation. `FakeClock` gained a timezone-aware `utc_start` argument and `utcnow()`;
+  pass `clock.utcnow` as `utc_now` to drive HTTP-date retries with virtual time.
 - Public exceptions support pickle round-trips with arguments and diagnostic attributes intact.
 - Added `client_application`, `fixed_margin`, and `trading_advisor` client properties and
   `order.get_order_including_closed(order_id, client_account_id)` on both clients.
 - Public `stonepy.extensions` exports `BaseResource`, `CallContext`, `EndpointSpec`, `Param`,
   `AuthPolicy`, and `StatusDomain`. Clients and resources expose a read-only `call_context`
   property for explicitly constructed resources.
-- Export `ClientConfigOverrides`, a TypedDict for typed `ClientConfig.from_env()` keyword
-  overrides, and add consumer typing probes plus a non-blocking pyright CI job.
+- Export `ClientConfigOverrides`, a TypedDict used by `ClientConfig.from_env()` through
+  `Unpack` so static checkers can reject unknown keywords and incompatible values. Annotate
+  dynamic override dictionaries with `ClientConfigOverrides`. Consumer typing probes and an
+  advisory pyright CI job were added; the job is non-blocking and currently reports 8 diagnostics.
 
 ### Changed
 
-- **BREAKING:** `ClientConfig` repr omits `app_key`, `password`, and `proxy`.
-- **BREAKING:** `ClientConfig.from_env()` uses dataclass defaults for fields not provided by the
-  environment or overrides, and rejects unknown override names even when their value is `None`.
-- Secret redaction uses one `SECRET_KEYS` vocabulary for mappings, headers,
-  URL queries, and models.
-- Source distribution includes are anchored to the package and release metadata.
-- Endpoint generation rejects unresolved response types and unreviewed missing response contracts
-  before deleting output, including when unresolved catalog references are otherwise allowed.
-- **BREAKING:** INSTRUCTION, ORDER, and EXECUTION_TEXT acknowledgements with missing, empty,
-  null, boolean, or malformed statuses raise `OrderStatusUnknownError` before model validation;
-  its `status` may be `None`. Raw checks follow the model's first-wins key remapping, and the
-  validated model must retain a usable status. `status_decoder=None` bypasses acknowledgement
-  checks, but an empty acknowledgement body still raises `ResponseParseError` during validation.
-- **BREAKING:** `delete_user_preference`, `save_user_preference`, and `save_pa` return
-  `UnspecifiedResponse`, retaining unexpected object fields in `model_extra`.
-- **BREAKING:** Async invocation requires an async transport and clock. Sending through an
-  `AsyncTransport` after `aclose()` raises `RuntimeError`, including if it was never used.
-- **BREAKING:** `ClientConfig` validates base URLs, numeric types, ranges, and finiteness on
-  construction, raising builtin `TypeError` or `ValueError`.
-- **BREAKING:** Package version, default user agent, build metadata, and plugin compatibility
-  checks use the single version source in `stonepy/_version.py`.
-- **BREAKING:** The internal `safe_repr` helper redacts mapping keys and uses ordinary repr for
-  other objects; `ClientConfig` protects its secrets through dataclass field omission.
 - **BREAKING:** Request DTOs that embed shared DTOs now use strict `Request<Name>` variants;
   unknown keys and tolerant instances in request positions raise `ValidationError`. Variant keys
   must be the exact alias or Python name. The original tolerant DTOs remain available. Mappings:
@@ -74,51 +73,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `OrderRequestDTO` -> `RequestOrderRequestDTO`,
   `PreferenceDTO` -> `RequestPreferenceDTO`,
   `Timestamp` -> `RequestTimestamp`.
-- **BREAKING:** The pydantic minimum is now 2.12 on Python 3.14; earlier Python versions
+- **BREAKING:** INSTRUCTION, ORDER, and EXECUTION_TEXT acknowledgements with missing, empty,
+  null, boolean, or malformed statuses raise `OrderStatusUnknownError` before model validation;
+  its `status` may be `None`. Empty acknowledgement bodies also raise this error. Raw checks
+  follow the model's first-wins key remapping, and the validated model must retain a usable
+  status. `status_decoder=None` bypasses acknowledgement checks, but an empty acknowledgement
+  body still raises `ResponseParseError` during validation.
+- **BREAKING:** `preference.delete_user_preference`, `preference.save_user_preference`, and
+  `price_alert.save_pa` return `stonepy.UnspecifiedResponse`; import it with
+  `from stonepy import UnspecifiedResponse` for annotations or `isinstance()` checks.
+  Empty bodies and JSON null become empty models; unexpected object fields are retained in
+  `model_extra`. The private `PassthroughResponseModel` was renamed to this class.
+- **BREAKING:** `ClientConfig` validates base URLs, numeric types, ranges, and finiteness on
+  construction, raising builtin `TypeError` or `ValueError`.
+- **BREAKING:** `ClientConfig` repr omits `app_key`, `password`, and `proxy`.
+- **BREAKING:** Async paths require an `AsyncClock`. `CallContext.ainvoke()` requires a
+  transport with `asend()` and no longer falls back to synchronous invocation; synchronous-only
+  clocks or transports raise `TypeError`. For hand-built contexts using `AsyncSessionManager`,
+  supply an `alogon` callable returning an awaitable: when refresh needs that callback,
+  `alogon=None` raises `TypeError` instead of falling back to synchronous `logon`.
+  Prefer reusing `AsyncStoneXClient.call_context`.
+- **BREAKING:** Sending through an `AsyncTransport` after `aclose()` raises `RuntimeError`,
+  including if it was never used.
+- **BREAKING:** The pydantic minimum is now 2.12 on Python 3.14 and newer; earlier Python versions
   retain the 2.7 minimum.
+- Package version, default user agent, and build metadata use the single version source in
+  `stonepy/_version.py`.
+- The internal `safe_repr` helper redacts secret-named mapping values and uses ordinary repr
+  for other objects.
+- Source distribution includes are anchored to the package and release metadata.
+- Endpoint generation rejects unresolved response types and unreviewed missing response contracts
+  before deleting endpoint output, including when unresolved catalog references are otherwise allowed.
+- Request-type generation rejects unsupported compound request parameter annotations embedding
+  non-root DTOs and catalog names that collide with a generated request variant.
+  Before regenerating, use supported request DTO bindings and resolve colliding catalog names.
 - Coverage now measures branches, and pre-commit hooks run ruff, format, and mypy through
   the locked uv environment.
 - CI uses `uv sync --locked` and uv 0.12.10, checks client-regeneration drift, and requires
-  lowest-direct dependency tests on Python 3.11 and 3.14 plus an installed-wheel smoke test.
+  lowest-direct dependency tests on Python 3.11 and 3.14 plus the complete installed-wheel
+  smoke test directory.
 - Releases use pinned uv and verification tools from the locked environment, require the
   same-commit reusable CI workflow, and publish exactly the verified artifacts after checking
   source, tag, and distribution versions.
 - Documentation deployment validates strictly before publishing, and manual release versions
   must match an existing tag and its source version.
-- **BREAKING:** Live tests require `STONEX_LIVE=1`, an allowlisted HTTPS host and port, and
-  `STONEX_LIVE_CLIENT_ACCOUNT_ID`; a session-wide account assertion runs before any live test.
-- GetPA live probes compare query and body filters using temporary alert ids, check the
-  production binding, and clean up by id. Strict live xfails now cover only contract mismatches.
-- **BREAKING:** `ClientConfig.from_env()` now exposes typed keyword names and values through
-  `Unpack[ClientConfigOverrides]`; static checkers reject unknown keys and incompatible values.
-  Annotate dynamic override dictionaries with `ClientConfigOverrides`. Invalid non-None `base_url`
-  overrides now reach constructor validation and raise `TypeError("base_url must be a string")`
-  instead of `AttributeError`.
-- Document that the bundled generator requires dev tools and the repository `pyproject.toml`;
-  run generator commands from a source checkout or editable install. The generator stays in the wheel.
+- Live tests require `STONEX_LIVE=1`, credentials, an allowlisted HTTPS host and port, and
+  `STONEX_LIVE_CLIENT_ACCOUNT_ID` matching the first returned client account. Missing credentials
+  or the account id fail collection after opt-in; disallowed targets or account mismatches fail
+  at setup. Runs without `STONEX_LIVE=1` skip live tests.
+  Configure contributor runs using the [live-test recipe](https://github.com/aaronmgn/stonepy/blob/main/CONTRIBUTING.md#live-tests).
 
 ### Deprecated
 
-- **BREAKING:** `clientapplication`, `fixedmargin`, `tradingadvisor`, and
+- `clientapplication`, `fixedmargin`, `tradingadvisor`, and
   `order_including_closed` client properties now emit `DeprecationWarning`. Migrate to
   `client_application`, `fixed_margin`, `trading_advisor`, and
   `client.order.get_order_including_closed`, respectively.
+  The old names still work, but their warnings become errors under `-W error` or
+  `filterwarnings = ["error"]`.
 
 ### Removed
 
-- Removed the private `BucketedSlidingWindowLimiter` and `PassthroughResponseModel` helpers.
 - **BREAKING:** Removed entry-point plugin discovery, `ClientConfig.enable_plugins`,
   `ClientConfig.allow_overrides`, `client.plugin()`, `requires_stonepy`, and `ABI_VERSION`.
   Remove plugin registrations and configuration; import `BaseResource` from
   `stonepy.extensions` and construct `MyResource(client.call_context)` instead.
+- Removed the private `BucketedSlidingWindowLimiter` helper.
 
 ### Fixed
 
-- Authentication replay uses an atomic generation/header snapshot, preventing a
-  peer refresh from causing a stale token to be replayed without refreshing it.
-- Manual logon snapshots its validated request and commits its token and replay
+- **BREAKING:** `price_alert.get_pa` now sends its filters in the query string. A demo API
+  probe confirmed that query `alertId` filtered the results while the previous body binding
+  returned both probe alerts regardless of it.
+- Session managers expose atomic generation/header snapshots, which authentication replay
+  uses to prevent a peer refresh from causing a stale token to be replayed without refreshing it.
+- Manual logon snapshots its validated request; session managers commit its token and replay
   callback together. The callback survives logoff and is replaced only by a successful manual
   logon; failed refreshes leave session state intact and only successful refreshes coalesce.
+- `ClientConfig.from_env()` uses dataclass defaults for fields not provided by the environment
+  or overrides. Unknown override names still raise `TypeError`, even when their value is `None`.
+  Invalid non-None `base_url` overrides now reach constructor validation and raise
+  `TypeError("base_url must be a string")` instead of `AttributeError`.
 - Generator Ruff formatting is independent of the current working directory and uses the
   source checkout's absolute project configuration.
 - `--allow-unfrozen-catalog` no longer silently skips override-consumption validation;
@@ -131,22 +166,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   nested order lifecycle status values.
 - Clarify frozen-catalog endpoint coverage, authentication replay with zero retries, non-2xx
   ErrorCode 4011 handling, and httpx request logging at INFO in the documentation.
+- Document that the bundled generator requires dev tools and the repository `pyproject.toml`;
+  run generator commands from a source checkout or editable install. The generator stays in the wheel.
 - Bound session concurrency test waits and isolate live preference and watchlist round-trips
   with per-test names.
-- **BREAKING:** Opted-in live runs fail collection when required settings are missing;
-  runs without `STONEX_LIVE=1` continue to skip live tests.
-- Require full commit SHA pins for workflow actions and run the complete installed-wheel
-  smoke test directory.
-- **BREAKING:** `price_alert.get_pa` now sends its filters in the query string, where the
-  demo API honors `alertId`; the previous body binding returned every alert regardless of it.
-- MD-M5 live probes classify known contract rejections, including HTTP 404, as restricted
-  expected failures while preserving authentication, throttling, server, and transport failures.
+- Require full commit SHA pins for workflow actions.
+- GetPA live probes compare query and body filters using temporary alert ids, check the
+  production binding, and clean up by id.
+- Strict live xfails restrict expected failures to contract mismatches. MD-M5 probes classify
+  known contract rejections, including HTTP 404, while preserving authentication, throttling,
+  server, and transport failures.
 
 ### Security
 
-- **BREAKING:** Validation errors, parse errors, and fallback API errors no longer echo inputs
-  or response bodies in ordinary exception text; plugin load warnings omit exception messages.
 - **BREAKING:** `ClientConfig` rejects `base_url` values containing embedded credentials.
+- **BREAKING:** DTO validation errors hide input values; response parse errors report validation locations
+  and types or a generic decode failure. Fallback API errors report the reason phrase and body
+  length instead of echoing the body; raw bodies remain available in diagnostic attributes.
+  Use structured exception attributes instead of matching exception text.
+- Secret redaction uses one `SECRET_KEYS` vocabulary for mappings, headers, URL queries,
+  and generated model representations.
 
 ## [0.4.1] - 2026-08-29
 
@@ -491,7 +530,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.5.0
 [0.4.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.1
 [0.4.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.0
 [0.3.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.3.0
