@@ -4,15 +4,30 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-_REDACT = {"session", "password", "appkey", "authorization"}
+from stonepy._core.logging import SECRET_KEYS
+
+_REDACT = SECRET_KEYS
 
 
 def _safe_headers(headers: Mapping[str, str]) -> dict[str, str]:
     return {k: ("***" if k.lower() in _REDACT else v) for k, v in headers.items()}
 
 
+def _restore_stonex_error(
+    cls: type[StoneXError], args: tuple[object, ...], state: dict[str, object]
+) -> StoneXError:
+    obj = cls.__new__(cls)
+    Exception.__init__(obj, *args)
+    obj.__dict__.update(state)
+    return obj
+
+
 class StoneXError(Exception):
     """Base class for all stonepy errors."""
+
+    def __reduce__(self) -> tuple[object, tuple[object, ...]]:
+        """Preserve exception arguments and diagnostic attributes when pickled."""
+        return _restore_stonex_error, (type(self), self.args, dict(self.__dict__))
 
 
 class ConfigurationError(StoneXError):
@@ -225,7 +240,7 @@ class OrderStatusUnknownError(StoneXError):
     def __init__(
         self,
         *,
-        status: int | str,
+        status: int | str | None,
         status_reason: int | None,
         response: object,
         method: str | None = None,
@@ -239,9 +254,14 @@ class OrderStatusUnknownError(StoneXError):
         self.path = path
         self.http_status = http_status
         endpoint = f"{method} {path} -> HTTP {http_status}: " if method and path else ""
+        message = (
+            f"{endpoint}Acknowledgement carried no usable status. "
+            if status is None
+            else f"{endpoint}Unknown order status {status!r}. "
+        )
         super().__init__(
-            f"{endpoint}Unknown order status {status!r}. The order MAY OR MAY NOT have been "
-            "placed; verify order state before resubmitting."
+            message + "The order MAY OR MAY NOT have been placed; "
+            "verify order state before resubmitting."
         )
 
     def __repr__(self) -> str:

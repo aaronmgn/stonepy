@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import inspect
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum, IntEnum
-from typing import TypeAlias
+from typing import Protocol, TypeAlias, cast
 
 
 class StatusDomain(Enum):
@@ -42,11 +43,58 @@ Either a [`BusinessStatus`][stonepy._core.status.BusinessStatus], a bare ``bool`
 not), a ``str`` (rejected, with that reason), or ``None`` (not a rejection).
 """
 
-StatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
-"""A callable mapping ``(status, status_reason)`` to a
-[`StatusDecision`][stonepy._core.status.StatusDecision]. Override
-``ClientConfig.status_decoder`` to customize top-level numeric acknowledgement semantics.
-"""
+
+class StatusDecoder(Protocol):
+    """Decode a top-level numeric acknowledgement using its endpoint domain."""
+
+    def __call__(
+        self, status: int, status_reason: int | None, *, domain: StatusDomain
+    ) -> StatusDecision:
+        """Return a rejection decision for a numeric status and optional reason."""
+        ...
+
+
+LegacyStatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
+"""A historical two-argument numeric status decoder."""
+
+
+@dataclass(frozen=True)
+class _StatusDecoderAdapter:
+    decoder: StatusDecoder | LegacyStatusDecoder
+    domain_mode: bool
+
+    def __call__(
+        self, status: int, status_reason: int | None, *, domain: StatusDomain
+    ) -> StatusDecision:
+        if self.domain_mode:
+            return cast(StatusDecoder, self.decoder)(status, status_reason, domain=domain)
+        return cast(LegacyStatusDecoder, self.decoder)(status, status_reason)
+
+
+def normalize_status_decoder(
+    decoder: StatusDecoder | LegacyStatusDecoder | None,
+) -> StatusDecoder | None:
+    """Adapt a decoder once, retaining its runtime exceptions without retrying it."""
+    if decoder is None or decoder is default_status_decoder:
+        return decoder
+    if isinstance(decoder, _StatusDecoderAdapter):
+        return decoder
+    try:
+        sig = inspect.signature(decoder)
+    except (TypeError, ValueError):
+        return _StatusDecoderAdapter(decoder, domain_mode=False)
+    try:
+        sig.bind(0, None, domain=StatusDomain.ORDER)
+    except TypeError:
+        try:
+            sig.bind(0, None)
+        except TypeError:
+            raise TypeError(
+                "status_decoder must accept (status, status_reason) or "
+                "(status, status_reason, *, domain)"
+            ) from None
+        return _StatusDecoderAdapter(decoder, domain_mode=False)
+    return _StatusDecoderAdapter(decoder, domain_mode=True)
 
 
 class _UnknownInstructionStatus(ValueError):
@@ -75,19 +123,20 @@ _INSTRUCTION_REJECTION_STATUSES = frozenset({2, 4})
 _ORDER_REJECTION_STATUSES = frozenset({5, 10})
 
 
-def default_status_decoder(status: int, status_reason: int | None) -> StatusDecision:
-    """Decode an OrderStatus/OrderStatusReason pair into a rejection decision.
+def default_status_decoder(
+    status: int, status_reason: int | None, *, domain: StatusDomain = StatusDomain.ORDER
+) -> StatusDecision:
+    """Decode a numeric acknowledgement status and reason for the selected domain.
 
-    This callable retains its historical two-argument, order-domain behavior for custom-decoder
-    compatibility. The pipeline separately selects instruction-domain decoding for endpoint
-    specs marked [`StatusDomain.INSTRUCTION`][stonepy._core.status.StatusDomain].
+    The default domain retains historical two-argument order-domain behavior. Pass ``domain``
+    to select instruction-domain decoding for placement acknowledgements.
 
-    Only ``Rejected`` (5) and ``RedCard`` (10) are rejections. Unknown numeric order-lifecycle
-    codes are informational rather than rejections. A meaningful reason is resolved from
+    In the ORDER domain, only ``Rejected`` (5) and ``RedCard`` (10) are rejections. Unknown numeric
+    order-lifecycle codes are informational rather than rejections. A meaningful reason comes from
     ``OrderStatusReason`` first and then the other status-reason enums; otherwise the status name
     is used.
     """
-    return _decode_order_status(status, status_reason)
+    return _decode_default_status(domain, status, status_reason)
 
 
 def _decode_default_status(

@@ -11,7 +11,7 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
-    from .OrderRequestDTO import OrderRequestDTO
+    from .RequestOrderRequestDTO import RequestOrderRequestDTO
 
 
 class ExecutionVenueRequestDTO(RequestModel):
@@ -27,7 +27,7 @@ class ExecutionVenueRequestDTO(RequestModel):
     """Quote identifier"""
     market_id: int = Field(alias="MarketId")
     """Market identifier"""
-    order_requests: list[OrderRequestDTO] = Field(alias="OrderRequests")
+    order_requests: list[RequestOrderRequestDTO] = Field(alias="OrderRequests")
     """List of order requests"""
     request_type_id: int = Field(alias="RequestTypeId")
     """Request type identifier"""

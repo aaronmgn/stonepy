@@ -4,7 +4,7 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
-from stonepy._core.models import ResponseModel, ScalarResponse
+from stonepy._core.models import ScalarResponse, UnspecifiedResponse
 from stonepy._core.pipeline import CallContext
 from stonepy.models import PriceAlertResponseDTO, SaveAlertRequestDTOv2, SaveAlertResponseDTOv2
 
@@ -82,20 +82,20 @@ async def aget_pa(
     )
 
 
-SAVE_PA_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+SAVE_PA_SPEC: EndpointSpec[UnspecifiedResponse] = EndpointSpec(
     name="SavePA",
     method="POST",
     path="/pricealert/",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="price_alert",
-    response_model=ResponseModel,
+    response_model=UnspecifiedResponse,
     request_model=SaveAlertRequestDTOv2,
     params=(Param(name="request", location="body", python_name="request"),),
 )
 
 
-def save_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> ResponseModel:
+def save_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> UnspecifiedResponse:
     """
     Perform a save operation for a client defined price alert. This service call is also used
     to update an alert by saving the new parameters and overwriting the previous settings on
@@ -104,7 +104,7 @@ def save_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> ResponseModel:
     return ctx.invoke(SAVE_PA_SPEC, body=request)
 
 
-async def asave_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> ResponseModel:
+async def asave_pa(ctx: CallContext, request: SaveAlertRequestDTOv2) -> UnspecifiedResponse:
     """
     Perform a save operation for a client defined price alert. This service call is also used
     to update an alert by saving the new parameters and overwriting the previous settings on

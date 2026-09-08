@@ -3,46 +3,70 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, fields
-from importlib.metadata import PackageNotFoundError, version
-from typing import Any, TypeVar, cast
+from dataclasses import dataclass, field, fields
+from math import isfinite
+from typing import Any
+from urllib.parse import urlsplit
 
-from stonepy._core.logging import safe_repr
-from stonepy._core.status import StatusDecoder, default_status_decoder
+from stonepy._core.status import LegacyStatusDecoder, StatusDecoder, default_status_decoder
+from stonepy._version import __version__
 
-_T = TypeVar("_T")
-_FALLBACK_VERSION = "0.4.1"
+_DEFAULT_USER_AGENT = f"stonepy/{__version__}"
 
 
-def _default_user_agent() -> str:
+def _validate_base_url(base_url: str) -> None:
+    if not isinstance(base_url, str):
+        raise TypeError("base_url must be a string")
+    if not base_url.strip() or base_url != base_url.strip():
+        raise ValueError("base_url must be non-blank without surrounding whitespace")
+    invalid = False
     try:
-        package_version = version("stonepy")
-    except PackageNotFoundError:
-        package_version = _FALLBACK_VERSION
-    return f"stonepy/{package_version}"
+        parts = urlsplit(base_url)
+        invalid = parts.port is not None and not 0 < parts.port <= 65535
+    except ValueError:
+        invalid = True
+    if invalid:
+        raise ValueError("base_url must have a valid host and port") from None
+    if parts.username is not None or parts.password is not None:
+        raise ValueError("base_url must not embed credentials")
+    if parts.scheme not in {"http", "https"} or not parts.hostname:
+        raise ValueError("base_url must use http or https and have a hostname")
 
 
-_DEFAULT_USER_AGENT = _default_user_agent()
+def _validate_number(name: str, value: object, *, integer: bool, allow_zero: bool) -> None:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or (integer and not isinstance(value, int))
+    ):
+        raise TypeError(f"{name} must be {'an integer' if integer else 'a number'}")
+    # int is always finite; avoiding a float conversion also handles very large integers.
+    if (isinstance(value, float) and not isfinite(value)) or (
+        value < 0 if allow_zero else value <= 0
+    ):
+        raise ValueError(
+            f"{name} must be finite and {'non-negative' if allow_zero else 'positive'}"
+        )
 
 
 @dataclass
 class ClientConfig:
     """Configuration for StoneX clients.
 
-    `base_url` is required and points at the CIAPI root. `app_key`, `username`, and
-    `password` enable automatic session refresh. Timeout, retry, rate-limit, TLS, proxy,
-    plugin, and status-decoder fields tune transport behavior. A custom `status_decoder` fully
-    replaces stonepy's top-level numeric logic for instruction- and order-domain endpoint specs;
-    it receives ``(status, status_reason)`` for both domains. SaveOrder's text status and nested
-    order statuses retain stonepy's built-in checks. Passing ``None`` disables all business-status
-    checks. Use `from_env()` to read the `STONEX_*` environment variables with optional keyword
-    overrides.
+    `base_url` is required and points at the CIAPI root. `app_key`, `username`, and `password`
+    enable automatic session refresh. Timeout, retry, rate-limit, TLS, proxy, plugin, and
+    status-decoder fields tune transport behavior. A custom `status_decoder` fully replaces
+    stonepy's top-level numeric logic for instruction- and order-domain endpoint specs; it
+    receives ``(status, status_reason, *, domain)``; legacy two-argument callables also work.
+    SaveOrder's text status and nested order statuses retain stonepy's built-in checks. Passing
+    ``None`` disables all business-status checks. Use `from_env()` to read the `STONEX_*`
+    environment variables with optional keyword overrides.
     """
 
     base_url: str
-    app_key: str = ""
+    app_key: str = field(default="", repr=False)
     username: str = ""
-    password: str = ""
+    password: str = field(default="", repr=False)
     app_version: str = "stonepy"
     connect_timeout: float = 10.0
     read_timeout: float = 30.0
@@ -50,17 +74,36 @@ class ClientConfig:
     pool_timeout: float = 5.0
     max_connections: int = 20
     verify_tls: bool = True
-    proxy: str | None = None
+    proxy: str | None = field(default=None, repr=False)
     user_agent: str = _DEFAULT_USER_AGENT
     max_retries: int = 3
     retry_budget_seconds: float = 30.0
     rate_limit_max: int = 500
     rate_limit_window_seconds: float = 5.0
     proactive_refresh_seconds: float = 1080.0
-    status_decoder: StatusDecoder | None = default_status_decoder
+    status_decoder: StatusDecoder | LegacyStatusDecoder | None = default_status_decoder
     """Optional replacement for top-level numeric instruction/order status decoding."""
     enable_plugins: bool = False
     allow_overrides: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        _validate_base_url(self.base_url)
+        for name in (
+            "connect_timeout",
+            "read_timeout",
+            "write_timeout",
+            "pool_timeout",
+            "rate_limit_window_seconds",
+            "proactive_refresh_seconds",
+        ):
+            _validate_number(name, getattr(self, name), integer=False, allow_zero=False)
+        for name in ("max_connections", "rate_limit_max", "max_retries"):
+            _validate_number(
+                name, getattr(self, name), integer=True, allow_zero=name == "max_retries"
+            )
+        _validate_number(
+            "retry_budget_seconds", self.retry_budget_seconds, integer=False, allow_zero=True
+        )
 
     @classmethod
     def from_env(cls, **overrides: Any) -> ClientConfig:
@@ -83,61 +126,25 @@ class ClientConfig:
             ValueError: If no ``base_url`` is provided via override or environment.
         """
 
-        known_fields = {field.name for field in fields(cls)}
+        known_fields = {f.name for f in fields(cls) if f.init}
         unknown_fields = set(overrides) - known_fields
         if unknown_fields:
             unknown = sorted(unknown_fields)[0]
             raise TypeError(f"unexpected ClientConfig override: {unknown}")
 
-        base_url = _override(
-            overrides,
-            "base_url",
-            os.environ.get("STONEX_BASE_URL", ""),
-        )
-        if not base_url.strip():
+        kwargs: dict[str, Any] = {}
+        for name, var in (
+            ("base_url", "STONEX_BASE_URL"),
+            ("app_key", "STONEX_APP_KEY"),
+            ("username", "STONEX_USERNAME"),
+            ("password", "STONEX_PASSWORD"),
+        ):
+            if os.environ.get(var):
+                kwargs[name] = os.environ[var]
+        for name, value in overrides.items():
+            if value is not None or name == "status_decoder":
+                kwargs[name] = value
+        base_url = kwargs.get("base_url", "")
+        if isinstance(base_url, str) and not base_url.strip():
             raise ValueError("base_url is required: set STONEX_BASE_URL or pass base_url=...")
-
-        return cls(
-            base_url=base_url,
-            app_key=_override(overrides, "app_key", os.environ.get("STONEX_APP_KEY", "")),
-            username=_override(overrides, "username", os.environ.get("STONEX_USERNAME", "")),
-            password=_override(overrides, "password", os.environ.get("STONEX_PASSWORD", "")),
-            app_version=_override(overrides, "app_version", "stonepy"),
-            connect_timeout=_override(overrides, "connect_timeout", 10.0),
-            read_timeout=_override(overrides, "read_timeout", 30.0),
-            write_timeout=_override(overrides, "write_timeout", 30.0),
-            pool_timeout=_override(overrides, "pool_timeout", 5.0),
-            max_connections=_override(overrides, "max_connections", 20),
-            verify_tls=_override(overrides, "verify_tls", True),
-            proxy=_override(overrides, "proxy", None),
-            user_agent=_override(overrides, "user_agent", _DEFAULT_USER_AGENT),
-            max_retries=_override(overrides, "max_retries", 3),
-            retry_budget_seconds=_override(overrides, "retry_budget_seconds", 30.0),
-            rate_limit_max=_override(overrides, "rate_limit_max", 500),
-            rate_limit_window_seconds=_override(overrides, "rate_limit_window_seconds", 5.0),
-            proactive_refresh_seconds=_override(overrides, "proactive_refresh_seconds", 1080.0),
-            status_decoder=_override_nullable(
-                overrides,
-                "status_decoder",
-                default_status_decoder,
-            ),
-            enable_plugins=_override(overrides, "enable_plugins", False),
-            allow_overrides=_override(overrides, "allow_overrides", ()),
-        )
-
-    def __repr__(self) -> str:
-        """Return a repr with secret fields (app key, password, proxy) redacted."""
-        return safe_repr(self)
-
-
-def _override(overrides: dict[str, Any], name: str, default: _T) -> _T:
-    value = overrides.get(name, default)
-    if value is None:
-        return default
-    return cast(_T, value)
-
-
-def _override_nullable(overrides: dict[str, Any], name: str, default: _T) -> _T | None:
-    if name in overrides:
-        return cast(_T | None, overrides[name])
-    return default
+        return cls(**kwargs)

@@ -38,7 +38,7 @@ def parse_wcf_date(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return _ensure_timezone_aware(value)
     if isinstance(value, bool):
-        raise ValueError(f"not a WCF date: {value!r}")
+        raise ValueError("not a WCF date")
     if isinstance(value, int):
         ms = value
     elif isinstance(value, str):
@@ -51,18 +51,18 @@ def parse_wcf_date(value: Any) -> datetime | None:
             try:
                 parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError:
-                raise ValueError(f"not a WCF date: {value!r}") from None
+                raise ValueError("not a WCF date") from None
             if parsed.utcoffset() is None:
                 parsed = parsed.replace(tzinfo=UTC)
             return _ensure_timezone_aware(parsed)
     else:
-        raise ValueError(f"not a WCF date: {value!r}")
+        raise ValueError("not a WCF date")
     if ms == WCF_MINVALUE_MS:
         return None
     try:
         return _UTC_EPOCH + timedelta(milliseconds=ms)
     except OverflowError as exc:
-        raise ValueError(f"WCF date out of range: {value!r}") from exc
+        raise ValueError("WCF date out of range") from exc
 
 
 def format_wcf_date(value: datetime | None) -> str | None:

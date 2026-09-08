@@ -13,6 +13,7 @@ from typing import Any
 from stonepy._core.status import StatusDomain
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
+from stonepy._generator.request_graph import RequestTypeGraph, build_request_type_graph
 
 __all__ = [
     "emit_all",
@@ -351,9 +352,37 @@ def render_binding(
     return _annotate_unwrappable_long_lines(format_python(source)) if include_imports else source
 
 
+_UNSPECIFIED_RESPONSE_OVERRIDES: frozenset[tuple[str, str]] = frozenset(
+    {
+        # Catalog response_type is null; reference pages document "Return Value: None".
+        ("preference", "DeleteUserPreference v2"),
+        ("preference", "SaveUserPreference v2"),
+        ("price_alert", "SavePA"),
+    }
+)
+
+
+def validate_response_models(catalog: Catalog) -> None:
+    """Reject unknown or unreviewed missing response contracts before deleting output."""
+    known = {rec.name for rec in catalog.datatypes}
+    unresolved = []
+    for rec in catalog.endpoints:
+        key = (target_module(rec.target), rec.name)
+        response_type = _RESPONSE_MODEL_OVERRIDES.get(key, rec.response_type)
+        if response_type is None:
+            if key not in _UNSPECIFIED_RESPONSE_OVERRIDES and key not in _SCALAR_RESPONSE_OVERRIDES:
+                unresolved.append(f"{key[0]}/{key[1]}: no response type or reviewed override")
+        elif response_type not in known:
+            unresolved.append(f"{key[0]}/{key[1]}: {response_type}")
+    if unresolved:
+        raise ValueError("unresolved response types:\n- " + "\n- ".join(sorted(unresolved)))
+
+
 def emit_all(catalog: Catalog, out_dir: Path) -> None:
     """Write generated endpoint modules under *out_dir*/_endpoints."""
 
+    validate_response_models(catalog)
+    request_graph = build_request_type_graph(catalog)
     endpoints_dir = out_dir / "_endpoints"
     if endpoints_dir.exists():
         shutil.rmtree(endpoints_dir)
@@ -363,7 +392,7 @@ def emit_all(catalog: Catalog, out_dir: Path) -> None:
     grouped: dict[str, list[_Binding]] = {}
     for rec in catalog.endpoints:
         grouped.setdefault(target_module(rec.target), []).append(
-            _binding(rec, known_model_names=known_model_names)
+            _binding(rec, known_model_names=known_model_names, request_graph=request_graph)
         )
 
     for module_name, bindings in sorted(grouped.items()):
@@ -419,7 +448,6 @@ class _Binding:
         response_annotation: str,
         response_is_list: bool,
         response_scalar_type: str | None,
-        unresolved_response_model: str | None,
         uses_mapping: bool,
         model_imports: set[str],
         core_model_imports: set[str],
@@ -442,7 +470,6 @@ class _Binding:
         self.response_annotation = response_annotation
         self.response_is_list = response_is_list
         self.response_scalar_type = response_scalar_type
-        self.unresolved_response_model = unresolved_response_model
         self.uses_mapping = uses_mapping
         self.model_imports = model_imports
         self.core_model_imports = core_model_imports
@@ -452,6 +479,7 @@ def _binding(
     rec: EndpointRecord,
     *,
     known_model_names: Collection[str] | None,
+    request_graph: RequestTypeGraph | None = None,
 ) -> _Binding:
     function_name = _function_name(rec)
     known_models = set(known_model_names) if known_model_names is not None else None
@@ -459,10 +487,24 @@ def _binding(
     response_type_name = _RESPONSE_MODEL_OVERRIDES.get(
         (target_module(rec.target), rec.name), rec.response_type
     )
-    response_model = _response_model_type(response_type_name, known_models)
-    unresolved_response_model = _unresolved_response_model(response_type_name, known_models)
-    response_is_list = (target_module(rec.target), rec.name) in _LIST_RESPONSE_OVERRIDES
-    response_scalar_type = _SCALAR_RESPONSE_OVERRIDES.get((target_module(rec.target), rec.name))
+    endpoint_key = (target_module(rec.target), rec.name)
+    if (
+        known_models is not None
+        and response_type_name is not None
+        and response_type_name not in known_models
+    ):
+        raise ValueError(
+            f"endpoint {endpoint_key!r} declares response type {response_type_name!r} "
+            "that is not in the catalog"
+        )
+    response_scalar_type = _SCALAR_RESPONSE_OVERRIDES.get(endpoint_key)
+    # A reviewed scalar override supplies the contract even when the catalog type is null.
+    response_model = (
+        "ResponseModel"
+        if response_type_name is None and response_scalar_type is not None
+        else _response_model_type(response_type_name, known_models, endpoint_key)
+    )
+    response_is_list = endpoint_key in _LIST_RESPONSE_OVERRIDES
     optional_overrides = _OPTIONAL_PARAM_OVERRIDES.get(
         (target_module(rec.target), rec.name), frozenset()
     )
@@ -486,6 +528,14 @@ def _binding(
     )
     if request_model is None:
         request_model = _inferred_request_model(params, known_models)
+    if request_graph is not None:
+        if request_model is not None:
+            request_model = request_graph.request_name(request_model)
+        for param in params:
+            if param.location in {"body", "query"}:
+                param.annotation = request_graph.request_name(param.annotation)
+        if known_models is not None:
+            known_models.update(request_graph.variants.values())
     method = (rec.method or "GET").upper()
     has_body_param = any(param.location == "body" for param in params)
     request_annotation = request_model
@@ -525,12 +575,10 @@ def _binding(
         response_annotation=response_model,
         response_is_list=response_is_list,
         response_scalar_type=response_scalar_type,
-        unresolved_response_model=unresolved_response_model,
         uses_mapping=uses_mapping,
         model_imports=model_imports,
         core_model_imports=_core_model_imports(
             response_model,
-            unresolved_response_model=unresolved_response_model,
             response_is_list=response_is_list,
             response_scalar_type=response_scalar_type,
         ),
@@ -590,12 +638,6 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
         lines.append("from collections.abc import Mapping\n")
     if any(_uses_decimal_default(binding) for binding in bindings):
         lines.append("from decimal import Decimal\n")
-    typing_imports: list[str] = []
-    unresolved_aliases = _unresolved_response_aliases(bindings)
-    if unresolved_aliases:
-        typing_imports.append("TypeAlias")
-    if typing_imports:
-        lines.append(f"from typing import {', '.join(sorted(typing_imports))}\n")
     endpoint_imports = ["AuthPolicy", "EndpointSpec"]
     if any(binding.params for binding in bindings):
         endpoint_imports.append("Param")
@@ -615,10 +657,6 @@ def _module_header(bindings: list[_Binding]) -> list[str]:
     if model_imports:
         lines.append(f"from stonepy.models import {', '.join(model_imports)}\n")
     lines.append("\n")
-    for alias in unresolved_aliases:
-        lines.append(f"{alias}: TypeAlias = PassthroughResponseModel\n")
-    if unresolved_aliases:
-        lines.append("\n")
     return lines
 
 
@@ -952,20 +990,20 @@ def _inferred_request_model(params: list[_Param], known_models: set[str] | None)
     return candidates[0] if len(candidates) == 1 else None
 
 
-def _response_model_type(type_name: str | None, known_models: set[str] | None) -> str:
+def _response_model_type(
+    type_name: str | None, known_models: set[str] | None, endpoint_key: tuple[str, str]
+) -> str:
     if type_name is None:
-        return "ResponseModel"
+        if known_models is None:
+            return "ResponseModel"
+        if endpoint_key in _UNSPECIFIED_RESPONSE_OVERRIDES:
+            return "UnspecifiedResponse"
+        raise ValueError(
+            f"endpoint {endpoint_key!r} has no response type; "
+            "add it to _UNSPECIFIED_RESPONSE_OVERRIDES or fix the catalog"
+        )
     if known_models is None or type_name in known_models:
         return type_name
-    return python_name(type_name)
-
-
-def _unresolved_response_model(
-    type_name: str | None,
-    known_models: set[str] | None,
-) -> str | None:
-    if type_name is None or known_models is None or type_name in known_models:
-        return None
     return python_name(type_name)
 
 
@@ -977,14 +1015,13 @@ def _model_imports(
 ) -> set[str]:
     candidates = {name for name in (request_model, response_model) if name is not None}
     if known_models is None:
-        return candidates - {"PassthroughResponseModel", "ResponseModel"}
+        return candidates - {"ResponseModel"}
     return {name for name in candidates if name in known_models}
 
 
 def _core_model_imports(
     response_model: str,
     *,
-    unresolved_response_model: str | None,
     response_is_list: bool = False,
     response_scalar_type: str | None = None,
 ) -> set[str]:
@@ -993,10 +1030,8 @@ def _core_model_imports(
     if response_scalar_type is not None:
         return {"ScalarResponse"}
     imports: set[str] = set()
-    if response_model == "ResponseModel":
-        imports.add("ResponseModel")
-    if unresolved_response_model is not None:
-        imports.add("PassthroughResponseModel")
+    if response_model in {"ResponseModel", "UnspecifiedResponse"}:
+        imports.add(response_model)
     if response_is_list:
         imports.add("ListResponse")
     return imports
@@ -1015,16 +1050,6 @@ def _root_wrapper(binding: _Binding) -> tuple[str, str] | None:
     if binding.response_scalar_type is not None:
         return f"ScalarResponse[{binding.response_scalar_type}]", binding.response_scalar_type
     return None
-
-
-def _unresolved_response_aliases(bindings: list[_Binding]) -> list[str]:
-    return sorted(
-        {
-            binding.unresolved_response_model
-            for binding in bindings
-            if binding.unresolved_response_model is not None
-        }
-    )
 
 
 def _uses_decimal_default(binding: _Binding) -> bool:

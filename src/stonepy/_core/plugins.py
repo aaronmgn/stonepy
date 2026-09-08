@@ -4,17 +4,19 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Iterable
-from importlib.metadata import PackageNotFoundError
+from collections.abc import Collection, Iterable
 from importlib.metadata import entry_points as metadata_entry_points
-from importlib.metadata import version as metadata_version
 from typing import Protocol
 
 from stonepy._core.resource import BaseResource
+from stonepy._version import __version__
 
 logger = logging.getLogger("stonepy.plugins")
 _REQUIREMENT_PART_RE = re.compile(r"(>=|<=|==|>|<)\s*(\d+(?:\.\d+){0,2})")
-_FALLBACK_STONEPY_VERSION = "0.1.0"
+
+
+def _safe_plugin_name(name: str) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]", "?", name)[:64]
 
 
 class _EntryPoint(Protocol):
@@ -31,7 +33,7 @@ def load_plugin_resources(
     *,
     enable: bool,
     allow_overrides: tuple[str, ...],
-    known: set[str],
+    known: Collection[str],
     entry_points: Iterable[_EntryPoint],
     stonepy_version: str | None = None,
 ) -> dict[str, type[BaseResource]]:
@@ -47,7 +49,7 @@ def load_plugin_resources(
         known: The set of built-in resource names to guard against collisions.
         entry_points: The discovered entry points to load.
         stonepy_version: Version used to check each plugin's ``requires_stonepy``; defaults to
-            the installed version.
+            the package source version.
 
     Returns:
         A mapping of plugin name to resource class.
@@ -75,7 +77,11 @@ def load_plugin_resources(
         try:
             resource = ep.load()
         except Exception as exc:  # noqa: BLE001
-            logger.warning("plugin %s failed to load: %s; continuing", ep.name, exc)
+            logger.warning(
+                "plugin %s failed to load (%s); continuing",
+                _safe_plugin_name(ep.name),
+                type(exc).__name__,
+            )
             continue
 
         if not isinstance(resource, type) or not issubclass(resource, BaseResource):
@@ -90,7 +96,7 @@ def discover_plugin_resources(
     *,
     enable: bool,
     allow_overrides: tuple[str, ...],
-    known: set[str],
+    known: Collection[str],
     entry_points: Iterable[_EntryPoint] | None = None,
     stonepy_version: str | None = None,
 ) -> dict[str, type[BaseResource]]:
@@ -130,10 +136,7 @@ def _check_requires_stonepy(name: str, resource: type, stonepy_version: str) -> 
 
 
 def _current_stonepy_version() -> str:
-    try:
-        return metadata_version("stonepy")
-    except PackageNotFoundError:
-        return _FALLBACK_STONEPY_VERSION
+    return __version__
 
 
 def _matches_simple_requirement(version: str, requirement: str) -> bool:

@@ -173,7 +173,8 @@ no_retry = ClientConfig(
 )
 ```
 
-With `max_retries=0`, `should_retry` returns `False` on the first attempt (`0 >= 0`), so every failure surfaces immediately.
+With `max_retries=0`, ordinary transport, 5xx, and 429 retries are disabled; the one-time
+authentication refresh and replay is independent of this count.
 
 ---
 
@@ -183,7 +184,7 @@ There are two distinct mechanisms, both controlled from `ClientConfig`.
 
 ### Client-side proactive limiter (sliding window)
 
-The clients use a `BucketedSlidingWindowLimiter` (`src/stonepy/_core/ratelimit.py`), constructed from these fields:
+The clients use a `SlidingWindowLimiter` (`src/stonepy/_core/ratelimit.py`), constructed from these fields:
 
 | `ClientConfig` field | Default | Meaning |
 | --- | --- | --- |
@@ -193,7 +194,7 @@ The clients use a `BucketedSlidingWindowLimiter` (`src/stonepy/_core/ratelimit.p
 How it works:
 
 - CIAPI documents one server-side budget: 500 requests over a 5-second window. Generated `EndpointSpec` objects retain their `rate_limit_bucket` resource-group labels for compatibility, but every label maps to one shared `SlidingWindowLimiter`. The configured limit is therefore aggregate across all endpoints used by a client instance.
-- Before every send, the pipeline calls `acquire(bucket)`. The shared limiter keeps a deque of recent request timestamps, evicts any older than `window_seconds`, and:
+- Before every send, the pipeline calls `acquire()` or awaits `aacquire()`. The shared limiter keeps a deque of recent request timestamps, evicts any older than `window_seconds`, and:
   - if fewer than `rate_limit_max` events remain in the window, it records "now" and returns immediately;
   - otherwise it sleeps until the oldest in-window event ages out (`oldest + window - now`), then re-checks.
 

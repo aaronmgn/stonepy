@@ -54,7 +54,7 @@ def test_single_flight_refresh_calls_logon_once_under_concurrency() -> None:
     sm = SessionManager(clock=FakeClock(), proactive_refresh_seconds=1080)
     sm.set_token("OLD", "alice")
     calls = []
-    start = threading.Barrier(8)
+    start = threading.Barrier(8, timeout=5.0)
     seen = sm.generation
 
     def logon() -> str:
@@ -65,11 +65,12 @@ def test_single_flight_refresh_calls_logon_once_under_concurrency() -> None:
         start.wait()
         sm.refresh(seen, do_logon=logon)
 
-    threads = [threading.Thread(target=worker) for _ in range(8)]
+    threads = [threading.Thread(target=worker, daemon=True) for _ in range(8)]
     for t in threads:
         t.start()
     for t in threads:
-        t.join()
+        t.join(timeout=5.0)
+        assert not t.is_alive(), "thread did not finish: deadlock?"
 
     assert len(calls) == 1  # only one re-logon despite 8 concurrent 401s
     assert sm.auth_headers(AuthPolicy.SESSION)["Session"] == "NEW"
@@ -152,7 +153,9 @@ def test_async_session_manager_single_flight_refresh_calls_logon_once() -> None:
             await asyncio.sleep(0)
             return "NEW"
 
-        await asyncio.gather(*(sm.arefresh(seen, do_logon=logon) for _ in range(8)))
+        await asyncio.wait_for(
+            asyncio.gather(*(sm.arefresh(seen, do_logon=logon) for _ in range(8))), 5.0
+        )
 
         assert calls == [1]
         assert await sm.aauth_headers(AuthPolicy.SESSION) == {
@@ -265,5 +268,155 @@ def test_async_session_manager_aclear_with_stale_expected_token_keeps_current() 
             "Session": "NEW",
             "UserName": "user",
         }
+
+    asyncio.run(run())
+
+
+def test_session_snapshot_returns_locked_copy() -> None:
+    manager = SessionManager(FakeClock(), 1080)
+    manager.set_token("OLD", "alice")
+    lock = _TrackingLock()
+    manager_any: Any = manager
+    manager_any._lock = lock
+    generation, headers = manager.snapshot(AuthPolicy.SESSION)
+    assert lock.acquisitions == 1
+    assert generation == 1 and headers == {"Session": "OLD", "UserName": "alice"}
+    headers["Session"] = "OTHER"
+    assert manager.snapshot(AuthPolicy.SESSION)[1]["Session"] == "OLD"
+    assert manager.snapshot(AuthPolicy.NONE) == (1, {})
+
+
+def test_async_session_snapshot_returns_locked_copy() -> None:
+    async def run() -> None:
+        manager = AsyncSessionManager(FakeClock(), 1080)
+        await manager.aset_token("OLD", "alice")
+        lock = _TrackingAsyncLock()
+        manager_any: Any = manager
+        manager_any._lock = lock
+        generation, headers = await manager.asnapshot(AuthPolicy.SESSION)
+        assert lock.acquisitions == 1
+        assert generation == 1 and headers == {"Session": "OLD", "UserName": "alice"}
+        headers["Session"] = "OTHER"
+        assert (await manager.asnapshot(AuthPolicy.SESSION))[1]["Session"] == "OLD"
+        assert await manager.asnapshot(AuthPolicy.NONE) == (1, {})
+
+    asyncio.run(run())
+
+
+class _ManualSession:
+    def __init__(self, asynchronous: bool) -> None:
+        self.manager = (
+            AsyncSessionManager(FakeClock(), 1080)
+            if asynchronous
+            else SessionManager(FakeClock(), 1080)
+        )
+        self.calls: list[str] = []
+
+    async def commit(self, token: str) -> None:
+        def logon() -> tuple[str, str]:
+            self.calls.append(token)
+            return token + "-REPLAY", "alice"
+
+        async def alogon() -> tuple[str, str]:
+            return logon()
+
+        if isinstance(self.manager, AsyncSessionManager):
+            await self.manager.acommit(token, "alice", alogon)
+        else:
+            self.manager.commit(token, "alice", logon)
+
+    async def refresh(self) -> None:
+        def configured() -> tuple[str, str]:
+            self.calls.append("CONFIG")
+            return "CONFIG", "alice"
+
+        async def aconfigured() -> tuple[str, str]:
+            return configured()
+
+        if isinstance(self.manager, AsyncSessionManager):
+            await self.manager.arefresh(self.manager.generation, aconfigured)
+        else:
+            self.manager.refresh(self.manager.generation, configured)
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_manual_logon_callback_survives_log_off(asynchronous: bool) -> None:
+    async def run() -> None:
+        session = _ManualSession(asynchronous)
+        await session.commit("MANUAL")
+        await session.manager.aclear()
+        await session.refresh()
+        assert session.calls == ["MANUAL"]
+        assert session.manager.auth_headers(AuthPolicy.SESSION)["Session"] == "MANUAL-REPLAY"
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_second_manual_logon_replaces_callback(asynchronous: bool) -> None:
+    async def run() -> None:
+        session = _ManualSession(asynchronous)
+        await session.commit("FIRST")
+        await session.commit("SECOND")
+        assert session.manager.auth_headers(AuthPolicy.SESSION)["Session"] == "SECOND"
+        await session.refresh()
+        assert session.calls == ["SECOND"]
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_config_logon_is_used_only_without_manual_callback(asynchronous: bool) -> None:
+    async def run() -> None:
+        session = _ManualSession(asynchronous)
+        await session.refresh()
+        await session.commit("MANUAL")
+        await session.refresh()
+        assert session.calls == ["CONFIG", "MANUAL"]
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_failed_refresh_coalesces_success_only(asynchronous: bool) -> None:
+    async def run() -> None:
+        session = _ManualSession(asynchronous)
+        manager = session.manager
+        calls = 0
+
+        def logon() -> tuple[str, str]:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise RuntimeError("failed logon")
+            return "NEW", "alice"
+
+        async def alogon() -> tuple[str, str]:
+            await asyncio.sleep(0)
+            return logon()
+
+        if isinstance(manager, AsyncSessionManager):
+            await manager.acommit("OLD", "alice", alogon)
+            callback: object = manager._manual_alogon
+        else:
+            manager.commit("OLD", "alice", logon)
+            callback = manager._manual_logon
+        seen = manager.generation
+        with pytest.raises(RuntimeError, match="failed logon"):
+            await session.refresh()
+        assert manager.generation == seen
+        assert manager.auth_headers(AuthPolicy.SESSION)["Session"] == "OLD"
+        if isinstance(manager, AsyncSessionManager):
+            assert manager._manual_alogon is callback
+            await asyncio.gather(*(manager.arefresh(seen, alogon) for _ in range(4)))
+        else:
+            from concurrent.futures import ThreadPoolExecutor
+
+            assert manager._manual_logon is callback
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                list(pool.map(lambda _: manager.refresh(seen, logon), range(4)))
+        assert calls == 2
+        assert manager.generation == seen + 1
+        assert manager.auth_headers(AuthPolicy.SESSION)["Session"] == "NEW"
 
     asyncio.run(run())

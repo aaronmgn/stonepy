@@ -10,13 +10,13 @@ from pydantic import Field
 from stonepy._core.models import RequestModel
 
 if TYPE_CHECKING:
-    from .ApiMarketInformationSaveDTO import ApiMarketInformationSaveDTO
+    from .RequestApiMarketInformationSaveDTO import RequestApiMarketInformationSaveDTO
 
 
 class SaveMarketInformationRequestDTO(RequestModel):
     """Save market information request for a list of markets."""
 
-    market_information: list[ApiMarketInformationSaveDTO] | None = Field(
+    market_information: list[RequestApiMarketInformationSaveDTO] | None = Field(
         default=None, alias="MarketInformation"
     )
     """The list of market information objects to be saved."""

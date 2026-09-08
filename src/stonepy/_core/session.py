@@ -33,6 +33,28 @@ class SessionManager:
         self._username: str = ""
         self._generation = 0
         self._issued_at: float | None = None
+        self._manual_logon: Callable[[], SessionRefreshResult] | None = None
+
+    def commit(
+        self, token: str, username: str, do_logon: Callable[[], SessionRefreshResult]
+    ) -> None:
+        """Install a manual token and its replay callback together under the lock."""
+        with self._lock:
+            self._token = token
+            self._username = username
+            self._manual_logon = do_logon
+            self._generation += 1
+            self._issued_at = self._clock.now()
+
+    def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        """Return a coherent generation and independent auth-header copy under one lock."""
+        with self._lock:
+            headers = (
+                {}
+                if policy is AuthPolicy.NONE or self._token is None
+                else {"Session": self._token, "UserName": self._username}
+            )
+            return self._generation, headers
 
     def set_token(self, token: str, username: str) -> None:
         """Store a freshly issued token and username, bumping the generation."""
@@ -94,12 +116,14 @@ class SessionManager:
 
         ``seen_generation`` is the generation the caller observed before deciding to refresh;
         if the stored generation has moved past it, another caller already refreshed and this
-        call returns without logging on again (single-flight).
+        call returns without logging on again (single-flight). Only successful refreshes
+        coalesce: failures leave the generation, token, and manual callback unchanged.
         """
         with self._lock:
             if self._generation > seen_generation:
                 return  # someone already refreshed; use the new token
-            token, username = _refresh_credentials(do_logon(), self._username)
+            logon = self._manual_logon if self._manual_logon is not None else do_logon
+            token, username = _refresh_credentials(logon(), self._username)
             self._token = token
             self._username = username
             self._generation += 1
@@ -122,6 +146,31 @@ class AsyncSessionManager:
         self._username: str = ""
         self._generation = 0
         self._issued_at: float | None = None
+        self._manual_alogon: Callable[[], Awaitable[SessionRefreshResult]] | None = None
+
+    async def acommit(
+        self, token: str, username: str, do_logon: Callable[[], Awaitable[SessionRefreshResult]]
+    ) -> None:
+        """Install a manual token and its replay callback together under the async lock."""
+        async with self._lock:
+            self._token = token
+            self._username = username
+            self._manual_alogon = do_logon
+            self._generation += 1
+            self._issued_at = self._clock.now()
+
+    def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        """Return a generation and auth-header copy without taking the async lock.
+
+        Like ``clear``, this can interleave with an in-flight refresh; prefer ``asnapshot``
+        from async code.
+        """
+        return self._generation, self.auth_headers(policy)
+
+    async def asnapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        """Return a coherent generation and independent auth-header copy under one lock."""
+        async with self._lock:
+            return self.snapshot(policy)
 
     def set_token(self, token: str, username: str) -> None:
         """Store a freshly issued token and username, bumping the generation."""
@@ -229,11 +278,14 @@ class AsyncSessionManager:
         """Refresh the token via the awaitable *do_logon*, with the same single-flight guard.
 
         The awaitable twin of [`refresh`][stonepy._core.session.AsyncSessionManager.refresh].
+        Only successful refreshes coalesce: failures leave the generation, token, and manual
+        callback unchanged.
         """
         async with self._lock:
             if self._generation > seen_generation:
                 return
-            token, username = _refresh_credentials(await do_logon(), self._username)
+            alogon = self._manual_alogon if self._manual_alogon is not None else do_logon
+            token, username = _refresh_credentials(await alogon(), self._username)
             self._token = token
             self._username = username
             self._generation += 1

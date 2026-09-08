@@ -5,6 +5,8 @@ import sys
 from dataclasses import replace
 from pathlib import Path
 
+import pytest
+
 from stonepy._generator.__main__ import main
 from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord
 from stonepy._generator.scaffold import scaffold
@@ -253,6 +255,7 @@ def test_cli_scaffold_writes_files_from_catalog_root(tmp_path: Path) -> None:
                 "--project-root",
                 str(project_root),
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0
@@ -265,12 +268,11 @@ def test_cli_scaffold_writes_files_from_catalog_root(tmp_path: Path) -> None:
 def test_scaffold_imports_core_response_models(tmp_path: Path) -> None:
     catalog = _catalog(
         endpoints=[
-            # Synthetic endpoint name (not the real DeletePA, which the generator maps to a scalar
-            # bool response): this exercises the generic response_type=None -> ResponseModel path.
+            # Reviewed no-response endpoint uses the core UnspecifiedResponse model.
             _endpoint(
-                name="DeleteThing",
-                logical_name="DeleteThing",
-                target="thing",
+                name="DeleteUserPreference v2",
+                logical_name="DeleteUserPreference",
+                target="preference",
                 path="/thing/delete",
                 parameters=[],
                 request_type=None,
@@ -292,22 +294,23 @@ def test_scaffold_imports_core_response_models(tmp_path: Path) -> None:
     package_root = tmp_path / "stonepy"
     project_root = tmp_path / "project"
 
-    scaffold(catalog, "thing", "DeleteThing", package_dir=package_root, project_root=project_root)
     scaffold(
-        catalog, "news", "GetNewsHeadlines", package_dir=package_root, project_root=project_root
+        catalog,
+        "preference",
+        "DeleteUserPreference v2",
+        package_dir=package_root,
+        project_root=project_root,
     )
-
-    delete_text = (package_root / "resources" / "thing" / "delete_thing.py").read_text(
-        encoding="utf-8"
-    )
-    news_text = (package_root / "resources" / "news" / "get_news_headlines.py").read_text(
-        encoding="utf-8"
-    )
-
-    assert "from stonepy._core.models import ResponseModel" in delete_text
-    assert ") -> ResponseModel:" in delete_text
-    assert "from stonepy._endpoints.news import NewsHeadlinesResponseDTO" in news_text
-    assert ") -> NewsHeadlinesResponseDTO:" in news_text
+    with pytest.raises(ValueError, match="NewsHeadlinesResponseDTO"):
+        scaffold(
+            catalog, "news", "GetNewsHeadlines", package_dir=package_root, project_root=project_root
+        )
+    delete_text = (
+        package_root / "resources" / "preference" / "delete_user_preference.py"
+    ).read_text()
+    assert "from stonepy._core.models import UnspecifiedResponse" in delete_text
+    assert ") -> UnspecifiedResponse:" in delete_text
+    assert not (package_root / "resources" / "news").exists()
 
 
 def test_scaffold_imports_decimal_defaults(tmp_path: Path) -> None:
@@ -415,7 +418,7 @@ def test_scaffold_samples_list_arguments_as_empty_lists(tmp_path: Path) -> None:
     catalog = _catalog(
         endpoints=[
             _endpoint(
-                name="DeleteUserPreference",
+                name="DeleteUserPreference v2",
                 logical_name="DeleteUserPreference",
                 target="preference",
                 path="/preference/delete",
@@ -438,7 +441,7 @@ def test_scaffold_samples_list_arguments_as_empty_lists(tmp_path: Path) -> None:
     scaffold(
         catalog,
         "preference",
-        "DeleteUserPreference",
+        "DeleteUserPreference v2",
         package_dir=tmp_path,
         project_root=project_root,
     )
@@ -470,7 +473,7 @@ def test_scaffold_samples_model_list_arguments_as_empty_lists_and_keeps_stub_ruf
                     }
                 ],
                 request_type=None,
-                response_type=None,
+                response_type="LegalPartyDTO",
             )
         ],
         datatypes=[_datatype("LegalPartyDTO")],
@@ -514,7 +517,7 @@ def test_scaffold_samples_optional_model_list_arguments_as_empty_lists(
                     }
                 ],
                 request_type=None,
-                response_type=None,
+                response_type="LegalPartyDTO",
             )
         ],
         datatypes=[_datatype("LegalPartyDTO")],

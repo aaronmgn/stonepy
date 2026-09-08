@@ -75,6 +75,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         action="store_true",
         help="Skip CATALOG_VERSION validation for fixture or exploratory catalogs.",
     )
+    parser.add_argument(
+        "--skip-override-validation",
+        action="store_true",
+        help=(
+            "Skip production override-consumption validation; "
+            "only for fixture or exploratory catalogs."
+        ),
+    )
     args = parser.parse_args(argv)
 
     package_dir = args.package_dir or args.out_dir or _DEFAULT_PACKAGE_DIR
@@ -98,6 +106,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             catalog_root,
             allow_unresolved=args.allow_unresolved,
             allow_unfrozen_catalog=args.allow_unfrozen_catalog,
+            skip_override_validation=args.skip_override_validation,
         )
         scaffold.scaffold(
             catalog,
@@ -118,7 +127,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         catalog_root,
         allow_unresolved=args.allow_unresolved,
         allow_unfrozen_catalog=args.allow_unfrozen_catalog,
+        skip_override_validation=args.skip_override_validation,
     )
+    if args.command in {"endpoints", "all"}:
+        emit_endpoints.validate_response_models(catalog)
     if args.command in {"models", "all"}:
         emit_models.emit_all(catalog, package_dir)
     if args.command in {"endpoints", "all"}:
@@ -136,11 +148,13 @@ def _validate_catalog(
     *,
     allow_unresolved: bool,
     allow_unfrozen_catalog: bool,
+    skip_override_validation: bool,
 ) -> None:
     if not allow_unresolved:
         assert_allowed_unresolved(catalog)
     if not allow_unfrozen_catalog:
         assert_catalog_frozen(catalog, catalog_root)
+    if not skip_override_validation:
         assert_override_consumption(catalog)
 
 

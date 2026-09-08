@@ -1,4 +1,5 @@
 site_name: stonepy
+strict: true
 site_description: Typed Python client for the StoneX / City Index (CIAPI) v2 trading API.
 site_url: https://aaronmgn.github.io/stonepy/
 repo_url: https://github.com/aaronmgn/stonepy

@@ -161,7 +161,9 @@ each non-empty part must match operator + version, where the operator is one of 
 `">=0.1,<0.2"`). A non-empty part that does not match this shape raises
 `ValueError("invalid requires_stonepy requirement: <req>")`.
 
-Version comparison uses only the first three dotted components; any non-numeric component is treated as `0` and missing components are padded with `0`. The current version comes from `importlib.metadata.version("stonepy")`, falling back to `"0.1.0"` if the package metadata is not found.
+Version comparison uses only the first three dotted components; any non-numeric component is
+treated as `0` and missing components are padded with `0`. The current version comes from
+`stonepy._version.__version__`, the same source used by the package and user agent.
 
 ## 2. `allow_overrides` semantics
 
@@ -187,17 +189,23 @@ config = ClientConfig(
 
 After a successful HTTP response is parsed, the pipeline can raise `OrderRejectedError` based on
 the status domain declared by the endpoint spec. `ClientConfig.status_decoder` can replace the
-top-level numeric decision, and has this backward-compatible type:
+top-level numeric decision. Both callable signatures are supported:
 
 ```python
-# src/stonepy/_core/status.py
-StatusDecision: TypeAlias = BusinessStatus | bool | str | None
-StatusDecoder: TypeAlias = Callable[[int, int | None], StatusDecision]
+from stonepy._core.status import StatusDecision, StatusDomain
+
+
+def decoder(status: int, status_reason: int | None, *, domain: StatusDomain) -> StatusDecision: ...
+def legacy_decoder(status: int, status_reason: int | None) -> StatusDecision: ...
 ```
 
-A decoder receives `(status, status_reason)` (the `status_reason` may be `None`) and returns a
-`StatusDecision`. It is called for the top-level status on both `INSTRUCTION` and `ORDER` specs;
-the signature does not include the domain. The pipeline interprets its return value as follows:
+A decoder receives the endpoint's `INSTRUCTION` or `ORDER` domain through the `domain` keyword
+when its signature accepts it. Legacy two-argument callables retain their calling convention.
+The signature is inspected once per callable identity; replacing `config.status_decoder` after
+client construction takes effect on the next response. Runtime exceptions from a decoder propagate
+without retrying the callable. `StatusDecision` is `BusinessStatus | bool | str | None`.
+
+The pipeline interprets its return value as follows:
 
 - `BusinessStatus(is_rejection=..., reason=...)` - used directly.
 - `bool` - `True` means rejected with no reason; `False` means accepted.
@@ -212,13 +220,16 @@ When `ClientConfig` keeps the default callable, the pipeline selects its built-i
   lifecycle values are informational.
 
 Supplying any other callable fully replaces that top-level numeric logic, including the unknown
-instruction-code safeguard. The custom callable therefore needs a policy that is valid for both
-numeric vocabularies, even though some numbers have different meanings between them.
+instruction-code safeguard. Use `domain` to distinguish the two numeric vocabularies, where some
+numbers have different meanings. Legacy callables must apply a policy valid for both vocabularies.
 
 ### Where the check runs
 
 Business-status checking runs only for endpoint specs with an explicit non-`NONE` `StatusDomain`.
 A custom decoder does not broaden checking to read endpoints that merely echo stored status.
+Before model validation, acknowledgement responses must carry a usable status. Missing, null,
+boolean, or malformed numeric statuses raise `OrderStatusUnknownError`; execution-text statuses
+must be non-empty strings. Supplied nested order statuses are checked too.
 
 The custom decoder replaces only the top-level numeric decision. SaveOrder's closed text
 `Success`/`Failure` check and instruction responses' nested `Orders[]` checks remain built in;
@@ -249,9 +260,9 @@ config = ClientConfig(
 
 ### Disabling business-status checks
 
-`status_decoder` is `StatusDecoder | None`. Setting it to `None` disables all business-status
-checks, including execution-text and nested-order checks, so no `OrderRejectedError` or
-`OrderStatusUnknownError` is raised from a 2xx response:
+`status_decoder` is `StatusDecoder | LegacyStatusDecoder | None`. Setting it to `None` disables all business-status
+checks, including raw acknowledgement, execution-text, and nested-order checks, so no `OrderRejectedError` or
+`OrderStatusUnknownError` is raised from a 2xx response (model validation can still fail):
 
 ```python
 from stonepy import ClientConfig
@@ -262,8 +273,15 @@ config = ClientConfig(
 )
 ```
 
+An empty acknowledgement body still raises `ResponseParseError` during model validation even
+with `status_decoder=None`. Disabling business-status checks does not disable JSON decoding or
+response-model validation.
+
 !!! warning
-    Setting `status_decoder=None` means a 2xx response whose body reports a rejection or an indeterminate acknowledgement will be returned as a normal result. Inspect the status fields yourself before acting, especially in any flow that places or cancels live orders.
+    Setting `status_decoder=None` means a 2xx response whose body reports a rejection or an
+    indeterminate acknowledgement can be returned as a normal result if model validation succeeds.
+    Inspect the status fields yourself before acting, especially in any flow that places or cancels
+    live orders.
 
 !!! note
     `ClientConfig.from_env()` treats `status_decoder` specially: it is only overridden when you pass it explicitly as a keyword. Omitting it keeps `default_status_decoder`; passing `status_decoder=None` is honored as an explicit disable.

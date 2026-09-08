@@ -26,9 +26,16 @@ pipeline_logger = logging.getLogger("stonepy.pipeline")
 messages are:
 
 ```python
-logger.warning("plugin %s failed to load: %s; continuing", ep.name, exc)
+logger.warning(
+    "plugin %s failed to load (%s); continuing",
+    _safe_plugin_name(ep.name),
+    type(exc).__name__,
+)
 logger.warning("plugin %s did not load a BaseResource subclass; continuing", ep.name)
 ```
+
+Failed-load warnings sanitize and truncate the plugin name and include only the exception class,
+without its message or traceback.
 
 `stonepy.pipeline` emits one warning when a proactive session refresh raises a stonepy
 error:
@@ -66,7 +73,7 @@ stonepy_logger.setLevel(logging.WARNING)
 A failed plugin load or proactive refresh then produces output similar to:
 
 ```text
-WARNING:stonepy.plugins:plugin acme_orders failed to load: No module named 'acme'; continuing
+WARNING:stonepy.plugins:plugin acme_orders failed to load (ModuleNotFoundError); continuing
 WARNING:stonepy.pipeline:proactive session refresh failed; continuing with existing token
 ```
 
@@ -94,11 +101,29 @@ def redact(value: str) -> str:
 
 ### The default secret key set
 
-`safe_repr()` decides which keys to mask using this set, defined in
+Mapping, header, URL-query, and generated-model redaction share `SECRET_KEYS`, defined in
 `stonepy/_core/logging.py`:
 
 ```python
-_DEFAULT_SECRET_KEYS = {"app_key", "appkey", "authorization", "password", "proxy", "session"}
+SECRET_KEYS = frozenset(
+    {
+        "api-key",
+        "app-key",
+        "app_key",
+        "appkey",
+        "authorization",
+        "cookie",
+        "newpassword",
+        "password",
+        "proxy",
+        "proxy-authorization",
+        "session",
+        "set-cookie",
+        "token",
+        "twofatoken",
+        "x-api-key",
+    }
+)
 ```
 
 Matching is case-insensitive: every candidate key is lowercased before it is
@@ -107,11 +132,10 @@ all match. Any matching value is rendered as `'***'`.
 
 ### The secret query-string key set
 
-URL query parameters are redacted separately, in
-`stonepy/_core/transport.py`, using an identical set of names:
+URL query parameters use the same set in `stonepy/_core/transport.py`:
 
 ```python
-_SECRET_QUERY_KEYS = {"app_key", "appkey", "authorization", "password", "proxy", "session"}
+_SECRET_QUERY_KEYS = SECRET_KEYS
 ```
 
 When the internal `Request` object is repr'd, `_redact_url_query()` parses the
@@ -120,16 +144,9 @@ set, leaving the rest intact.
 
 ## ClientConfig repr redaction
 
-`ClientConfig` is a dataclass, and its `__repr__` delegates straight to
-`safe_repr`:
-
-```python
-def __repr__(self) -> str:
-    return safe_repr(self)
-```
-
-For a dataclass instance, `safe_repr` rebuilds the repr field by field, masking
-any field whose name is in the default secret key set. Given:
+`ClientConfig` uses the standard dataclass repr. Its `app_key`, `password`, and `proxy`
+fields have `repr=False`, so their names and values are omitted. `safe_repr` redacts mapping
+keys and falls back to ordinary `repr` for other objects, including dataclasses. Given:
 
 ```python
 from stonepy import ClientConfig
@@ -145,17 +162,17 @@ print(repr(config))
 ```
 
 you get (truncated for readability) - note `app_key`, `password`, and `proxy`
-are masked while non-secret fields such as `username` and `base_url` are shown
+are omitted while non-secret fields such as `username` and `base_url` are shown
 verbatim:
 
 ```text
-ClientConfig(base_url='https://ciapi.cityindex.com/TradingAPI', app_key='***', username='alice', password='***', ..., proxy='***', user_agent='stonepy/0.4.1', ...)
+ClientConfig(base_url='https://ciapi.cityindex.com/TradingAPI', username='alice', ..., user_agent='stonepy/<version>', ...)
 ```
 
 !!! note
     `username` is not in the secret set, so it is printed in full. Only
     `app_key`, `password`, and `proxy` among the credential-bearing
-    `ClientConfig` fields are masked.
+    `ClientConfig` fields are omitted.
 
 ## Request repr redaction
 
@@ -175,11 +192,12 @@ def __repr__(self) -> str:
     )
 ```
 
-For mappings, `safe_repr` returns a dict whose secret-keyed values are replaced
+For mappings, `safe_repr` returns the repr of a dict whose secret-keyed values are replaced
 with `'***'`. A representative repr looks like:
 
 ```text
-Request(method='GET', url='https://ciapi.cityindex.com/TradingAPI/order/123?Session=***&UserName=alice&Password=***', headers={'Authorization': '***', 'Session': '***', 'UserName': 'alice'}, params={'Session': '***', 'MarketId': '99'}, content=<redacted 7 bytes>)```
+Request(method='GET', url='https://ciapi.cityindex.com/TradingAPI/order/123?Session=***&UserName=alice&Password=***', headers={'Authorization': '***', 'Session': '***', 'UserName': 'alice'}, params={'Session': '***', 'MarketId': '99'}, content=<redacted 7 bytes>)
+```
 
 Here `Session`, `Password`, and `Authorization` are masked in both the URL and
 the headers/params, while `UserName` and `MarketId` pass through, and the request
@@ -191,35 +209,31 @@ body is reduced to a byte count.
 lowercasing) into the defaults:
 
 ```python
-def safe_repr(obj: object, secret_keys: set[str] | None = None) -> str:
-    ...
+def safe_repr(obj: object, secret_keys: set[str] | None = None) -> str: ...
 ```
 
-So calling `safe_repr(some_mapping, secret_keys={"token"})` masks `token` in
-addition to the six default keys.
+So calling `safe_repr(some_mapping, secret_keys={"custom_secret"})` masks `custom_secret` in
+addition to the 15 default keys.
 
 !!! warning
     This extra-keys capability is an internal helper in `stonepy._core.logging`;
-    it is not exported from the public `stonepy` API. The two redaction sites
-    that ship with stonepy - `ClientConfig.__repr__` (which calls
-    `safe_repr(self)`) and `Request.__repr__` (which calls `safe_repr(...)` on
-    headers and params) - do not pass any custom keys, so in normal use only the
-    six default keys are redacted. There is no `ClientConfig` setting to register
-    additional secret key names.
+    it is not exported from the public `stonepy` API. `Request.__repr__` calls
+    `safe_repr(...)` on headers and params without custom keys. `ClientConfig` relies on
+    dataclass field omission. There is no `ClientConfig` setting to register additional
+    secret key names.
 
 ## Caution: the HTTP layer is not redacted
 
 stonepy's redaction only applies to its own `ClientConfig` and `Request`
 reprs. The underlying transport is `httpx`, which has its own loggers
-(for example `httpx` and `httpcore`). If you enable `DEBUG`-level logging on the
-root logger or on those loggers, httpx may emit request URLs and connection
-details that stonepy does not redact - and those URLs can contain `Session`,
+(for example `httpx` and `httpcore`). `httpx` logs request lines, including URLs, at `INFO`;
+`DEBUG` logging also exposes connection details. stonepy does not redact these logs,
+and those URLs can contain `Session`,
 `AppKey`, and similar query parameters in clear text.
 
 !!! warning
-    Avoid enabling `logging.basicConfig(level=logging.DEBUG)` (or DEBUG on the
-    `httpx`/`httpcore` loggers) in production, or raise their level explicitly to
-    keep credentials out of your logs:
+    Keep the `httpx`/`httpcore` loggers at `WARNING` in production, including when the root
+    logger uses `INFO` or `DEBUG`, to keep credentials out of your logs:
 
     ```python
     import logging

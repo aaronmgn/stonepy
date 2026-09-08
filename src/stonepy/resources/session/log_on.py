@@ -11,15 +11,15 @@ from stonepy.models import ApiLogOnRequestDTO, ApiLogOnResponseDTOv2
 class _LogOnMixin(BaseResource):
     async def log_on(self, request: ApiLogOnRequestDTO) -> ApiLogOnResponseDTOv2:
         """Create a new session."""
-        response = await _ep.alog_on(self._ctx, request)
+        snapshot = ApiLogOnRequestDTO.model_validate(
+            request.model_dump(by_alias=True, exclude_unset=True, mode="python")
+        )
+        response = await _ep.alog_on(self._ctx, snapshot)
         token = require_session_token(response.session)
-        await self._ctx.session.aset_token(token, request.user_name)
 
-        # Install the refresh callable only after a successful logon, so a failed manual
-        # logon cannot clobber a working config-credential refresh.
         async def alogon() -> tuple[str, str]:
-            replay = await _ep.alog_on(self._ctx, request)
-            return require_session_token(replay.session), request.user_name
+            replay = await _ep.alog_on(self._ctx, snapshot)
+            return require_session_token(replay.session), snapshot.user_name
 
-        self._ctx.alogon = alogon
+        await self._ctx.acommit(token, snapshot.user_name, alogon)
         return response

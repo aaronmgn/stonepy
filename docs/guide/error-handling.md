@@ -80,3 +80,8 @@ acknowledgement for a non-idempotent write was unreadable, so the order **may or
 placed**. Inspect the attached `response`, query the order state, and reconcile by request/order
 identifier before resubmitting. A handler that automatically retries `OrderRejectedError` will
 therefore never catch this indeterminate case.
+
+Validation, response-parse, and fallback API errors keep ordinary `str`, `repr`, and traceback
+text free of request inputs and response bodies. Diagnostic attributes such as `raw_body`,
+`response`, and Pydantic `ValidationError.errors()` may still hold secrets; handle them as
+sensitive data rather than writing them to ordinary logs.

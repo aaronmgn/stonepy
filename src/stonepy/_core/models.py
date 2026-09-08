@@ -10,16 +10,40 @@ from stonepy._core.codec import StoneXDateTime
 
 __all__ = [
     "ListResponse",
-    "PassthroughResponseModel",
     "RequestModel",
+    "RequestVariantModel",
     "ResponseModel",
     "ScalarResponse",
     "StoneXDateTime",
     "StoneXModel",
+    "UnspecifiedResponse",
 ]
 
 ItemT = TypeVar("ItemT", bound=BaseModel)
 ScalarT = TypeVar("ScalarT")
+
+
+def _remap_response_keys(data: Any, model_type: type[BaseModel] | None = None) -> Any:
+    """Remap response keys without replacing the first value for a canonical field.
+
+    A model supplies its field names and aliases; without one, canonical keys are lowercase.
+    """
+    if not isinstance(data, dict):
+        return data
+    canonical: dict[str, str] = {}
+    if model_type is not None:
+        for name, field in model_type.model_fields.items():
+            target = field.alias or name
+            canonical.setdefault(name.lower(), target)
+            if field.alias:
+                canonical.setdefault(field.alias.lower(), target)
+    remapped: dict[str, Any] = {}
+    for key, value in data.items():
+        target = key
+        if isinstance(key, str):
+            target = canonical.get(key.lower(), key) if model_type is not None else key.lower()
+        remapped.setdefault(target, value)
+    return remapped
 
 
 class StoneXModel(BaseModel):
@@ -31,7 +55,9 @@ class StoneXModel(BaseModel):
     across subclasses, so both behaviors apply to every request and response model.
     """
 
-    model_config = ConfigDict(populate_by_name=True, use_attribute_docstrings=True)
+    model_config = ConfigDict(
+        hide_input_in_errors=True, populate_by_name=True, use_attribute_docstrings=True
+    )
 
 
 class RequestModel(StoneXModel):
@@ -41,7 +67,25 @@ class RequestModel(StoneXModel):
     is sent, rather than silently dropping them.
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra="forbid")
+    model_config = ConfigDict(hide_input_in_errors=True, populate_by_name=True, extra="forbid")
+
+
+class RequestVariantModel(RequestModel):
+    """Strict request-side twin of a tolerant response DTO.
+
+    Rejects unknown fields and foreign model instances. Keys must be the exact wire alias or
+    Python field name; response-side case-insensitive key matching does not apply.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_foreign_model(cls, value: Any) -> Any:
+        if isinstance(value, BaseModel) and not isinstance(value, cls):
+            raise ValueError(
+                f"expected a mapping or a {cls.__name__} instance; "
+                "other model instances are not accepted in request positions"
+            )
+        return value
 
 
 class ResponseModel(StoneXModel):
@@ -58,24 +102,12 @@ class ResponseModel(StoneXModel):
     nested model is itself a ``ResponseModel``.
     """
 
-    model_config = ConfigDict(populate_by_name=True, extra="ignore")
+    model_config = ConfigDict(hide_input_in_errors=True, populate_by_name=True, extra="ignore")
 
     @model_validator(mode="before")
     @classmethod
     def _match_keys_case_insensitively(cls, data: Any) -> Any:
-        if not isinstance(data, dict):
-            return data
-        canonical: dict[str, str] = {}
-        for name, field in cls.model_fields.items():
-            target = field.alias or name
-            canonical.setdefault(name.lower(), target)
-            if field.alias:
-                canonical.setdefault(field.alias.lower(), target)
-        remapped: dict[str, Any] = {}
-        for key, value in data.items():
-            target = canonical.get(key.lower(), key) if isinstance(key, str) else key
-            remapped.setdefault(target, value)
-        return remapped
+        return _remap_response_keys(data, cls)
 
 
 class ListResponse(RootModel[list[ItemT]], Generic[ItemT]):
@@ -88,6 +120,8 @@ class ListResponse(RootModel[list[ItemT]], Generic[ItemT]):
     plain list. Each element is still a ``ResponseModel``, so case-insensitive key matching applies.
     """
 
+    model_config = ConfigDict(hide_input_in_errors=True)
+
 
 class ScalarResponse(RootModel[ScalarT], Generic[ScalarT]):
     """Response wrapper for endpoints whose success body is a bare top-level JSON scalar.
@@ -97,12 +131,13 @@ class ScalarResponse(RootModel[ScalarT], Generic[ScalarT]):
     and the generated wrapper returns ``root`` (a ``T``), so callers receive the plain value.
     """
 
+    model_config = ConfigDict(hide_input_in_errors=True)
 
-class PassthroughResponseModel(StoneXModel):
-    """Response model that retains unknown fields (``extra="allow"``).
 
-    Used for endpoints whose response type is not described in the catalog: every field is
-    preserved on the model instance so callers can still read the raw payload.
+class UnspecifiedResponse(StoneXModel):
+    """Result of an endpoint whose catalog record documents no response body.
+
+    The catalog documents no body; any fields the server does send are kept in ``model_extra``.
     """
 
     model_config = ConfigDict(populate_by_name=True, extra="allow")

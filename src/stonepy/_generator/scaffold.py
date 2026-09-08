@@ -22,7 +22,7 @@ __all__ = ["scaffold"]
 _VERSION_SUFFIX_RE = re.compile(r"\s+v\d+\s*$", re.IGNORECASE)
 _PATH_PLACEHOLDER_RE = re.compile(r"\{[^{}]+\}")
 _TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
-_CORE_MODEL_NAMES = {"PassthroughResponseModel", "ResponseModel"}
+_CORE_MODEL_NAMES = {"ResponseModel", "UnspecifiedResponse"}
 
 _ImportSet: TypeAlias = dict[str, set[str]]
 
@@ -103,7 +103,6 @@ def _render_resource(
     signature = _method_signature(method_name, wrapper)
     call_args = _wrapper_call_args(wrapper)
     imports = _imports_for_function(wrapper, known_model_names, include_return=True)
-    _add_unresolved_response_imports(imports, rec, resource_target, wrapper, known_model_names)
     lines = [
         f'"""Resource method: {rec.name}."""\n\n',
         "from __future__ import annotations\n\n",
@@ -299,20 +298,6 @@ def _imports_for_function(
     if "StoneXDateTime" in tokens:
         _add_imports(imports, "stonepy._core.codec", {"StoneXDateTime"})
     return imports
-
-
-def _add_unresolved_response_imports(
-    imports: _ImportSet,
-    rec: EndpointRecord,
-    resource_target: str,
-    wrapper: ast.AsyncFunctionDef,
-    known_model_names: set[str],
-) -> None:
-    if rec.response_type is None or rec.response_type in known_model_names:
-        return
-    if wrapper.returns is None or _annotation_name(wrapper.returns) != rec.response_type:
-        return
-    _add_imports(imports, f"stonepy._endpoints.{resource_target}", {rec.response_type})
 
 
 def _add_imports(imports: _ImportSet, module: str, names: set[str]) -> None:

@@ -8,9 +8,8 @@ from collections.abc import Callable
 import pytest
 
 from stonepy._core import ratelimit
-from stonepy._core.clock import Clock, FakeClock, SystemClock
+from stonepy._core.clock import FakeClock, SystemClock
 from stonepy._core.ratelimit import (
-    BucketedSlidingWindowLimiter,
     SlidingWindowLimiter,
     backoff_delay,
 )
@@ -246,26 +245,14 @@ def test_sliding_window_never_over_admits_across_threads() -> None:
     assert len(admitted_in_first_window) <= 4
 
 
-def test_bucketed_limiter_concurrent_initialization_shares_all_grants(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    created: list[SlidingWindowLimiter] = []
+def test_async_paths_reject_sync_only_clock() -> None:
+    class SyncClock:
+        def now(self) -> float:
+            raise AssertionError("must reject the clock at entry")
 
-    class _SlowInitLimiter(SlidingWindowLimiter):
-        """Limiter whose construction yields the GIL, widening the initialization race."""
+        def sleep(self, seconds: float) -> None:
+            raise AssertionError("must never block")
 
-        def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
-            time.sleep(0.001)
-            super().__init__(max_requests, window_seconds, clock)
-            created.append(self)
-
-    monkeypatch.setattr(ratelimit, "SlidingWindowLimiter", _SlowInitLimiter)
-    clock = _ThreadedFakeClock()
-    limiter = BucketedSlidingWindowLimiter(1000, 60.0, clock)
-
-    errors = _run_threads(lambda: limiter.acquire(threading.current_thread().name), 8)
-
-    assert not errors
-    assert len(created) == 1
-    assert limiter._shared_limiter is created[0]
-    assert len(created[0]._events) == 8
+    limiter = SlidingWindowLimiter(1, 5, SyncClock())
+    with pytest.raises(TypeError, match="async paths require an AsyncClock"):
+        asyncio.run(limiter.aacquire())

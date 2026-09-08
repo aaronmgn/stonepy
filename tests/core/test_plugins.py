@@ -135,7 +135,7 @@ def test_failing_plugin_is_skipped_and_logged(caplog: LogCaptureFixture) -> None
         )
 
     assert out == {"extra": good_resource}
-    assert "plugin bad failed to load: boom; continuing" in caplog.text
+    assert "plugin bad failed to load (RuntimeError); continuing" in caplog.text
 
 
 def test_non_class_plugin_export_is_skipped_and_logged(caplog: LogCaptureFixture) -> None:
@@ -216,21 +216,16 @@ def test_discover_plugin_resources_reads_entry_points_when_enabled() -> None:
     assert out == {"extra": resource}
 
 
-def test_load_plugin_resources_defaults_to_installed_package_version(
-    monkeypatch: MonkeyPatch,
-) -> None:
-    resource = _resource_type_with_requirement("ExtraPlugin", ">=9.0,<10.0")
+def test_load_plugin_resources_defaults_to_package_source_version() -> None:
+    from stonepy import __version__
+    from stonepy._core.plugins import _current_stonepy_version
+
+    resource = _resource_type_with_requirement("ExtraPlugin", f"=={__version__}")
     ep = _EP("extra", lambda: resource)
-    monkeypatch.setattr("stonepy._core.plugins.metadata_version", lambda name: "9.0.0")
-
-    out = load_plugin_resources(
-        enable=True,
-        allow_overrides=(),
-        known=set(),
-        entry_points=[ep],
-    )
-
-    assert out == {"extra": resource}
+    assert _current_stonepy_version() == __version__
+    assert load_plugin_resources(
+        enable=True, allow_overrides=(), known=set(), entry_points=[ep]
+    ) == {"extra": resource}
 
 
 def test_generated_client_instantiates_enabled_plugins(monkeypatch: MonkeyPatch) -> None:
@@ -356,3 +351,26 @@ def test_async_plugin_constructor_failure_in_running_loop_does_not_allocate_pool
 
     asyncio.run(run())
     assert allocations == 0
+
+
+def test_plugin_load_warning_omits_exception_text(caplog: LogCaptureFixture) -> None:
+    secret = "plugin-password-sentinel"
+
+    def fail() -> object:
+        raise RuntimeError(secret)
+
+    with caplog.at_level("WARNING", logger="stonepy.plugins"):
+        assert (
+            load_plugin_resources(
+                enable=True,
+                allow_overrides=(),
+                known=set(),
+                entry_points=[_EP("unsafe\n" + "x" * 100, fail)],
+            )
+            == {}
+        )
+    record = caplog.records[-1]
+    assert secret not in record.getMessage()
+    assert "RuntimeError" in record.getMessage()
+    assert "unsafe?" + "x" * 57 in record.getMessage()
+    assert record.exc_info is None

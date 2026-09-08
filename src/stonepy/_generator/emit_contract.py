@@ -17,7 +17,11 @@ from stonepy._generator.catalog import (
     python_name,
 )
 from stonepy._generator.emit_endpoints import (
+    _LIST_RESPONSE_OVERRIDES,
     _PARAM_LOCATION_OVERRIDES,
+    _RESPONSE_MODEL_OVERRIDES,
+    _SCALAR_RESPONSE_OVERRIDES,
+    _UNSPECIFIED_RESPONSE_OVERRIDES,
     endpoint_spec_name,
     resolved_path,
     resolved_status_domain,
@@ -27,6 +31,7 @@ from stonepy._generator.emit_endpoints import _is_idempotent as _endpoint_is_ide
 from stonepy._generator.emit_endpoints import _params as _endpoint_params
 from stonepy._generator.emit_models import _cyclic_ref_fields, _lookup_enum_records
 from stonepy._generator.render import BANNER, field_name, format_python, resolved_field_annotation
+from stonepy._generator.request_graph import build_request_type_graph
 
 __all__ = ["emit_contract_tests"]
 
@@ -79,6 +84,18 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
         )
         for rec in model_records
     ]
+    graph = build_request_type_graph(catalog)
+    variant_cases = [
+        _ModelCase(
+            model_name=graph.request_name(case.model_name),
+            payload=case.payload,
+            expected_dump=case.expected_dump,
+            construct=case.construct,
+        )
+        for case in cases
+        if case.model_name in graph.reachable
+    ]
+    cases = sorted(cases + variant_cases, key=lambda case: case.model_name)
     has_constructs = any(case.construct for case in cases)
 
     lines = [
@@ -90,9 +107,11 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
     if has_constructs:
         lines.append("from typing import Any, cast\n\n")
     lines.append("import pytest\n")
+    if variant_cases:
+        lines.append("from pydantic import ValidationError\n")
     if model_records:
         lines.append("from stonepy._core.models import StoneXModel\n")
-        lines.append(f"from stonepy.models import {', '.join(rec.name for rec in model_records)}\n")
+        lines.append(f"from stonepy.models import {', '.join(case.model_name for case in cases)}\n")
     lines.append("\n")
 
     lines.append("MODEL_CASES = [\n")
@@ -100,6 +119,7 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
         args = [
             case.model_name,
             _dict_literal(case.payload),
+            _dict_literal(case.expected_dump),
         ]
         if has_constructs:
             args.append(str(case.construct))
@@ -110,10 +130,12 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
         if has_constructs:
             lines.extend(
                 [
-                    '@pytest.mark.parametrize("model_cls, payload, construct", MODEL_CASES)\n',
+                    "@pytest.mark.parametrize(\n"
+                    '    "model_cls, payload, expected_dump, construct", MODEL_CASES\n)\n',
                     "def test_generated_model_roundtrip(\n",
                     "    model_cls: type[StoneXModel],\n",
                     "    payload: dict[str, object],\n",
+                    "    expected_dump: dict[str, object],\n",
                     "    construct: bool,\n",
                     ") -> None:\n",
                     "    if construct:\n",
@@ -133,19 +155,24 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
         else:
             lines.extend(
                 [
-                    '@pytest.mark.parametrize("model_cls, payload", MODEL_CASES)\n',
+                    '@pytest.mark.parametrize("model_cls, payload, expected_dump", MODEL_CASES)\n',
                     "def test_generated_model_roundtrip(\n",
                     "    model_cls: type[StoneXModel],\n",
                     "    payload: dict[str, object],\n",
+                    "    expected_dump: dict[str, object],\n",
                     ") -> None:\n",
                 ]
             )
         lines.extend(
             [
-                "    model = model_cls(**payload)\n",
-                "    dumped = model.model_dump(by_alias=True)\n",
-                "    round_tripped = model_cls.model_validate(dumped)\n",
-                "    assert round_tripped.model_dump(by_alias=True) == dumped\n",
+                "    first = model_cls.model_validate(payload).model_dump(\n",
+                "        by_alias=True, exclude_unset=True\n",
+                "    )\n",
+                "    for key, expected in expected_dump.items():\n",
+                "        assert key in first\n",
+                "        assert first[key] == expected\n",
+                "    round_tripped = model_cls.model_validate(first)\n",
+                "    assert round_tripped.model_dump(by_alias=True, exclude_unset=True) == first\n",
             ]
         )
     else:
@@ -155,7 +182,43 @@ def _render_models_roundtrip(catalog: Catalog) -> str:
                 '    pytest.skip("catalog contains no generated models")\n',
             ]
         )
+    if variant_cases:
+        lines.append("\n\n@pytest.mark.parametrize(\n    'model_cls, payload', [\n")
+        for case in variant_cases:
+            lines.append(
+                f"    pytest.param({case.model_name}, {_dict_literal(case.payload)}, "
+                f"id={json.dumps(case.model_name)}),\n"
+            )
+        lines.extend(
+            [
+                "])\n",
+                "def test_request_variant_rejects_unknown_key(\n",
+                "    model_cls: type[StoneXModel], payload: dict[str, object]\n",
+                ") -> None:\n",
+                "    with pytest.raises(ValidationError) as caught:\n",
+                '        model_cls.model_validate(payload | {"__unknown__": 1})\n',
+                "    assert any(\n",
+                '        error["type"] == "extra_forbidden" and error["loc"] == ("__unknown__",)\n',
+                "        for error in caught.value.errors()\n",
+                "    )\n",
+            ]
+        )
     return format_python("".join(lines))
+
+
+def _response_model_expr(rec: EndpointRecord, catalog: Catalog) -> str:
+    key = (target_module(rec.target), rec.name)
+    scalar = _SCALAR_RESPONSE_OVERRIDES.get(key)
+    if scalar is not None:
+        return f"ScalarResponse[{scalar}]"
+    raw_name = _RESPONSE_MODEL_OVERRIDES.get(key, rec.response_type)
+    if raw_name is None and key in _UNSPECIFIED_RESPONSE_OVERRIDES:
+        return "UnspecifiedResponse"
+    name = python_name(raw_name) if raw_name else "ResponseModel"
+    known_names = {datatype.name for datatype in catalog.datatypes}
+    if name != "ResponseModel" and name not in known_names:
+        name = "PassthroughResponseModel"
+    return f"ListResponse[{name}]" if key in _LIST_RESPONSE_OVERRIDES else name
 
 
 def _render_endpoint_specs(catalog: Catalog) -> str:
@@ -167,7 +230,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
                 method=(rec.method or "GET").upper(),
                 path=resolved_path(rec),
                 endpoint_name=rec.name,
-                has_declared_response=rec.response_type is not None,
+                response_model_expr=_response_model_expr(rec, catalog),
                 idempotent=_endpoint_is_idempotent(rec, (rec.method or "GET").upper()),
                 auth_policy=_auth_policy(rec),
                 rate_limit_bucket=target_module(rec.target),
@@ -186,8 +249,21 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
         "import pytest\n",
     ]
     if endpoint_cases:
+        lines.append("from pydantic import BaseModel\n")
         lines.append("from stonepy._core.endpoint import EndpointSpec\n")
-        lines.append("from stonepy._core.models import ResponseModel\n")
+        tokens = {
+            token
+            for case in endpoint_cases
+            for token in re.findall(r"[A-Za-z_][A-Za-z0-9_]*", case.response_model_expr)
+        }
+        core_names = {"ListResponse", "ScalarResponse"} | (
+            tokens & {"ResponseModel", "PassthroughResponseModel", "UnspecifiedResponse"}
+        )
+        lines.append(f"from stonepy._core.models import {', '.join(sorted(core_names))}\n")
+        model_names = {rec.name for rec in catalog.datatypes}
+        used_models = sorted(tokens & model_names)
+        if used_models:
+            lines.append(f"from stonepy.models import {', '.join(used_models)}\n")
     for module_name in sorted({case.module_name for case in endpoint_cases}):
         alias = _endpoint_module_alias(module_name)
         lines.append(f'{alias} = import_module("stonepy._endpoints.{module_name}")\n')
@@ -200,7 +276,7 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
             f"{_endpoint_module_alias(case.module_name)}.{case.spec_name}, "
             f"{json.dumps(case.method)}, "
             f"{json.dumps(case.path)}, "
-            f"{case.has_declared_response}, "
+            f"{case.response_model_expr}, "
             f"{case.idempotent}, "
             f"{json.dumps(case.auth_policy)}, "
             f"{json.dumps(case.rate_limit_bucket)}, "
@@ -216,15 +292,15 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
         lines.extend(
             [
                 "@pytest.mark.parametrize(\n",
-                '    "spec, method, path, has_declared_response, idempotent, auth_policy, "\n',
+                '    "spec, method, path, response_model, idempotent, auth_policy, "\n',
                 '    "rate_limit_bucket, status_domain, request_model, params",\n',
                 "    ENDPOINT_CASES,\n",
                 ")\n",
                 "def test_generated_endpoint_spec_matches_catalog(\n",
-                "    spec: EndpointSpec[ResponseModel],\n",
+                "    spec: EndpointSpec[BaseModel],\n",
                 "    method: str,\n",
                 "    path: str,\n",
-                "    has_declared_response: bool,\n",
+                "    response_model: type[BaseModel],\n",
                 "    idempotent: bool,\n",
                 "    auth_policy: str,\n",
                 "    rate_limit_bucket: str,\n",
@@ -248,8 +324,17 @@ def _render_endpoint_specs(catalog: Catalog) -> str:
                 "        for param in spec.params\n",
                 "    )\n",
                 "    assert param_fields == params\n",
-                "    if has_declared_response:\n",
-                "        assert spec.response_model is not ResponseModel\n",
+                "    if issubclass(response_model, ListResponse | ScalarResponse):\n",
+                "        wrapper = (\n"
+                "            ListResponse if issubclass(response_model, ListResponse)\n"
+                "            else ScalarResponse\n"
+                "        )\n",
+                "        assert issubclass(spec.response_model, wrapper)\n",
+                '        assert spec.response_model.model_fields["root"].annotation == (\n',
+                '            response_model.model_fields["root"].annotation\n',
+                "        )\n",
+                "    else:\n",
+                "        assert spec.response_model is response_model\n",
             ]
         )
     else:
@@ -338,10 +423,12 @@ class _ModelCase:
         *,
         model_name: str,
         payload: dict[str, str],
+        expected_dump: dict[str, str],
         construct: bool,
     ) -> None:
         self.model_name = model_name
         self.payload = payload
+        self.expected_dump = expected_dump
         self.construct = construct
 
 
@@ -354,7 +441,7 @@ class _EndpointCase:
         method: str,
         path: str,
         endpoint_name: str,
-        has_declared_response: bool,
+        response_model_expr: str,
         idempotent: bool,
         auth_policy: str,
         rate_limit_bucket: str,
@@ -367,7 +454,7 @@ class _EndpointCase:
         self.method = method
         self.path = path
         self.endpoint_name = endpoint_name
-        self.has_declared_response = has_declared_response
+        self.response_model_expr = response_model_expr
         self.idempotent = idempotent
         self.auth_policy = auth_policy
         self.rate_limit_bucket = rate_limit_bucket
@@ -404,9 +491,63 @@ def _model_case(
         return _ModelCase(
             model_name=rec.name,
             payload=payload,
+            expected_dump={},
             construct=True,
         )
-    return _ModelCase(model_name=rec.name, payload=payload, construct=False)
+    expected_dump = _expected_model_dump(
+        rec,
+        known_names=known_names,
+        model_records_by_name=model_records_by_name,
+        enum_samples=enum_samples,
+        cyclic_fields=cyclic_fields,
+    )
+    return _ModelCase(
+        model_name=rec.name, payload=payload, expected_dump=expected_dump, construct=False
+    )
+
+
+def _expected_model_dump(
+    rec: TypeRecord,
+    *,
+    known_names: set[str],
+    model_records_by_name: Mapping[str, TypeRecord],
+    enum_samples: Mapping[str, int],
+    cyclic_fields: Mapping[str, set[str]],
+) -> dict[str, str]:
+    # Wire aliases and expected serialized values come from the catalog and fixed sample
+    # semantics, never from a generated model or its validators. This detects first-parse loss.
+    expected: dict[str, str] = {}
+    for prop in rec.properties:
+        alias = prop.get("name")
+        if not isinstance(alias, str) or field_name(alias) is None:
+            continue
+        if _is_optional_property(prop) or alias in cyclic_fields.get(rec.name, set()):
+            continue
+        annotation = resolved_field_annotation(rec.name, prop, known_names)
+        if annotation.startswith("list["):
+            value = "[]"
+        elif annotation in model_records_by_name:
+            value = _dict_literal(
+                _expected_model_dump(
+                    model_records_by_name[annotation],
+                    known_names=known_names,
+                    model_records_by_name=model_records_by_name,
+                    enum_samples=enum_samples,
+                    cyclic_fields=cyclic_fields,
+                )
+            )
+        elif annotation in enum_samples:
+            value = str(enum_samples[annotation])
+        else:
+            value = {
+                "int": "1",
+                "Decimal": 'Decimal("1.23")',
+                "str": '"x"',
+                "bool": "False",
+                "StoneXDateTime": '"/Date(1577836800000)/"',
+            }.get(annotation, "None")
+        expected[alias] = value
+    return expected
 
 
 def _model_payload(
@@ -510,7 +651,7 @@ def _sample_value(
     if annotation == "int":
         return "1"
     if annotation == "Decimal":
-        return 'Decimal("1.23")'
+        return '"1.23"'
     if annotation == "str":
         return '"x"'
     if annotation == "bool":

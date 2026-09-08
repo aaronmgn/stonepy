@@ -44,3 +44,41 @@ def test_rejection_reason_prefers_status_reason_then_falls_back_to_status_name()
     assert _decode(5, 1).reason == "Rejected"
     assert _decode(10, None).reason == "RedCard"
     assert _decode(5, 9999).reason == "9999"
+
+
+def test_positional_only_legacy_decoder_is_called_with_two_arguments() -> None:
+    from stonepy._core.status import StatusDomain, normalize_status_decoder
+
+    def legacy(status: int, reason: int | None, /) -> str:
+        return f"{status}:{reason}"
+
+    decoder = normalize_status_decoder(legacy)
+    assert decoder is not None
+    assert decoder(2, None, domain=StatusDomain.INSTRUCTION) == "2:None"
+
+
+@pytest.mark.parametrize("error_type", [TypeError, ValueError])
+def test_uninspectable_status_decoder_falls_back_to_two_arguments(
+    monkeypatch: pytest.MonkeyPatch,
+    error_type: type[Exception],
+) -> None:
+    import inspect
+
+    from stonepy._core import status as status_module
+
+    def uninspectable(obj: object) -> None:
+        raise error_type("no signature")
+
+    monkeypatch.setattr(inspect, "signature", uninspectable)
+    decoder = status_module.normalize_status_decoder(lambda status, reason: str(status))
+    assert decoder is not None
+    assert decoder(1, None, domain=status_module.StatusDomain.ORDER) == "1"
+
+
+def test_invalid_status_decoder_signature_is_rejected() -> None:
+    from typing import cast
+
+    from stonepy._core.status import LegacyStatusDecoder, normalize_status_decoder
+
+    with pytest.raises(TypeError, match="status_decoder must accept"):
+        normalize_status_decoder(cast(LegacyStatusDecoder, lambda: None))

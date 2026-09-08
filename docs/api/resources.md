@@ -42,3 +42,9 @@ synchronous classes are documented below; every method has an `async` twin on th
 ::: stonepy.resources.pm.PmResource
 
 ::: stonepy.resources.tradingadvisor.TradingadvisorResource
+
+
+`preference.delete_user_preference`, `preference.save_user_preference`, and `price_alert.save_pa`
+return `stonepy._core.models.UnspecifiedResponse` because their catalog contracts document no
+response body. Empty bodies and JSON `null` produce an empty model; unexpected object fields
+are retained in `model_extra`.

@@ -13,9 +13,9 @@ import httpx
 from stonepy._core import codec
 from stonepy._core.config import ClientConfig
 from stonepy._core.endpoint import EndpointSpec
-from stonepy._core.logging import safe_repr
+from stonepy._core.logging import SECRET_KEYS, safe_repr
 
-_SECRET_QUERY_KEYS = {"app_key", "appkey", "authorization", "password", "proxy", "session"}
+_SECRET_QUERY_KEYS = SECRET_KEYS
 _PLACEHOLDER_RE = re.compile(r"\{([^{}]+)\}")
 
 
@@ -360,6 +360,7 @@ class AsyncTransport:
         timeout: float | None = None,
         proxy: str | None = None,
     ) -> None:
+        self._closed = False
         if isinstance(base_url, ClientConfig):
             if verify is not None or timeout is not None or proxy is not None:
                 raise TypeError("ClientConfig transport construction does not accept overrides")
@@ -390,6 +391,8 @@ class AsyncTransport:
 
     async def asend(self, req: Request) -> httpx.Response:
         """Send *req* and return the raw ``httpx.Response``."""
+        if self._closed:
+            raise RuntimeError("AsyncTransport is closed")
         client = self._client
         if client is None:
             client_kwargs: dict[str, Any] = {
@@ -412,5 +415,8 @@ class AsyncTransport:
 
     async def aclose(self) -> None:
         """Close the underlying async HTTP client and its connection pool."""
+        if self._closed:
+            return
+        self._closed = True
         if self._client is not None:
             await self._client.aclose()

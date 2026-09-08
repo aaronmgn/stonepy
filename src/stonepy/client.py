@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Collection
 from types import TracebackType
 
 from stonepy._core.clock import Clock, SystemClock
@@ -11,7 +11,7 @@ from stonepy._core.config import ClientConfig
 from stonepy._core.errors import ConfigurationError
 from stonepy._core.pipeline import CallContext
 from stonepy._core.plugins import discover_plugin_resources
-from stonepy._core.ratelimit import BucketedSlidingWindowLimiter
+from stonepy._core.ratelimit import SlidingWindowLimiter
 from stonepy._core.resource import BaseResource
 from stonepy._core.retry import RetryPolicy
 from stonepy._core.session import AsyncSessionManager, SessionManager, require_session_token
@@ -50,8 +50,40 @@ from stonepy.resources.tradingadvisor import AsyncTradingadvisorResource, Tradin
 from stonepy.resources.user_account import AsyncUserAccountResource, UserAccountResource
 from stonepy.resources.watchlist import AsyncWatchlistResource, WatchlistResource
 
+_BUILTIN_RESOURCE_NAMES: frozenset[str] = frozenset(
+    {
+        "cfd",
+        "client_preference",
+        "clientapplication",
+        "clientpreference",
+        "fixedmargin",
+        "margin",
+        "market",
+        "message",
+        "news",
+        "order",
+        "order_including_closed",
+        "pm",
+        "preference",
+        "price_alert",
+        "session",
+        "spread",
+        "tradingadvisor",
+        "user_account",
+        "watchlist",
+    }
+)
+
 
 def _missing_logon() -> tuple[str, str]:
+    """Raise because no credentials were configured for session refresh."""
+    raise ConfigurationError(
+        "session refresh is not configured: set app_key/username/password on "
+        "ClientConfig or call client.session.log_on() first"
+    )
+
+
+async def _missing_alogon() -> tuple[str, str]:
     """Raise because no credentials were configured for session refresh."""
     raise ConfigurationError(
         "session refresh is not configured: set app_key/username/password on "
@@ -101,7 +133,9 @@ def _async_config_logon(
     return alogon
 
 
-def _load_plugin_resources(config: ClientConfig, known: set[str]) -> dict[str, type[BaseResource]]:
+def _load_plugin_resources(
+    config: ClientConfig, known: Collection[str]
+) -> dict[str, type[BaseResource]]:
     """Discover out-of-tree resource plugins registered via entry points."""
     return discover_plugin_resources(
         enable=config.enable_plugins,
@@ -121,7 +155,7 @@ def _build_context(
         config=config,
         transport=transport,
         session=session,
-        limiter=BucketedSlidingWindowLimiter(
+        limiter=SlidingWindowLimiter(
             config.rate_limit_max,
             config.rate_limit_window_seconds,
             real_clock,
@@ -145,7 +179,7 @@ def _build_async_context(
         config=config,
         transport=transport,
         session=session,
-        limiter=BucketedSlidingWindowLimiter(
+        limiter=SlidingWindowLimiter(
             config.rate_limit_max,
             config.rate_limit_window_seconds,
             real_clock,
@@ -155,7 +189,7 @@ def _build_async_context(
         logon=_missing_logon,
     )
     ctx.logon = _config_logon(ctx, config)
-    ctx.alogon = _async_config_logon(ctx, config)
+    ctx.alogon = _async_config_logon(ctx, config) or _missing_alogon
     return ctx, transport
 
 
@@ -172,28 +206,7 @@ class StoneXClient:
             self._plugins: dict[str, BaseResource] = {
                 name: resource(self._ctx)
                 for name, resource in _load_plugin_resources(
-                    config,
-                    {
-                        "cfd",
-                        "client_preference",
-                        "clientapplication",
-                        "clientpreference",
-                        "fixedmargin",
-                        "margin",
-                        "market",
-                        "message",
-                        "news",
-                        "order",
-                        "order_including_closed",
-                        "pm",
-                        "preference",
-                        "price_alert",
-                        "session",
-                        "spread",
-                        "tradingadvisor",
-                        "user_account",
-                        "watchlist",
-                    },
+                    config, _BUILTIN_RESOURCE_NAMES
                 ).items()
             }
         except BaseException:
@@ -385,30 +398,7 @@ class AsyncStoneXClient:
         self._ctx, self._transport = _build_async_context(config)
         self._plugins: dict[str, BaseResource] = {
             name: resource(self._ctx)
-            for name, resource in _load_plugin_resources(
-                config,
-                {
-                    "cfd",
-                    "client_preference",
-                    "clientapplication",
-                    "clientpreference",
-                    "fixedmargin",
-                    "margin",
-                    "market",
-                    "message",
-                    "news",
-                    "order",
-                    "order_including_closed",
-                    "pm",
-                    "preference",
-                    "price_alert",
-                    "session",
-                    "spread",
-                    "tradingadvisor",
-                    "user_account",
-                    "watchlist",
-                },
-            ).items()
+            for name, resource in _load_plugin_resources(config, _BUILTIN_RESOURCE_NAMES).items()
         }
         self._cfd: AsyncCfdResource | None = None
         self._client_preference: AsyncClientPreferenceResource | None = None
