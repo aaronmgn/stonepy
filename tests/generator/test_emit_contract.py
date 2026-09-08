@@ -10,12 +10,13 @@ from stonepy._generator.catalog import Catalog, EndpointRecord, TypeRecord, load
 from stonepy._generator.emit_contract import emit_contract_tests
 from stonepy._generator.emit_endpoints import emit_all as emit_endpoints
 from stonepy._generator.emit_models import emit_all as emit_models
+from tests.generator._fixtures import resolved_catalog
 
 FIX = Path(__file__).parent / "fixtures"
 
 
 def test_emit_contract_tests_writes_importable_contract_modules(tmp_path: Path) -> None:
-    catalog = load_catalog(FIX)
+    catalog = load_catalog(resolved_catalog(tmp_path / "catalog"))
     project_root = tmp_path
     package_root = project_root / "stonepy"
     package_root.mkdir()
@@ -69,9 +70,7 @@ def test_cli_all_writes_package_outputs_and_contract_tests_from_parent_catalog_r
 ) -> None:
     docs_root = tmp_path / "Docs"
     catalog_root = docs_root / "catalog"
-    catalog_root.mkdir(parents=True)
-    for filename in ("endpoints.json", "data-types.json", "lookup-codes.json"):
-        (catalog_root / filename).write_text((FIX / filename).read_text(encoding="utf-8"))
+    resolved_catalog(catalog_root)
 
     project_root = tmp_path / "project"
     package_root = project_root / "src" / "stonepy"

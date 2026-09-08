@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `status_decoder` can receive the endpoint `domain` keyword; legacy two-argument callables
+  remain supported, including replacement after client construction.
+- Session managers expose atomic generation/header snapshots and manual-logon commits.
+- Public exceptions support pickle round-trips with arguments and diagnostic attributes intact.
+
+### Changed
+
+- **BREAKING:** `ClientConfig` repr omits `app_key`, `password`, and `proxy`.
+- **BREAKING:** `ClientConfig.from_env()` uses dataclass defaults for fields not provided by the
+  environment or overrides, and rejects unknown override names even when their value is `None`.
+- Secret redaction uses one `SECRET_KEYS` vocabulary for mappings, headers,
+  URL queries, and models.
+- Source distribution includes are anchored to the package and release metadata.
+- Endpoint generation rejects unresolved response types and unreviewed missing response contracts
+  before deleting output, including when unresolved catalog references are otherwise allowed.
+- **BREAKING:** INSTRUCTION, ORDER, and EXECUTION_TEXT acknowledgements with missing, empty,
+  null, boolean, or malformed statuses raise `OrderStatusUnknownError` before model validation;
+  its `status` may be `None`. Raw checks follow the model's first-wins key remapping, and the
+  validated model must retain a usable status. `status_decoder=None` bypasses acknowledgement
+  checks, but an empty acknowledgement body still raises `ResponseParseError` during validation.
+- **BREAKING:** `delete_user_preference`, `save_user_preference`, and `save_pa` return
+  `UnspecifiedResponse`, retaining unexpected object fields in `model_extra`.
+- **BREAKING:** Async invocation requires an async transport and clock. Sending through an
+  `AsyncTransport` after `aclose()` raises `RuntimeError`, including if it was never used.
+- **BREAKING:** `ClientConfig` validates base URLs, numeric types, ranges, and finiteness on
+  construction, raising builtin `TypeError` or `ValueError`.
+- **BREAKING:** Package version, default user agent, build metadata, and plugin compatibility
+  checks use the single version source in `stonepy/_version.py`.
+- **BREAKING:** The internal `safe_repr` helper redacts mapping keys and uses ordinary repr for
+  other objects; `ClientConfig` protects its secrets through dataclass field omission.
+
+### Removed
+
+- Removed the private `BucketedSlidingWindowLimiter` and `PassthroughResponseModel` helpers.
+
+### Fixed
+
+- Authentication replay uses an atomic generation/header snapshot, preventing a
+  peer refresh from causing a stale token to be replayed without refreshing it.
+- Manual logon snapshots its validated request and commits its token and replay
+  callback together. The callback survives logoff and is replaced only by a successful manual
+  logon; failed refreshes leave session state intact and only successful refreshes coalesce.
+
+### Security
+
+- **BREAKING:** Validation errors, parse errors, and fallback API errors no longer echo inputs
+  or response bodies in ordinary exception text; plugin load warnings omit exception messages.
+- **BREAKING:** `ClientConfig` rejects `base_url` values containing embedded credentials.
+
 ## [0.4.1] - 2026-08-29
 
 ### Added

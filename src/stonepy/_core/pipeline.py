@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import random
 from collections.abc import Awaitable, Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from email.utils import parsedate_to_datetime
 from math import isfinite
@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, RootModel
 from pydantic import ValidationError as PydanticValidationError
 
 from stonepy._core import codec
-from stonepy._core.clock import AsyncClock, Clock
+from stonepy._core.clock import AsyncClock, Clock, system_utc_now
 from stonepy._core.config import ClientConfig
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec
 from stonepy._core.errors import (
@@ -29,9 +29,9 @@ from stonepy._core.errors import (
     StoneXError,
     TransportError,
 )
-from stonepy._core.models import ResponseModel
+from stonepy._core.logging import SECRET_KEYS
+from stonepy._core.models import ResponseModel, UnspecifiedResponse, _remap_response_keys
 from stonepy._core.ratelimit import (
-    BucketedSlidingWindowLimiter,
     SlidingWindowLimiter,
     backoff_delay,
 )
@@ -39,12 +39,14 @@ from stonepy._core.retry import RetryPolicy
 from stonepy._core.session import AsyncSessionManager, SessionManager, SessionRefreshResult
 from stonepy._core.status import (
     BusinessStatus,
+    LegacyStatusDecoder,
     StatusDecision,
     StatusDecoder,
     StatusDomain,
     _decode_default_status,
     _UnknownInstructionStatus,
     default_status_decoder,
+    normalize_status_decoder,
 )
 from stonepy._core.transport import Request, build_request
 
@@ -55,19 +57,7 @@ logger = logging.getLogger("stonepy.pipeline")
 
 ResponseT = TypeVar("ResponseT", bound=BaseModel)
 
-_SECRET_HEADER_KEYS = {
-    "api-key",
-    "app-key",
-    "app_key",
-    "appkey",
-    "authorization",
-    "cookie",
-    "password",
-    "proxy-authorization",
-    "session",
-    "set-cookie",
-    "x-api-key",
-}
+_SECRET_HEADER_KEYS = SECRET_KEYS
 
 
 def _random_jitter() -> float:
@@ -137,12 +127,16 @@ class CallContext:
     config: ClientConfig
     transport: _Transport | _AsyncTransport
     session: SessionManager | AsyncSessionManager
-    limiter: SlidingWindowLimiter | BucketedSlidingWindowLimiter
+    limiter: SlidingWindowLimiter
     retry: RetryPolicy
     clock: Clock
     logon: Callable[[], SessionRefreshResult]
     alogon: Callable[[], Awaitable[SessionRefreshResult]] | None = None
     jitter: Callable[[], float] = _random_jitter
+    utc_now: Callable[[], datetime] = system_utc_now
+    _decoder_cache: tuple[object, StatusDecoder | None] | None = field(
+        default=None, init=False, repr=False
+    )
 
     def invoke(
         self,
@@ -198,8 +192,7 @@ class CallContext:
                             "proactive session refresh failed; continuing with existing token"
                         )
 
-                seen_generation = self.session.generation
-                auth_headers = self.session.auth_headers(spec.auth_policy)
+                seen_generation, auth_headers = self.session.snapshot(spec.auth_policy)
 
             req = build_request(
                 self.config.base_url,
@@ -237,16 +230,20 @@ class CallContext:
                     auth_refresh_used = True
                     if self._within_retry_budget(started_at, 0.0):
                         continue
-                raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+                raise _map_error(
+                    spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+                )
 
-            if _is_rate_limited(resp, error_info):
-                retry_after = _parse_retry_after(resp)
+            if _is_rate_limited(resp):
+                retry_after = _parse_retry_after(resp, utc_now=self.utc_now)
                 delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     self.clock.sleep(delay)
                     attempt += 1
                     continue
-                raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+                raise _map_error(
+                    spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+                )
 
             if self.retry.should_retry(
                 spec=spec,
@@ -254,13 +251,15 @@ class CallContext:
                 status=resp.status_code,
                 attempt=attempt,
             ):
-                delay = self._backoff_delay(attempt, _parse_retry_after(resp))
+                delay = self._backoff_delay(attempt, _parse_retry_after(resp, utc_now=self.utc_now))
                 if self._within_retry_budget(started_at, delay):
                     self.clock.sleep(delay)
                     attempt += 1
                     continue
 
-            raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+            raise _map_error(
+                spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+            )
 
     async def ainvoke(
         self,
@@ -273,11 +272,11 @@ class CallContext:
         """Execute *spec* asynchronously and return the parsed response model.
 
         The awaitable twin of [`invoke`][stonepy._core.pipeline.CallContext.invoke], with the
-        same arguments, return value, retry semantics, and exceptions. Falls back to the
-        synchronous path when the transport exposes no ``asend`` coroutine.
+        same arguments, return value, retry semantics, and exceptions. Requires an async
+        transport and an ``AsyncClock``; synchronous-only components raise ``TypeError``.
         """
-        if not callable(getattr(self.transport, "asend", None)):
-            return self.invoke(spec, path_params=path_params, query=query, body=body)
+        if not isinstance(self.clock, AsyncClock):
+            raise TypeError("async paths require an AsyncClock")
 
         path_params_dict = dict(path_params or {})
         query_dict = dict(query or {})
@@ -301,8 +300,7 @@ class CallContext:
                             "proactive session refresh failed; continuing with existing token"
                         )
 
-                seen_generation = await self._ageneration()
-                auth_headers = await self._aauth_headers(spec.auth_policy)
+                seen_generation, auth_headers = await self._asnapshot(spec.auth_policy)
 
             req = build_request(
                 self.config.base_url,
@@ -340,16 +338,20 @@ class CallContext:
                     auth_refresh_used = True
                     if self._within_retry_budget(started_at, 0.0):
                         continue
-                raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+                raise _map_error(
+                    spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+                )
 
-            if _is_rate_limited(resp, error_info):
-                retry_after = _parse_retry_after(resp)
+            if _is_rate_limited(resp):
+                retry_after = _parse_retry_after(resp, utc_now=self.utc_now)
                 delay = self._throttle_delay(attempt, retry_after)
                 if self._can_retry_rate_limit(spec, attempt, started_at, delay):
                     await self._asleep(delay)
                     attempt += 1
                     continue
-                raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+                raise _map_error(
+                    spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+                )
 
             if self.retry.should_retry(
                 spec=spec,
@@ -357,13 +359,15 @@ class CallContext:
                 status=resp.status_code,
                 attempt=attempt,
             ):
-                delay = self._backoff_delay(attempt, _parse_retry_after(resp))
+                delay = self._backoff_delay(attempt, _parse_retry_after(resp, utc_now=self.utc_now))
                 if self._within_retry_budget(started_at, delay):
                     await self._asleep(delay)
                     attempt += 1
                     continue
 
-            raise _map_error(spec, resp, _redact_headers(resp.headers), error_info)
+            raise _map_error(
+                spec, resp, _redact_headers(resp.headers), error_info, utc_now=self.utc_now
+            )
 
     def _can_retry_transport_error(
         self, spec: EndpointSpec[Any], attempt: int, started_at: float, delay: float
@@ -409,15 +413,9 @@ class CallContext:
         raise TypeError("CallContext.ainvoke requires a transport with asend()")
 
     def _acquire(self, spec: EndpointSpec[Any]) -> None:
-        if isinstance(self.limiter, BucketedSlidingWindowLimiter):
-            self.limiter.acquire(spec.rate_limit_bucket)
-            return
         self.limiter.acquire()
 
     async def _aacquire(self, spec: EndpointSpec[Any]) -> None:
-        if isinstance(self.limiter, BucketedSlidingWindowLimiter):
-            await self.limiter.aacquire(spec.rate_limit_bucket)
-            return
         await self.limiter.aacquire()
 
     async def _aneeds_proactive_refresh(self) -> bool:
@@ -430,10 +428,10 @@ class CallContext:
             return await self.session.ageneration()
         return self.session.generation
 
-    async def _aauth_headers(self, policy: AuthPolicy) -> dict[str, str]:
+    async def _asnapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
         if isinstance(self.session, AsyncSessionManager):
-            return await self.session.aauth_headers(policy)
-        return self.session.auth_headers(policy)
+            return await self.session.asnapshot(policy)
+        return self.session.snapshot(policy)
 
     async def _arefresh(self, seen_generation: int) -> None:
         if isinstance(self.session, AsyncSessionManager):
@@ -441,13 +439,35 @@ class CallContext:
             return
         self.session.refresh(seen_generation, self.logon)
 
+    def commit(
+        self, token: str, username: str, do_logon: Callable[[], SessionRefreshResult]
+    ) -> None:
+        """Commit a manual synchronous logon to the session manager."""
+        if not isinstance(self.session, SessionManager):
+            raise TypeError("commit requires a SessionManager")
+        self.session.commit(token, username, do_logon)
+
+    async def acommit(
+        self, token: str, username: str, do_logon: Callable[[], Awaitable[SessionRefreshResult]]
+    ) -> None:
+        """Commit a manual asynchronous logon to the session manager."""
+        if not isinstance(self.session, AsyncSessionManager):
+            raise TypeError("acommit requires an AsyncSessionManager")
+        await self.session.acommit(token, username, do_logon)
+
     async def _alogon(self) -> SessionRefreshResult:
-        if self.alogon is not None:
-            return await self.alogon()
-        return self.logon()
+        if self.alogon is None:
+            raise TypeError("ainvoke requires an async logon callable on the context")
+        return await self.alogon()
+
+    def _status_decoder(self) -> StatusDecoder | None:
+        decoder = self.config.status_decoder
+        if self._decoder_cache is None or decoder is not self._decoder_cache[0]:
+            self._decoder_cache = (decoder, normalize_status_decoder(decoder))
+        return self._decoder_cache[1]
 
     def _parse_success(self, spec: EndpointSpec[ResponseT], resp: httpx.Response) -> ResponseT:
-        status_decoder = self.config.status_decoder
+        status_decoder = self._status_decoder()
         model = parse_response(spec, resp, status_decoder=status_decoder)
         if (
             not isinstance(model, RootModel)
@@ -465,48 +485,144 @@ class CallContext:
         return model
 
     async def _asleep(self, delay: float) -> None:
-        if isinstance(self.clock, AsyncClock):
-            await self.clock.asleep(delay)
-            return
-        self.clock.sleep(delay)
+        if not isinstance(self.clock, AsyncClock):
+            raise TypeError("async paths require an AsyncClock")
+        await self.clock.asleep(delay)
+
+
+def _guard_raw_acknowledgement(
+    payload: object,
+    *,
+    status_domain: StatusDomain,
+    method: str,
+    path: str,
+    http_status: int,
+    response_model: type[BaseModel] | None = None,
+) -> None:
+    """Reject missing or malformed raw statuses before permissive DTO validation."""
+    if status_domain is StatusDomain.NONE:
+        return
+
+    def guard(value: object, *, numeric: bool = True) -> None:
+        usable = False
+        if numeric:
+            if isinstance(value, (int, str)) and not isinstance(value, bool):
+                try:
+                    int(value)
+                except ValueError:
+                    pass
+                else:
+                    usable = True
+        else:
+            usable = isinstance(value, str) and bool(value.strip())
+        if not usable:
+            _raise_unknown_status(
+                status=_coerce_status_value(value),
+                status_reason=None,
+                response=payload,
+                method=method,
+                path=path,
+                http_status=http_status,
+            )
+
+    if not isinstance(payload, Mapping):
+        guard(None)
+        return
+    numeric = status_domain is not StatusDomain.EXECUTION_TEXT
+    names = _numeric_status_field_names(status_domain)[0] if numeric else ("Status", "status")
+    if response_model is not None:
+        # A field from another acknowledgement schema must not stand in for this DTO's status.
+        declared = set(response_model.model_fields)
+        declared.update(
+            field.alias for field in response_model.model_fields.values() if field.alias
+        )
+        names = tuple(name for name in names if name in declared)
+    guard(_mapping_object_value(payload, names), numeric=numeric)
+    if status_domain is StatusDomain.INSTRUCTION:
+        order_names = ("OrderStatusId", "order_status_id")
+        if any(
+            isinstance(k, str) and k.lower() in {"orderstatusid", "order_status_id"}
+            for k in payload
+        ):
+            guard(_mapping_object_value(payload, order_names))
+        orders = _mapping_object_value(payload, ("Orders", "orders"))
+        if isinstance(orders, list):
+            names = _numeric_status_field_names(StatusDomain.ORDER)[0]
+            for order in orders:
+                if isinstance(order, Mapping) and any(
+                    isinstance(k, str) and k.lower() in {name.lower() for name in names}
+                    for k in order
+                ):
+                    guard(_mapping_object_value(_remap_response_keys(order), names))
+
+
+def _validation_error_summary(error: PydanticValidationError) -> str:
+    """Return locations and error types only (never input values or messages)."""
+    errors = error.errors(include_input=False, include_context=False, include_url=False)
+    return f"{error.error_count()} validation error(s): " + "; ".join(
+        f"{'.'.join(map(str, e['loc']))}: {e['type']}" for e in errors
+    )
 
 
 def parse_response(
     spec: EndpointSpec[ResponseT],
     resp: httpx.Response,
     *,
-    status_decoder: StatusDecoder | None = None,
+    status_decoder: StatusDecoder | LegacyStatusDecoder | None = None,
 ) -> ResponseT:
     """Decode and validate a success response into ``spec.response_model``.
 
-    When *status_decoder* is supplied for an ``EXECUTION_TEXT`` spec, the raw mapping is checked
-    before model validation. This makes a numeric ``Status`` indeterminate rather than allowing
-    the response model's expected string type to turn it into a generic parse error.
+    When *status_decoder* is supplied for an acknowledgement spec, raw statuses are checked
+    before model validation. Missing or malformed statuses are indeterminate even when the
+    response model would otherwise coerce or discard them. Unspecified response contracts
+    normalize empty bodies and JSON null to an empty object, preserving unexpected fields.
 
     Raises:
         OrderRejectedError: If an execution-text acknowledgement reports ``Failure``.
-        OrderStatusUnknownError: If an execution-text acknowledgement has an unknown status.
+        OrderStatusUnknownError: If an acknowledgement has no usable status or unknown text status.
         ResponseParseError: If the body is not valid JSON (``phase="decode"``) or does not
             satisfy the response model (``phase="validate"``).
     """
+    status_decoder = normalize_status_decoder(status_decoder)
     model_type = spec.response_model
     is_list_root = (
         isinstance(model_type, type)
         and issubclass(model_type, RootModel)
         and get_origin(model_type.model_fields["root"].annotation) is list
     )
-    raw_body = resp.content or (b"[]" if is_list_root else b"{}")
+    raw_body = resp.content
+    parse_error: ResponseParseError | None = None
     try:
-        payload = codec.loads(raw_body)
+        if raw_body:
+            payload = codec.loads(raw_body)
+        elif spec.status_domain is StatusDomain.NONE:
+            payload = [] if is_list_root else {}
+        else:
+            payload = None
     except ValueError as exc:
-        raise ResponseParseError(
+        parse_error = ResponseParseError(
             phase="decode",
             http_status=resp.status_code,
             method=spec.method,
             path=spec.path,
             raw_body=raw_body,
-            message=str(exc),
-        ) from exc
+            message=f"invalid JSON response ({type(exc).__name__})",
+        )
+    if parse_error is not None:
+        raise parse_error from None
+    if issubclass(model_type, UnspecifiedResponse) and payload is None:
+        payload = {}
+    if status_decoder is not None and spec.status_domain is not StatusDomain.NONE:
+        if issubclass(model_type, ResponseModel):
+            payload = _remap_response_keys(payload, model_type)
+        _guard_raw_acknowledgement(
+            payload,
+            status_domain=spec.status_domain,
+            method=spec.method,
+            path=spec.path,
+            http_status=resp.status_code,
+            response_model=model_type,
+        )
     if (
         status_decoder is not None
         and spec.status_domain is StatusDomain.EXECUTION_TEXT
@@ -521,21 +637,33 @@ def parse_response(
             http_status=resp.status_code,
         )
     try:
-        return model_type.model_validate(payload)
+        model = model_type.model_validate(payload)
     except PydanticValidationError as exc:
-        raise ResponseParseError(
+        parse_error = ResponseParseError(
             phase="validate",
             http_status=resp.status_code,
             method=spec.method,
             path=spec.path,
             raw_body=raw_body,
-            message=str(exc),
-        ) from exc
+            message=_validation_error_summary(exc),
+        )
+    if parse_error is not None:
+        raise parse_error from None
+    if status_decoder is not None and spec.status_domain is not StatusDomain.NONE:
+        _guard_raw_acknowledgement(
+            model.model_dump(by_alias=True, exclude_unset=True),
+            status_domain=spec.status_domain,
+            method=spec.method,
+            path=spec.path,
+            http_status=resp.status_code,
+            response_model=model_type,
+        )
+    return model
 
 
 def check_business_status(
     model: BaseModel | Mapping[str, object],
-    status_decoder: StatusDecoder,
+    status_decoder: StatusDecoder | LegacyStatusDecoder,
     *,
     status_domain: StatusDomain = StatusDomain.ORDER,
     method: str | None = None,
@@ -554,7 +682,8 @@ def check_business_status(
         OrderRejectedError: If a status is a documented rejection.
         OrderStatusUnknownError: If a closed acknowledgement domain cannot be interpreted.
     """
-    if status_domain is StatusDomain.NONE:
+    decoder = normalize_status_decoder(status_decoder)
+    if decoder is None or status_domain is StatusDomain.NONE:
         return
     if status_domain is StatusDomain.EXECUTION_TEXT:
         _check_execution_text_status(model, method=method, path=path, http_status=http_status)
@@ -562,7 +691,7 @@ def check_business_status(
 
     _check_numeric_status(
         model,
-        status_decoder,
+        decoder,
         status_domain=status_domain,
         response=model,
         method=method,
@@ -626,7 +755,7 @@ def _check_numeric_status(
                 http_status=http_status,
             )
     else:
-        decision = status_decoder(status, status_reason)
+        decision = status_decoder(status, status_reason, domain=status_domain)
     rejected, reason = _decode_rejection(decision)
     if rejected:
         raise OrderRejectedError(
@@ -751,7 +880,7 @@ def _check_execution_text_status(
 
 def _raise_unknown_status(
     *,
-    status: int | str,
+    status: int | str | None,
     status_reason: int | None,
     response: object,
     method: str | None,
@@ -768,14 +897,21 @@ def _raise_unknown_status(
     )
 
 
-def map_error(spec: EndpointSpec[Any], resp: httpx.Response) -> StoneXAPIError:
+def map_error(
+    spec: EndpointSpec[Any],
+    resp: httpx.Response,
+    *,
+    utc_now: Callable[[], datetime] = system_utc_now,
+) -> StoneXAPIError:
     """Map a non-2xx response to the most specific ``StoneXAPIError`` subclass.
 
     Returns an [`AuthenticationError`][stonepy.AuthenticationError] for auth failures, a
     [`RateLimitError`][stonepy.RateLimitError] for HTTP 429, or a plain
     [`StoneXAPIError`][stonepy.StoneXAPIError] otherwise. Secret headers are redacted.
     """
-    return _map_error(spec, resp, _redact_headers(resp.headers), _parse_error_info(resp))
+    return _map_error(
+        spec, resp, _redact_headers(resp.headers), _parse_error_info(resp), utc_now=utc_now
+    )
 
 
 def _should_refresh_auth(
@@ -793,6 +929,8 @@ def _map_error(
     resp: httpx.Response,
     headers: Mapping[str, str],
     error_info: _ErrorInfo,
+    *,
+    utc_now: Callable[[], datetime] = system_utc_now,
 ) -> StoneXAPIError:
     if error_info.error_code in {4010, 4011} or resp.status_code == 401:
         return AuthenticationError(
@@ -804,7 +942,7 @@ def _map_error(
             raw_body=error_info.raw_body,
             headers=headers,
         )
-    if _is_rate_limited(resp, error_info):
+    if _is_rate_limited(resp):
         return RateLimitError(
             http_status=error_info.http_status,
             error_code=error_info.error_code,
@@ -813,7 +951,7 @@ def _map_error(
             path=spec.path,
             raw_body=error_info.raw_body,
             headers=headers,
-            retry_after=_parse_retry_after(resp),
+            retry_after=_parse_retry_after(resp, utc_now=utc_now),
         )
     return StoneXAPIError(
         http_status=error_info.http_status,
@@ -852,14 +990,18 @@ def _parse_error_info(resp: httpx.Response) -> _ErrorInfo:
     try:
         dto = ApiErrorResponseDTO.model_validate(codec.loads(raw_body))
     except (TypeError, ValueError):
-        fallback = resp.text or resp.reason_phrase
+        fallback = (
+            f"{resp.reason_phrase or 'HTTP error'}; response body length={len(raw_body)} bytes"
+        )
         return _ErrorInfo(resp.status_code, None, fallback, raw_body)
 
     message = dto.error_message if dto.error_message is not None else resp.reason_phrase
     return _ErrorInfo(resp.status_code, dto.error_code, message, raw_body)
 
 
-def _parse_retry_after(resp: httpx.Response) -> float | None:
+def _parse_retry_after(
+    resp: httpx.Response, *, utc_now: Callable[[], datetime] = system_utc_now
+) -> float | None:
     raw_value = resp.headers.get("Retry-After")
     if raw_value is None:
         return None
@@ -877,10 +1019,10 @@ def _parse_retry_after(resp: httpx.Response) -> float | None:
         return None
     if retry_at.tzinfo is None:
         retry_at = retry_at.replace(tzinfo=UTC)
-    return max(0.0, (retry_at.astimezone(UTC) - datetime.now(UTC)).total_seconds())
+    return max(0.0, (retry_at.astimezone(UTC) - utc_now()).total_seconds())
 
 
-def _is_rate_limited(resp: httpx.Response, error_info: _ErrorInfo) -> bool:
+def _is_rate_limited(resp: httpx.Response) -> bool:
     return resp.status_code == 429
 
 
@@ -918,7 +1060,7 @@ def _coerce_status_value(value: object) -> int | str | None:
     Status codes arrive as a JSON number or string; any value that is neither an ``int`` nor a
     ``str`` is treated as absent rather than coerced.
     """
-    if isinstance(value, (int, str)):
+    if isinstance(value, (int, str)) and not isinstance(value, bool):
         return value
     return None
 

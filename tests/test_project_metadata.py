@@ -5,6 +5,8 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -41,7 +43,7 @@ def test_project_version_is_single_sourced_from_package() -> None:
 
     assert "version" not in project
     assert project["dynamic"] == ["version"]
-    assert data["tool"]["hatch"]["version"] == {"path": "src/stonepy/__init__.py"}
+    assert data["tool"]["hatch"]["version"] == {"path": "src/stonepy/_version.py"}
 
 
 def test_runtime_dependencies_have_major_version_caps() -> None:
@@ -59,23 +61,31 @@ def test_runtime_dependencies_have_major_version_caps() -> None:
         assert "<" in dep, f"{dep} is missing an upper major-version cap"
 
 
-def test_build_config_scopes_sdist_and_keeps_py_typed() -> None:
+def test_build_config_scopes_sdist() -> None:
     tool = _pyproject()["tool"]
     hatch = tool["hatch"]
     assert hatch["build"]["targets"]["sdist"]["include"] == [
-        "src/stonepy",
-        "README.md",
-        "LICENSE",
-        "CHANGELOG.md",
-        "pyproject.toml",
+        "/src/stonepy",
+        "/README.md",
+        "/LICENSE",
+        "/CHANGELOG.md",
+        "/pyproject.toml",
     ]
-    assert hatch["build"]["targets"]["wheel"]["force-include"] == {
-        "src/stonepy/py.typed": "stonepy/py.typed"
-    }
+    assert "force-include" not in hatch["build"]["targets"]["wheel"]
+    assert (ROOT / "src" / "stonepy" / "py.typed").is_file()
 
 
 def test_coverage_config_does_not_hide_generated_endpoint_or_client_surface() -> None:
     coverage = _pyproject()["tool"]["coverage"]["run"]
+    assert coverage["source"] == [
+        "src/stonepy/_core",
+        "src/stonepy/_generator",
+        "src/stonepy/resources",
+        "src/stonepy/_endpoints",
+    ]
+    assert "stonepy.client" in coverage["source_pkgs"]
+    assert not any(entry.endswith(".py") for entry in coverage["source"])
+    assert _pyproject()["tool"]["coverage"]["report"]["fail_under"] == 90
     omitted = set(coverage["omit"])
 
     assert "src/stonepy/_endpoints/*" not in omitted
@@ -169,3 +179,35 @@ def test_user_docs_cover_install_async_errors_pagination_and_reference() -> None
     assert "Pagination" in readme
     assert (ROOT / "CHANGELOG.md").is_file()
     assert (ROOT / "docs" / "API_REFERENCE.md").is_file()
+
+
+def test_version_consumers_use_single_source() -> None:
+    import stonepy
+    from stonepy._core import plugins
+
+    source = (ROOT / "src/stonepy/_version.py").read_text()
+    match = re.search(r'^__version__ = "([^\"]+)"$', source, re.MULTILINE)
+    assert match is not None
+    expected = match.group(1)
+    assert stonepy.__version__ == expected
+    assert stonepy.ClientConfig(base_url="https://x").user_agent == f"stonepy/{expected}"
+    assert plugins._current_stonepy_version() == expected
+    assert "importlib.metadata" not in (ROOT / "src/stonepy/_core/config.py").read_text()
+    imports = [
+        line
+        for line in (ROOT / "src/stonepy/_core/plugins.py").read_text().splitlines()
+        if "importlib.metadata" in line
+    ]
+    assert imports == ["from importlib.metadata import entry_points as metadata_entry_points"]
+
+
+def test_user_agent_ignores_installed_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
+    import importlib.metadata
+
+    import stonepy
+
+    def fail_version(distribution_name: str) -> str:
+        raise AssertionError("installed metadata must not determine the user agent")
+
+    monkeypatch.setattr(importlib.metadata, "version", fail_version)
+    assert stonepy.ClientConfig(base_url="https://x").user_agent == f"stonepy/{stonepy.__version__}"

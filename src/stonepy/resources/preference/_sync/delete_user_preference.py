@@ -3,12 +3,14 @@
 
 from __future__ import annotations
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import UnspecifiedResponse
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import preference as _ep
 
 
 class _DeleteUserPreferenceMixin(BaseResource):
-    def delete_user_preference(self, *, preferences: list[str] | None = None) -> ResponseModel:
+    def delete_user_preference(
+        self, *, preferences: list[str] | None = None
+    ) -> UnspecifiedResponse:
         """Deletes user preferences."""
         return _ep.delete_user_preference(self._ctx, preferences=preferences)

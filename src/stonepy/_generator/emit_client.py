@@ -32,6 +32,7 @@ def emit_client(resources_dir: Path, out_dir: Path) -> None:
 
     replacements = {
         "aclear": "clear",
+        "acommit": "commit",
         "ainvoke": "invoke",
         "alogon": "logon",
         "aset_token": "set_token",
@@ -259,7 +260,7 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         BANNER,
         render_docstring("Synchronous and asynchronous StoneX CIAPI v2 client classes.", indent=0),
         "from __future__ import annotations\n\n",
-        "from collections.abc import Awaitable, Callable\n",
+        "from collections.abc import Awaitable, Callable, Collection\n",
         "from types import TracebackType\n\n",
         "from stonepy._core.errors import ConfigurationError\n",
         "from stonepy._core.resource import BaseResource\n",
@@ -267,7 +268,7 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         "from stonepy._core.config import ClientConfig\n",
         "from stonepy._core.pipeline import CallContext\n",
         "from stonepy._core.plugins import discover_plugin_resources\n",
-        "from stonepy._core.ratelimit import BucketedSlidingWindowLimiter\n",
+        "from stonepy._core.ratelimit import SlidingWindowLimiter\n",
         "from stonepy._core.retry import RetryPolicy\n",
         (
             "from stonepy._core.session import "
@@ -283,6 +284,8 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
             f"{target.async_class_name}, {target.class_name}\n"
         )
     lines.append("\n\n")
+    known = ", ".join(repr(name) for name in sorted(target.property_name for target in targets))
+    lines.append(f"_BUILTIN_RESOURCE_NAMES: frozenset[str] = frozenset({{{known}}})\n\n\n")
     lines.extend(_client_helpers())
     lines.append("\n\n")
     lines.extend(_client_class("StoneXClient", targets, async_client=False))
@@ -294,6 +297,13 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
 def _client_helpers() -> list[str]:
     return [
         "def _missing_logon() -> tuple[str, str]:\n",
+        '    """Raise because no credentials were configured for session refresh."""\n',
+        "    raise ConfigurationError(\n",
+        '        "session refresh is not configured: set app_key/username/password on "\n',
+        '        "ClientConfig or call client.session.log_on() first"\n',
+        "    )\n",
+        "\n\n",
+        "async def _missing_alogon() -> tuple[str, str]:\n",
         '    """Raise because no credentials were configured for session refresh."""\n',
         "    raise ConfigurationError(\n",
         '        "session refresh is not configured: set app_key/username/password on "\n',
@@ -341,7 +351,7 @@ def _client_helpers() -> list[str]:
         "    return alogon\n",
         "\n\n",
         "def _load_plugin_resources(\n",
-        "    config: ClientConfig, known: set[str]\n",
+        "    config: ClientConfig, known: Collection[str]\n",
         ") -> dict[str, type[BaseResource]]:\n",
         '    """Discover out-of-tree resource plugins registered via entry points."""\n',
         "    return discover_plugin_resources(\n",
@@ -361,7 +371,7 @@ def _client_helpers() -> list[str]:
         "        config=config,\n",
         "        transport=transport,\n",
         "        session=session,\n",
-        "        limiter=BucketedSlidingWindowLimiter(\n",
+        "        limiter=SlidingWindowLimiter(\n",
         "            config.rate_limit_max,\n",
         "            config.rate_limit_window_seconds,\n",
         "            real_clock,\n",
@@ -384,7 +394,7 @@ def _client_helpers() -> list[str]:
         "        config=config,\n",
         "        transport=transport,\n",
         "        session=session,\n",
-        "        limiter=BucketedSlidingWindowLimiter(\n",
+        "        limiter=SlidingWindowLimiter(\n",
         "            config.rate_limit_max,\n",
         "            config.rate_limit_window_seconds,\n",
         "            real_clock,\n",
@@ -394,7 +404,7 @@ def _client_helpers() -> list[str]:
         "        logon=_missing_logon,\n",
         "    )\n",
         "    ctx.logon = _config_logon(ctx, config)\n",
-        "    ctx.alogon = _async_config_logon(ctx, config)\n",
+        "    ctx.alogon = _async_config_logon(ctx, config) or _missing_alogon\n",
         "    return ctx, transport\n",
     ]
 
@@ -421,7 +431,6 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
             else "        self._ctx, self._transport = _build_context(config)\n"
         ),
     ]
-    known = "{" + ", ".join(f'"{target.property_name}"' for target in targets) + "}"
     plugin_indent = "        " if async_client else "            "
     if not async_client:
         lines.append("        try:\n")
@@ -429,7 +438,7 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
         f"{plugin_indent}self._plugins: dict[str, BaseResource] = {{\n"
         f"{plugin_indent}    name: resource(self._ctx)\n"
         f"{plugin_indent}    for name, resource in "
-        f"_load_plugin_resources(config, {known}).items()\n"
+        "_load_plugin_resources(config, _BUILTIN_RESOURCE_NAMES).items()\n"
         f"{plugin_indent}}}\n"
     )
     if not async_client:

@@ -63,17 +63,14 @@ uv run ruff check .
 uv run ruff format --check .
 uv run mypy
 uv run python scripts/consistency_lint.py
-uv run pytest \
-  --cov=src/stonepy/_core \
-  --cov=src/stonepy/_generator \
-  --cov=src/stonepy/resources \
-  --cov=src/stonepy/_endpoints \
-  --cov=src/stonepy/client.py \
-  --cov-fail-under=90
+uv run pytest --cov
 uv build
 uv run twine check dist/*
 uv run mkdocs build --strict
 ```
+
+Coverage measures `src/stonepy/_core`, `_generator`, `resources` (without `_sync` and
+`__init__.py`), `_endpoints`, and `stonepy.client`; `stonepy.models` is generated and excluded.
 
 The upstream [StoneX CIAPI v2 documentation](https://docs.labs.gaincapital.com/) is the
 authoritative contract for endpoint semantics, request bodies, and response bodies.

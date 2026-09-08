@@ -18,9 +18,8 @@ from stonepy._core.errors import (
     StoneXError,
     TransportError,
 )
+from stonepy._version import __version__
 from stonepy.client import AsyncStoneXClient, StoneXClient
-
-__version__ = "0.4.1"
 
 __all__ = [
     "AsyncStoneXClient",

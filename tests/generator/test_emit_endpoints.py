@@ -15,6 +15,7 @@ from stonepy._generator.emit_endpoints import (
     resolved_status_domain,
     target_module,
 )
+from tests.generator._fixtures import resolved_catalog
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -357,27 +358,10 @@ def test_uri_template_placeholders_synthesize_params_when_catalog_omits_them() -
     assert "client_account_id" in rendered and "market_id" in rendered
 
 
-def test_declared_unresolved_response_uses_passthrough_model() -> None:
-    rec = _endpoint(
-        name="GetNewsHeadlines",
-        logical_name="GetNewsHeadlines",
-        method="GET",
-        target="news",
-        path="/news/newsheadlines",
-        parameters=[],
-        request_type=None,
-        response_type="NewsHeadlinesResponseDTO",
-    )
-
-    rendered = render_binding(rec, known_model_names=set())
-
-    assert "from typing import TypeAlias" in rendered
-    assert "from typing import TypeAlias, cast" not in rendered
-    assert "from stonepy._core.models import PassthroughResponseModel" in rendered
-    assert "NewsHeadlinesResponseDTO: TypeAlias = PassthroughResponseModel" in rendered
-    assert "response_model=NewsHeadlinesResponseDTO" in rendered
-    assert "response_model=PassthroughResponseModel" not in rendered
-    assert "def get_news_headlines(ctx: CallContext) -> NewsHeadlinesResponseDTO:" in rendered
+def test_unresolved_response_type_fails_generation() -> None:
+    rec = _endpoint(name="FutureNews", target="news", response_type="NewsHeadlinesResponseDTO")
+    with pytest.raises(ValueError, match="NewsHeadlinesResponseDTO"):
+        render_binding(rec, known_model_names=set())
 
 
 def test_optional_query_params_are_keyword_defaults_and_omit_none() -> None:
@@ -703,6 +687,7 @@ def test_emit_all_writes_grouped_endpoint_modules_and_deterministic_init(tmp_pat
 
 
 def test_cli_parses_supported_commands_with_fixture_catalog(tmp_path: Path) -> None:
+    catalog_root = resolved_catalog(tmp_path / "catalog")
     command_args = {
         "models": ["models"],
         "endpoints": ["endpoints"],
@@ -717,7 +702,7 @@ def test_cli_parses_supported_commands_with_fixture_catalog(tmp_path: Path) -> N
                 [
                     *args,
                     "--catalog-root",
-                    str(FIX),
+                    str(catalog_root),
                     "--out-dir",
                     str(out_dir),
                     "--allow-unresolved",
@@ -812,7 +797,7 @@ def test_client_and_trading_account_path_override_is_host_rooted() -> None:
     assert resolved_path(rec) == "/v2/UserAccount/ClientAndTradingAccount"
     assert is_host_rooted(rec) is True
     assert "host_rooted=True" in render_binding(
-        rec, known_model_names={"AccountInformationResponseDTOv2"}
+        rec, known_model_names={"AccountInformationResponseDTOv2", "AccountResult"}
     )
 
 
@@ -831,3 +816,59 @@ def test_client_account_margin_uses_v1_path_and_stays_base_rooted() -> None:
     assert "host_rooted" not in render_binding(
         rec, known_model_names={"ClientAccountMarginResponseDTO"}
     )
+
+
+def test_unresolved_response_preflight_preserves_endpoint_tree(tmp_path: Path) -> None:
+    sentinel = tmp_path / "_endpoints" / "sentinel.py"
+    sentinel.parent.mkdir()
+    sentinel.write_text("# keep me")
+    catalog = Catalog(endpoints=[_endpoint(response_type="UnknownDTO")], datatypes=[], lookups={})
+    with pytest.raises(ValueError, match="order/GetOrder: UnknownDTO"):
+        emit_all(catalog, tmp_path)
+    assert sentinel.read_text() == "# keep me"
+
+
+def test_undeclared_response_outside_override_table_fails_generation() -> None:
+    rec = _endpoint(name="NewWrite", response_type=None)
+    with pytest.raises(ValueError, match="_UNSPECIFIED_RESPONSE_OVERRIDES"):
+        render_binding(rec, known_model_names=set())
+    assert "response_model=ResponseModel" in render_binding(rec)
+
+
+def test_unspecified_response_override_emits_core_import() -> None:
+    rec = _endpoint(name="SaveUserPreference v2", target="preference", response_type=None)
+    text = render_binding(rec, known_model_names=set())
+    assert "from stonepy._core.models import UnspecifiedResponse" in text
+    assert "response_model=UnspecifiedResponse" in text
+
+
+def test_unreviewed_missing_response_preflight_preserves_endpoint_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from stonepy._generator import emit_endpoints
+
+    key = ("preference", "SaveUserPreference v2")
+    monkeypatch.setattr(
+        emit_endpoints,
+        "_UNSPECIFIED_RESPONSE_OVERRIDES",
+        emit_endpoints._UNSPECIFIED_RESPONSE_OVERRIDES - {key},
+    )
+    sentinel = tmp_path / "_endpoints" / "sentinel.py"
+    sentinel.parent.mkdir()
+    sentinel.write_text("# keep me")
+    catalog = Catalog(
+        endpoints=[
+            _endpoint(name=key[1], target=key[0], response_type=None),
+            _endpoint(response_type="UnknownDTO"),
+        ],
+        datatypes=[],
+        lookups={},
+    )
+    with pytest.raises(ValueError) as caught:
+        emit_all(catalog, tmp_path)
+    assert str(caught.value).splitlines() == [
+        "unresolved response types:",
+        "- order/GetOrder: UnknownDTO",
+        "- preference/SaveUserPreference v2: no response type or reviewed override",
+    ]
+    assert sentinel.read_text() == "# keep me"

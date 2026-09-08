@@ -119,6 +119,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         allow_unresolved=args.allow_unresolved,
         allow_unfrozen_catalog=args.allow_unfrozen_catalog,
     )
+    if args.command in {"endpoints", "all"}:
+        emit_endpoints.validate_response_models(catalog)
     if args.command in {"models", "all"}:
         emit_models.emit_all(catalog, package_dir)
     if args.command in {"endpoints", "all"}:

@@ -529,3 +529,32 @@ def test_async_transport_allocates_one_pool_on_first_send_and_closes_it(
         assert created[0].closed
 
     asyncio.run(run())
+
+
+def test_async_transport_rejects_send_after_unused_close() -> None:
+    async def run() -> None:
+        transport = AsyncTransport(ClientConfig(base_url="https://api.example"))
+        await transport.aclose()
+        await transport.aclose()
+        with pytest.raises(RuntimeError, match="AsyncTransport is closed"):
+            await transport.asend(Request("GET", "https://api.example/ping", {}, {}, None))
+        assert transport._client is None
+
+    asyncio.run(run())
+
+
+@respx.mock
+def test_async_transport_rejects_send_after_used_close() -> None:
+    route = respx.get("https://api.example/ping").respond(200)
+
+    async def run() -> None:
+        transport = AsyncTransport(ClientConfig(base_url="https://api.example"))
+        request = Request("GET", "https://api.example/ping", {}, {}, None)
+        await transport.asend(request)
+        await transport.aclose()
+        await transport.aclose()
+        with pytest.raises(RuntimeError, match="AsyncTransport is closed"):
+            await transport.asend(request)
+        assert route.call_count == 1
+
+    asyncio.run(run())

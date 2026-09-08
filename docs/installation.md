@@ -35,7 +35,7 @@ Choose whichever installer matches your workflow.
     ```bash
     python -c "import stonepy; print(stonepy.__version__)"
     ```
-    This prints the installed version (for example `0.4.1`).
+    This prints the package version from its single source in `stonepy/_version.py`.
 
 ## Runtime dependencies
 

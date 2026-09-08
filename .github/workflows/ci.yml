@@ -22,23 +22,13 @@ jobs:
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
           cache-suffix: ${{ matrix.python-version }}
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
-        with:
-          python-version: ${{ matrix.python-version }}
       - run: uv python install ${{ matrix.python-version }}
       - run: uv sync --frozen --extra dev --python ${{ matrix.python-version }}
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run python scripts/consistency_lint.py
-      - run: >
-          uv run pytest
-          --cov=src/stonepy/_core
-          --cov=src/stonepy/_generator
-          --cov=src/stonepy/resources
-          --cov=src/stonepy/_endpoints
-          --cov=src/stonepy/client.py
-          --cov-fail-under=90
+      - run: uv run pytest --cov
       - run: uv build
       - run: uv run twine check dist/*
 

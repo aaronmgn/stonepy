@@ -70,7 +70,7 @@ from stonepy import ClientConfig, StoneXClient
 config = ClientConfig.from_env()
 
 with StoneXClient(config) as client:
-    print(client.session)
+    print(client.user_account.get_client_and_trading_account())
 ```
 
 `ClientConfig.from_env()` reads `STONEX_BASE_URL`, `STONEX_APP_KEY`, `STONEX_USERNAME`,

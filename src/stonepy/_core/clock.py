@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import UTC, datetime, timedelta
 from typing import Protocol, runtime_checkable
+
+
+def system_utc_now() -> datetime:
+    """Return the current timezone-aware UTC time."""
+    return datetime.now(UTC)
 
 
 class Clock(Protocol):
@@ -49,8 +55,16 @@ class SystemClock:
 class FakeClock:
     """Deterministic clock for tests: ``sleep`` advances virtual time instead of waiting."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, utc_start: datetime | None = None) -> None:
+        origin = utc_start if utc_start is not None else datetime(2020, 1, 1, tzinfo=UTC)
+        if origin.utcoffset() is None:
+            raise ValueError("utc_start must be timezone-aware")
+        self._utc_start = origin
         self._t = 0.0
+
+    def utcnow(self) -> datetime:
+        """Return the UTC origin advanced by virtual elapsed time."""
+        return self._utc_start + timedelta(seconds=self._t)
 
     def now(self) -> float:
         """Return the current virtual time, in seconds."""

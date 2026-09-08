@@ -41,6 +41,8 @@ class SlidingWindowLimiter:
 
     async def aacquire(self) -> None:
         """Acquire one slot, awaiting until the window has room if it is currently full."""
+        if not isinstance(self._clock, AsyncClock):
+            raise TypeError("async paths require an AsyncClock")
         while True:
             with self._state_lock:
                 now = self._clock.now()
@@ -57,46 +59,9 @@ class SlidingWindowLimiter:
             self._events.popleft()
 
     async def _asleep(self, seconds: float) -> None:
-        if isinstance(self._clock, AsyncClock):
-            await self._clock.asleep(seconds)
-            return
-        self._clock.sleep(seconds)
-
-
-class BucketedSlidingWindowLimiter:
-    """Bucket-compatible facade over one shared sliding-window limiter.
-
-    Generated endpoint specs still supply resource-group bucket names, but CIAPI documents one
-    aggregate server budget. All bucket names therefore acquire from the same window. The shared
-    limiter is created lazily under a lock, and that lock is never held while sleeping or awaiting.
-    """
-
-    def __init__(self, max_requests: int, window_seconds: float, clock: Clock) -> None:
-        self._max_requests = max_requests
-        self._window_seconds = window_seconds
-        self._clock = clock
-        self._shared_limiter: SlidingWindowLimiter | None = None
-        self._limiter_lock = threading.Lock()
-
-    def acquire(self, bucket: str) -> None:
-        """Acquire one slot from the aggregate window shared by every *bucket*."""
-        self._limiter(bucket).acquire()
-
-    async def aacquire(self, bucket: str) -> None:
-        """Await one slot from the aggregate window shared by every *bucket*."""
-        await self._limiter(bucket).aacquire()
-
-    def _limiter(self, _bucket: str) -> SlidingWindowLimiter:
-        with self._limiter_lock:
-            limiter = self._shared_limiter
-            if limiter is None:
-                limiter = SlidingWindowLimiter(
-                    max_requests=self._max_requests,
-                    window_seconds=self._window_seconds,
-                    clock=self._clock,
-                )
-                self._shared_limiter = limiter
-            return limiter
+        if not isinstance(self._clock, AsyncClock):
+            raise TypeError("async paths require an AsyncClock")
+        await self._clock.asleep(seconds)
 
 
 def backoff_delay(

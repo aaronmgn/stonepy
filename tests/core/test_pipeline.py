@@ -35,7 +35,7 @@ from stonepy._core.pipeline import (
     map_error,
     parse_response,
 )
-from stonepy._core.ratelimit import BucketedSlidingWindowLimiter, SlidingWindowLimiter
+from stonepy._core.ratelimit import SlidingWindowLimiter
 from stonepy._core.retry import RetryPolicy
 from stonepy._core.session import AsyncSessionManager, SessionManager
 from stonepy._core.status import StatusDomain, default_status_decoder
@@ -117,6 +117,9 @@ class _RacingSession:
         self._token = do_logon()
         self._generation += 1
 
+    def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        return self.generation, self.auth_headers(policy)
+
     def auth_headers(self, policy: AuthPolicy) -> dict[str, str]:
         if policy is AuthPolicy.NONE:
             return {}
@@ -133,6 +136,9 @@ class _ExplodingSession:
 
     def refresh(self, seen_generation: int, do_logon: Callable[[], str]) -> None:
         raise AssertionError("AuthPolicy.NONE must not refresh")
+
+    def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        return self.generation, self.auth_headers(policy)
 
     def auth_headers(self, policy: AuthPolicy) -> dict[str, str]:
         raise AssertionError("AuthPolicy.NONE must not read auth headers")
@@ -163,6 +169,9 @@ class _NestedLogonSession:
             do_logon()
         finally:
             self._in_logon = False
+
+    def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+        return self.generation, self.auth_headers(policy)
 
     def auth_headers(self, policy: AuthPolicy) -> dict[str, str]:
         if self._in_logon:
@@ -204,7 +213,7 @@ def _ctx(
             transport=transport,
             session=sm,
             clock=clk,
-            limiter=BucketedSlidingWindowLimiter(
+            limiter=SlidingWindowLimiter(
                 cfg.rate_limit_max,
                 cfg.rate_limit_window_seconds,
                 clk,
@@ -240,7 +249,7 @@ async def _actx(
             transport=cast(FakeTransport, transport),
             session=cast(SessionManager, sm),
             clock=clk,
-            limiter=BucketedSlidingWindowLimiter(
+            limiter=SlidingWindowLimiter(
                 cfg.rate_limit_max,
                 cfg.rate_limit_window_seconds,
                 clk,
@@ -339,10 +348,11 @@ def test_happy_path_parses_response() -> None:
     assert out.order_id == 7
 
 
-def test_ainvoke_delegates_to_pipeline() -> None:
+def test_ainvoke_rejects_sync_only_transport() -> None:
     t = FakeTransport([httpx.Response(200, json={"OrderId": 7})])
-    out = asyncio.run(_ctx(t, []).ctx.ainvoke(_spec(), path_params={"OrderId": 7}))
-    assert out.order_id == 7
+    with pytest.raises(TypeError, match="requires a transport with asend"):
+        asyncio.run(_ctx(t, []).ctx.ainvoke(_spec(), path_params={"OrderId": 7}))
+    assert not t.sent
 
 
 def test_ainvoke_uses_async_transport_when_available() -> None:
@@ -1812,3 +1822,560 @@ def test_execution_text_numeric_status_is_indeterminate_before_model_validation(
         _ctx(t, []).ctx.invoke(spec)
 
     assert exc_info.value.status == 5
+
+
+@pytest.mark.parametrize("async_client", [False, True])
+def test_retry_after_http_date_uses_injected_utc(async_client: bool) -> None:
+    async def run() -> None:
+        responses: list[httpx.Response | BaseException] = [
+            httpx.Response(429, headers={"Retry-After": "Wed, 01 Jan 2020 00:00:05 GMT"}),
+            httpx.Response(200, json={"OrderId": 1}),
+        ]
+        if async_client:
+            parts = await _actx(AsyncFakeTransport(responses), [])
+        else:
+            parts = _ctx(FakeTransport(responses), [])
+        parts.ctx.utc_now = parts.clock.utcnow
+        if async_client:
+            await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 1})
+        else:
+            parts.ctx.invoke(_spec(), path_params={"OrderId": 1})
+        assert parts.clock.now() == 5.0
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("seconds", [0, 5])
+def test_retry_after_http_date_pipeline_matches_error(seconds: int) -> None:
+    clock = FakeClock()
+    response = httpx.Response(
+        429,
+        headers={
+            "Retry-After": format_datetime(clock.utcnow() + timedelta(seconds=seconds), usegmt=True)
+        },
+    )
+    error = map_error(_spec(), response, utc_now=clock.utcnow)
+    assert isinstance(error, RateLimitError)
+    parts = _ctx(FakeTransport([response, httpx.Response(200, json={"OrderId": 1})]), [])
+    parts.ctx.utc_now = parts.clock.utcnow
+    parts.ctx.invoke(_spec(), path_params={"OrderId": 1})
+    assert error.retry_after == float(seconds)
+    assert parts.clock.now() == max(1.0, error.retry_after)
+
+
+_MALFORMED_ACKS = [
+    b"",
+    b"{}",
+    b"null",
+    b'{"Status":null}',
+    b'{"Status":true}',
+    b'{"Status":1.5}',
+    b'{"Status":[]}',
+    b'{"Status":{}}',
+    b'{"Status":"abc"}',
+]
+
+
+@pytest.mark.parametrize("body", _MALFORMED_ACKS)
+@pytest.mark.parametrize(
+    "domain", [StatusDomain.INSTRUCTION, StatusDomain.ORDER, StatusDomain.EXECUTION_TEXT]
+)
+@pytest.mark.parametrize("async_client", [False, True])
+def test_parse_response_guards_all_acknowledgement_domains(
+    body: bytes,
+    domain: StatusDomain,
+    async_client: bool,
+) -> None:
+    async def run() -> None:
+        responses: list[httpx.Response | BaseException] = [httpx.Response(200, content=body)]
+        parts = (
+            await _actx(AsyncFakeTransport(responses), [])
+            if async_client
+            else _ctx(FakeTransport(responses), [])
+        )
+        with pytest.raises(OrderStatusUnknownError) as caught:
+            if async_client:
+                await parts.ctx.ainvoke(_status_spec(status_domain=domain))
+            else:
+                parts.ctx.invoke(_status_spec(status_domain=domain))
+        assert "MAY OR MAY NOT" in str(caught.value)
+        assert caught.value.http_status == 200
+        if caught.value.status is None:
+            assert "Acknowledgement carried no usable status." in str(caught.value)
+
+    asyncio.run(run())
+
+
+def test_acknowledgement_guard_precedes_model_validation() -> None:
+    with pytest.raises(OrderStatusUnknownError):
+        parse_response(
+            _status_spec(),
+            httpx.Response(200, json={"Status": True}),
+            status_decoder=default_status_decoder,
+        )
+
+
+def test_none_domain_root_responses_keep_existing_behavior() -> None:
+    list_spec = EndpointSpec(
+        name="List",
+        method="GET",
+        path="/list",
+        idempotent=True,
+        auth_policy=AuthPolicy.NONE,
+        rate_limit_bucket="default",
+        response_model=ListResponse[_StatusResp],
+    )
+    assert (
+        parse_response(list_spec, httpx.Response(200), status_decoder=default_status_decoder).root
+        == []
+    )
+    scalar_spec = EndpointSpec(
+        name="Scalar",
+        method="GET",
+        path="/scalar",
+        idempotent=True,
+        auth_policy=AuthPolicy.NONE,
+        rate_limit_bucket="default",
+        response_model=ScalarResponse[bool],
+    )
+    assert (
+        parse_response(
+            scalar_spec, httpx.Response(200, json=True), status_decoder=default_status_decoder
+        ).root
+        is True
+    )
+
+
+def test_disabled_decoder_bypasses_acknowledgement_guard() -> None:
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": True})]), [])
+    parts.ctx.config.status_decoder = None
+    assert parts.ctx.invoke(_status_spec()).status == 1
+
+
+@pytest.mark.parametrize("nested", [{"Orders": [{"Status": True}]}, {"OrderStatusId": None}])
+def test_malformed_supplied_nested_status_is_indeterminate(nested: dict[str, object]) -> None:
+    with pytest.raises(OrderStatusUnknownError):
+        parse_response(
+            _instruction_spec(),
+            httpx.Response(200, json={"Status": 1, **nested}),
+            status_decoder=default_status_decoder,
+        )
+
+
+@pytest.mark.parametrize("domain", [StatusDomain.INSTRUCTION, StatusDomain.ORDER])
+def test_status_decoder_receives_endpoint_domain(domain: StatusDomain) -> None:
+    seen: list[StatusDomain] = []
+
+    def decoder(status: int, status_reason: int | None, *, domain: StatusDomain) -> None:
+        seen.append(domain)
+
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": 1})]), [])
+    parts.ctx.config.status_decoder = decoder
+    parts.ctx.invoke(_status_spec(status_domain=domain))
+    assert seen == [domain]
+
+
+def test_legacy_status_decoder_is_adapted_once(monkeypatch: pytest.MonkeyPatch) -> None:
+    import inspect
+    from unittest.mock import Mock
+
+    signature = Mock(wraps=inspect.signature)
+    monkeypatch.setattr(inspect, "signature", signature)
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": 1}) for _ in range(2)]), [])
+    parts.ctx.config.status_decoder = lambda status, reason: None
+    parts.ctx.invoke(_status_spec())
+    parts.ctx.invoke(_status_spec())
+    assert signature.call_count == 1
+
+
+def test_status_decoder_internal_type_error_is_not_retried() -> None:
+    calls = 0
+
+    def decoder(status: int, status_reason: int | None, *, domain: StatusDomain) -> None:
+        nonlocal calls
+        calls += 1
+        raise TypeError("inside decoder")
+
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": 1})]), [])
+    parts.ctx.config.status_decoder = decoder
+    with pytest.raises(TypeError, match="inside decoder"):
+        parts.ctx.invoke(_status_spec())
+    assert calls == 1
+
+
+def test_status_decoder_replacement_after_construction_is_used() -> None:
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": 1}) for _ in range(2)]), [])
+    parts.ctx.invoke(_status_spec())
+    parts.ctx.config.status_decoder = lambda status, reason: "replacement rejects"
+    with pytest.raises(OrderRejectedError, match="replacement rejects"):
+        parts.ctx.invoke(_status_spec())
+
+
+def test_status_decoder_none_after_construction_disables_checks() -> None:
+    parts = _ctx(
+        FakeTransport(
+            [httpx.Response(200, json={"Status": 1}), httpx.Response(200, json={"Status": 5})]
+        ),
+        [],
+    )
+    parts.ctx.invoke(_status_spec())
+    parts.ctx.config.status_decoder = None
+    assert parts.ctx.invoke(_status_spec()).status == 5
+
+
+def test_status_999_through_adapted_default_is_unknown() -> None:
+    from stonepy._core.status import normalize_status_decoder
+
+    decoder = normalize_status_decoder(default_status_decoder)
+    assert decoder is default_status_decoder
+    parts = _ctx(FakeTransport([httpx.Response(200, json={"Status": 999})]), [])
+    parts.ctx.config.status_decoder = decoder
+    with pytest.raises(OrderStatusUnknownError):
+        parts.ctx.invoke(_instruction_spec())
+
+
+def test_sync_401_uses_atomic_auth_snapshot() -> None:
+    class PeerSession(SessionManager):
+        advanced = False
+
+        def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+            if not self.advanced:
+                self.advanced = True
+                self.set_token("PEER", "alice")
+            return super().snapshot(policy)
+
+    transport = FakeTransport([httpx.Response(401), httpx.Response(200, json={"OrderId": 1})])
+    parts = _ctx(transport, [])
+    parts.ctx.session = PeerSession(parts.clock, 1080)
+    parts.ctx.session.set_token("OLD", "alice")
+    calls = 0
+
+    def logon() -> str:
+        nonlocal calls
+        calls += 1
+        return "NEW"
+
+    parts.ctx.logon = logon
+    parts.ctx.invoke(_spec(), path_params={"OrderId": 1})
+    assert calls == 1
+    assert [req.headers["Session"] for req in transport.sent] == ["PEER", "NEW"]
+
+
+def test_async_401_uses_atomic_auth_snapshot() -> None:
+    class PeerSession(AsyncSessionManager):
+        advanced = False
+
+        async def asnapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
+            if not self.advanced:
+                self.advanced = True
+                await self.aset_token("PEER", "alice")
+            return await super().asnapshot(policy)
+
+    async def run() -> None:
+        transport = AsyncFakeTransport(
+            [httpx.Response(401), httpx.Response(200, json={"OrderId": 1})]
+        )
+        parts = await _actx(transport, [])
+        parts.ctx.session = PeerSession(parts.clock, 1080)
+        await parts.ctx.session.aset_token("OLD", "alice")
+        calls = 0
+
+        async def alogon() -> str:
+            nonlocal calls
+            calls += 1
+            return "NEW"
+
+        parts.ctx.alogon = alogon
+        await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 1})
+        assert calls == 1
+        assert [req.headers["Session"] for req in transport.sent] == ["PEER", "NEW"]
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_peer_advance_after_coherent_snapshot_skips_duplicate_refresh(asynchronous: bool) -> None:
+    async def run() -> None:
+        parts = _ctx(FakeTransport([]), [])
+        if asynchronous:
+            parts = await _actx(AsyncFakeTransport([]), [])
+
+        class PeerTransport:
+            sent: list[Request]
+
+            def __init__(self) -> None:
+                self.sent = []
+
+            def send(self, request: Request) -> httpx.Response:
+                self.sent.append(request)
+                if len(self.sent) == 1:
+                    parts.ctx.session.set_token("PEER", "alice")
+                    return httpx.Response(401)
+                return httpx.Response(200, json={"OrderId": 1})
+
+            async def asend(self, request: Request) -> httpx.Response:
+                return self.send(request)
+
+        transport = PeerTransport()
+        parts.ctx.transport = transport
+        if asynchronous:
+            await parts.ctx.ainvoke(_spec(), path_params={"OrderId": 1})
+        else:
+            parts.ctx.invoke(_spec(), path_params={"OrderId": 1})
+        assert [req.headers["Session"] for req in transport.sent] == ["OLD", "PEER"]
+
+    asyncio.run(run())
+
+
+def test_context_commit_rejects_wrong_session_manager() -> None:
+    async def run() -> None:
+        sync = _ctx(FakeTransport([]), []).ctx
+        asynchronous = (await _actx(AsyncFakeTransport([]), [])).ctx
+
+        async def alogon() -> str:
+            return "TOKEN"
+
+        with pytest.raises(TypeError, match="commit requires a SessionManager"):
+            asynchronous.commit("TOKEN", "alice", lambda: "TOKEN")
+        with pytest.raises(TypeError, match="acommit requires an AsyncSessionManager"):
+            await sync.acommit("TOKEN", "alice", alogon)
+        asynchronous.alogon = None
+        with pytest.raises(TypeError, match="ainvoke requires an async logon callable"):
+            await asynchronous._alogon()
+
+    asyncio.run(run())
+
+
+def test_async_paths_reject_sync_only_clock() -> None:
+    class SyncClock:
+        def now(self) -> float:
+            raise AssertionError("must reject the clock at entry")
+
+        def sleep(self, seconds: float) -> None:
+            raise AssertionError("must never block")
+
+    parts = _ctx(FakeTransport([]), [])
+    parts.ctx.clock = SyncClock()
+    with pytest.raises(TypeError, match="async paths require an AsyncClock"):
+        asyncio.run(parts.ctx.ainvoke(_spec()))
+
+
+def test_sync_non_idempotent_auth_replay_preserves_body() -> None:
+    transport = FakeTransport([httpx.Response(401), httpx.Response(200, json={"OrderId": 1})])
+    parts = _ctx(transport, [])
+    calls = 0
+
+    def logon() -> str:
+        nonlocal calls
+        calls += 1
+        return "NEW"
+
+    parts.ctx.logon = logon
+    parts.ctx.invoke(
+        _spec(method="POST", idempotent=False),
+        path_params={"OrderId": 1},
+        body={"Quantity": Decimal("1.23456789123456789"), "Orders": [{"Price": 42}]},
+    )
+    assert calls == 1 and len(transport.sent) == 2
+    assert transport.sent[0].content == transport.sent[1].content
+    assert transport.sent[1].headers["Session"] == "NEW"
+
+
+def test_async_non_idempotent_auth_replay_preserves_body() -> None:
+    async def run() -> None:
+        transport = AsyncFakeTransport(
+            [httpx.Response(401), httpx.Response(200, json={"OrderId": 1})]
+        )
+        parts = await _actx(transport, [])
+        calls = 0
+
+        async def alogon() -> str:
+            nonlocal calls
+            calls += 1
+            return "NEW"
+
+        parts.ctx.alogon = alogon
+        await parts.ctx.ainvoke(
+            _spec(method="POST", idempotent=False),
+            path_params={"OrderId": 1},
+            body={"Quantity": Decimal("1.23456789123456789"), "Orders": [{"Price": 42}]},
+        )
+        assert calls == 1 and len(transport.sent) == 2
+        assert transport.sent[0].content == transport.sent[1].content
+        assert transport.sent[1].headers["Session"] == "NEW"
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("asynchronous", [False, True])
+def test_non_idempotent_auth_replay_stops_after_one_replay(asynchronous: bool) -> None:
+    async def run() -> None:
+        responses: list[httpx.Response | BaseException] = [httpx.Response(401), httpx.Response(401)]
+        if asynchronous:
+            transport = AsyncFakeTransport(responses)
+            parts = await _actx(transport, ["NEW"], retry=RetryPolicy(0))
+            with pytest.raises(AuthenticationError):
+                await parts.ctx.ainvoke(
+                    _spec(method="POST", idempotent=False),
+                    path_params={"OrderId": 1},
+                    body={"Quantity": 1},
+                )
+            assert len(transport.sent) == 2
+        else:
+            sync_transport = FakeTransport(responses)
+            parts = _ctx(sync_transport, ["NEW"], retry=RetryPolicy(0))
+            with pytest.raises(AuthenticationError):
+                parts.ctx.invoke(
+                    _spec(method="POST", idempotent=False),
+                    path_params={"OrderId": 1},
+                    body={"Quantity": 1},
+                )
+            assert len(sync_transport.sent) == 2
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("async_client", [False, True])
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"status":null,"Status":1}',
+        b'{"status":true,"Status":1}',
+        b'{"InstructionStatusId":999}',
+        b'{"OrderStatusId":1}',
+        b'{"InstructionStatusId":1,"status":true,"Status":1}',
+        b'{"Status":1,"Orders":[{"status":true,"Status":1}]}',
+    ],
+)
+def test_trade_guard_uses_the_response_model_status(body: bytes, async_client: bool) -> None:
+    from stonepy._endpoints.order import TRADE_SPEC
+
+    async def run() -> None:
+        responses: list[httpx.Response | BaseException] = [httpx.Response(200, content=body)]
+        parts = (
+            await _actx(AsyncFakeTransport(responses), [])
+            if async_client
+            else _ctx(FakeTransport(responses), [])
+        )
+        with pytest.raises(OrderStatusUnknownError):
+            if async_client:
+                await parts.ctx.ainvoke(TRADE_SPEC)
+            else:
+                parts.ctx.invoke(TRADE_SPEC)
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("async_client", [False, True])
+def test_status_from_another_acknowledgement_schema_is_indeterminate(async_client: bool) -> None:
+    from stonepy.models import FixedMarginOrderResponseDTO
+
+    spec = _schema_status_spec(FixedMarginOrderResponseDTO)
+
+    async def run() -> None:
+        responses: list[httpx.Response | BaseException] = [httpx.Response(200, json={"Status": 1})]
+        parts = (
+            await _actx(AsyncFakeTransport(responses), [])
+            if async_client
+            else _ctx(FakeTransport(responses), [])
+        )
+        with pytest.raises(OrderStatusUnknownError):
+            if async_client:
+                await parts.ctx.ainvoke(spec)
+            else:
+                parts.ctx.invoke(spec)
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b'{"instructionStatusId":true,"InstructionStatusId":1}',
+        b'{"instruction_status_id":true,"InstructionStatusId":1}',
+        b'{"Status":1,"InstructionStatusId":true}',
+    ],
+)
+def test_fixed_margin_guard_uses_canonical_model_aliases(body: bytes) -> None:
+    from stonepy.models import FixedMarginOrderResponseDTO
+
+    with pytest.raises(OrderStatusUnknownError):
+        parse_response(
+            _schema_status_spec(FixedMarginOrderResponseDTO),
+            httpx.Response(200, content=body),
+            status_decoder=default_status_decoder,
+        )
+
+
+@pytest.mark.parametrize(
+    "domain", [StatusDomain.INSTRUCTION, StatusDomain.ORDER, StatusDomain.EXECUTION_TEXT]
+)
+@pytest.mark.parametrize("async_client", [False, True])
+def test_acknowledgement_requires_status_after_model_validation(
+    domain: StatusDomain, async_client: bool
+) -> None:
+    from pydantic import field_validator
+
+    class DroppedStatus(ResponseModel):
+        status: int | str | None = Field(default=None, alias="Status")
+
+        @field_validator("status")
+        @classmethod
+        def discard_status(cls, value: int | str | None) -> None:
+            return None
+
+    spec = _schema_status_spec(DroppedStatus, domain)
+
+    async def run() -> None:
+        status = "Success" if domain is StatusDomain.EXECUTION_TEXT else 1
+        responses: list[httpx.Response | BaseException] = [
+            httpx.Response(200, json={"Status": status})
+        ]
+        parts = (
+            await _actx(AsyncFakeTransport(responses), [])
+            if async_client
+            else _ctx(FakeTransport(responses), [])
+        )
+        with pytest.raises(OrderStatusUnknownError) as caught:
+            if async_client:
+                await parts.ctx.ainvoke(spec)
+            else:
+                parts.ctx.invoke(spec)
+        assert caught.value.status is None
+
+    asyncio.run(run())
+
+
+def test_acknowledgement_keeps_first_valid_status_value() -> None:
+    from stonepy._endpoints.order import TRADE_SPEC
+
+    result = parse_response(
+        TRADE_SPEC,
+        httpx.Response(200, content=b'{"status":1,"Status":null}'),
+        status_decoder=default_status_decoder,
+    )
+    assert result.status == 1
+
+
+def test_disabled_decoder_empty_acknowledgement_still_fails_model_validation() -> None:
+    from stonepy._endpoints.order import TRADE_SPEC
+
+    with pytest.raises(ResponseParseError) as caught:
+        parse_response(TRADE_SPEC, httpx.Response(200, content=b""), status_decoder=None)
+    assert caught.value.phase == "validate"
+    assert caught.value.raw_body == b""
+
+
+def _schema_status_spec(
+    model_type: type[ResponseModel], domain: StatusDomain = StatusDomain.INSTRUCTION
+) -> EndpointSpec[ResponseModel]:
+    return EndpointSpec(
+        name="SchemaStatus",
+        method="POST",
+        path="/status",
+        idempotent=False,
+        auth_policy=AuthPolicy.SESSION,
+        rate_limit_bucket="order",
+        response_model=model_type,
+        status_domain=domain,
+    )

@@ -4,32 +4,32 @@
 from __future__ import annotations
 
 from stonepy._core.endpoint import AuthPolicy, EndpointSpec, Param
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import UnspecifiedResponse
 from stonepy._core.pipeline import CallContext
 from stonepy.models import ApiGetPreferencesResponseDTO, ApiSavePreferencesRequestDTO
 
-DELETE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+DELETE_USER_PREFERENCE_SPEC: EndpointSpec[UnspecifiedResponse] = EndpointSpec(
     name="DeleteUserPreference v2",
     method="DELETE",
     path="/v2/Preference",
     idempotent=True,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",
-    response_model=ResponseModel,
+    response_model=UnspecifiedResponse,
     params=(Param(name="Preferences", location="query", python_name="preferences"),),
 )
 
 
 def delete_user_preference(
     ctx: CallContext, *, preferences: list[str] | None = None
-) -> ResponseModel:
+) -> UnspecifiedResponse:
     """Deletes user preferences."""
     return ctx.invoke(DELETE_USER_PREFERENCE_SPEC, query={"Preferences": preferences})
 
 
 async def adelete_user_preference(
     ctx: CallContext, *, preferences: list[str] | None = None
-) -> ResponseModel:
+) -> UnspecifiedResponse:
     """Deletes user preferences."""
     return await ctx.ainvoke(DELETE_USER_PREFERENCE_SPEC, query={"Preferences": preferences})
 
@@ -60,14 +60,14 @@ async def aget_user_preference(
     return await ctx.ainvoke(GET_USER_PREFERENCE_SPEC, query={"Preferences": preferences})
 
 
-SAVE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
+SAVE_USER_PREFERENCE_SPEC: EndpointSpec[UnspecifiedResponse] = EndpointSpec(
     name="SaveUserPreference v2",
     method="POST",
     path="/v2/Preference/save",
     idempotent=False,
     auth_policy=AuthPolicy.SESSION,
     rate_limit_bucket="preference",
-    response_model=ResponseModel,
+    response_model=UnspecifiedResponse,
     request_model=ApiSavePreferencesRequestDTO,
     params=(
         Param(
@@ -79,14 +79,16 @@ SAVE_USER_PREFERENCE_SPEC: EndpointSpec[ResponseModel] = EndpointSpec(
 )
 
 
-def save_user_preference(ctx: CallContext, request: ApiSavePreferencesRequestDTO) -> ResponseModel:
+def save_user_preference(
+    ctx: CallContext, request: ApiSavePreferencesRequestDTO
+) -> UnspecifiedResponse:
     """Saves changes to the user's preferences."""
     return ctx.invoke(SAVE_USER_PREFERENCE_SPEC, body=request)
 
 
 async def asave_user_preference(
     ctx: CallContext, request: ApiSavePreferencesRequestDTO
-) -> ResponseModel:
+) -> UnspecifiedResponse:
     """Saves changes to the user's preferences."""
     return await ctx.ainvoke(SAVE_USER_PREFERENCE_SPEC, body=request)
 

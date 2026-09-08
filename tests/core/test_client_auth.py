@@ -127,3 +127,19 @@ def test_manual_logon_installs_async_proactive_replay(monkeypatch: pytest.Monkey
             await client.aclose()
 
     asyncio.run(run())
+
+
+@respx.mock
+def test_async_credential_less_auth_refresh_raises_configuration_error() -> None:
+    import asyncio
+
+    from stonepy import AsyncStoneXClient, ClientConfig, ConfigurationError
+
+    respx.get("https://api.example/v2/UserAccount/ClientAndTradingAccount").respond(401)
+
+    async def run() -> None:
+        async with AsyncStoneXClient(ClientConfig(base_url="https://api.example")) as client:
+            with pytest.raises(ConfigurationError, match="session refresh is not configured"):
+                await client.user_account.get_client_and_trading_account()
+
+    asyncio.run(run())

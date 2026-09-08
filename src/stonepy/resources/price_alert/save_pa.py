@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from stonepy._core.models import ResponseModel
+from stonepy._core.models import UnspecifiedResponse
 from stonepy._core.resource import BaseResource
 from stonepy._endpoints import price_alert as _ep
 from stonepy.models import SaveAlertRequestDTOv2
 
 
 class _SavePaMixin(BaseResource):
-    async def save_pa(self, request: SaveAlertRequestDTOv2) -> ResponseModel:
+    async def save_pa(self, request: SaveAlertRequestDTOv2) -> UnspecifiedResponse:
         """
         Perform a save operation for a client defined price alert. This service call is
         also used to update an alert by saving the new parameters and overwriting the

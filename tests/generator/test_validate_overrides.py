@@ -20,6 +20,11 @@ FIX = Path(__file__).parent / "fixtures"
 _STALE_TABLE_CASES = (
     (
         emit_endpoints,
+        "_UNSPECIFIED_RESPONSE_OVERRIDES",
+        frozenset({("missing", "MissingEndpoint")}),
+    ),
+    (
+        emit_endpoints,
         "_OPTIONAL_PARAM_OVERRIDES",
         {("missing", "MissingEndpoint"): frozenset({"missingParam"})},
     ),

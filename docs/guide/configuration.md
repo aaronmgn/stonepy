@@ -59,7 +59,7 @@ with StoneXClient(config) as client:
 | --- | --- | --- | --- |
 | `verify_tls` | `bool` | `True` | Whether to verify TLS certificates. |
 | `proxy` | `str \| None` | `None` | Optional proxy URL routed through for all requests. |
-| `user_agent` | `str` | `"stonepy/<version>"` | User-Agent header. Defaults to `stonepy/` plus the installed package version (falling back to `0.4.1` if the version cannot be resolved). |
+| `user_agent` | `str` | `"stonepy/<version>"` | User-Agent header. Defaults to `stonepy/` plus the package version from `stonepy/_version.py`. |
 
 !!! warning
     Setting `verify_tls=False` disables certificate verification and exposes the connection to interception. Only use it against trusted, isolated test endpoints.
@@ -68,7 +68,7 @@ with StoneXClient(config) as client:
 
 | Field | Type | Default | Description |
 | --- | --- | --- | --- |
-| `status_decoder` | `StatusDecoder \| None` | `default_status_decoder` | Replaces top-level numeric instruction/order decoding. Text execution and nested-order checks stay built in; pass `None` to disable all business-status checks. |
+| `status_decoder` | `StatusDecoder \| LegacyStatusDecoder \| None` | `default_status_decoder` | Replaces top-level numeric instruction/order decoding; accepts a `domain` keyword, with legacy two-argument callables supported. Text execution and nested-order checks stay built in; pass `None` to disable all business-status checks. |
 | `enable_plugins` | `bool` | `False` | Whether to discover and instantiate resource classes registered through package entry points. |
 | `allow_overrides` | `tuple[str, ...]` | `()` | Resource-group names whose plugins may shadow built-in names; the plugin remains available through `client.plugin(name)`. |
 
@@ -118,4 +118,20 @@ config = ClientConfig.from_env(
 ```
 
 !!! note
-    `from_env()` does not require the `STONEX_*` variables to be set as long as the corresponding values are provided as keyword overrides; only `base_url` is mandatory and is validated as non-empty.
+    `from_env()` does not require the `STONEX_*` variables to be set when the corresponding
+    values are provided as keyword overrides. Only `base_url` is mandatory; all constructor
+    validation rules below apply.
+
+## Validation
+
+`ClientConfig` validates on construction, including through `from_env()`. Invalid types raise
+builtin `TypeError`; invalid values raise builtin `ValueError`.
+
+- `base_url` must be a non-blank string without surrounding whitespace, with an `http` or `https`
+  scheme, a hostname, a valid port, and no embedded username or password.
+- Timeouts, `rate_limit_window_seconds`, and `proactive_refresh_seconds` must be finite positive
+  integers or floats.
+- `max_connections` and `rate_limit_max` must be positive integers; `max_retries` must be a
+  non-negative integer.
+- `retry_budget_seconds` must be a finite non-negative number. Booleans are rejected for all
+  numeric fields.

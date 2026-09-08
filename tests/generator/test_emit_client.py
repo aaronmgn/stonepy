@@ -5,6 +5,7 @@ from pathlib import Path
 
 from stonepy._generator.__main__ import main
 from stonepy._generator.emit_client import emit_client
+from tests.generator._fixtures import resolved_catalog
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -126,9 +127,7 @@ def test_emit_client_skips_output_when_in_place_resources_dir_is_missing(
 def test_cli_all_runs_client_pass_when_resources_dir_is_provided(tmp_path: Path) -> None:
     docs_root = tmp_path / "Docs"
     catalog_root = docs_root / "catalog"
-    catalog_root.mkdir(parents=True)
-    for filename in ("endpoints.json", "data-types.json", "lookup-codes.json"):
-        (catalog_root / filename).write_text((FIX / filename).read_text(encoding="utf-8"))
+    resolved_catalog(catalog_root)
 
     project_root = tmp_path / "project"
     package_root = project_root / "src" / "stonepy"
@@ -229,3 +228,10 @@ def test_ci_drift_gate_checks_generated_client_outputs() -> None:
     assert "src/stonepy/client.py" in text
     assert "src/stonepy/resources" in text
     assert "git status --porcelain --untracked-files=all" in text
+
+
+def test_generated_clients_share_builtin_resource_names(tmp_path: Path) -> None:
+    emit_client(FIX / "resources", tmp_path)
+    text = (tmp_path / "client.py").read_text()
+    assert text.count("_BUILTIN_RESOURCE_NAMES: frozenset[str] =") == 1
+    assert text.count("_BUILTIN_RESOURCE_NAMES") == 3
