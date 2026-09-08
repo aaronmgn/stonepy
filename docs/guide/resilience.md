@@ -173,7 +173,8 @@ no_retry = ClientConfig(
 )
 ```
 
-With `max_retries=0`, `should_retry` returns `False` on the first attempt (`0 >= 0`), so every failure surfaces immediately.
+With `max_retries=0`, ordinary transport, 5xx, and 429 retries are disabled; the one-time
+authentication refresh and replay is independent of this count.
 
 ---
 

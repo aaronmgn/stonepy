@@ -211,15 +211,14 @@ addition to the six default keys.
 
 stonepy's redaction only applies to its own `ClientConfig` and `Request`
 reprs. The underlying transport is `httpx`, which has its own loggers
-(for example `httpx` and `httpcore`). If you enable `DEBUG`-level logging on the
-root logger or on those loggers, httpx may emit request URLs and connection
-details that stonepy does not redact - and those URLs can contain `Session`,
+(for example `httpx` and `httpcore`). `httpx` logs request lines, including URLs, at `INFO`;
+`DEBUG` logging also exposes connection details. stonepy does not redact these logs,
+and those URLs can contain `Session`,
 `AppKey`, and similar query parameters in clear text.
 
 !!! warning
-    Avoid enabling `logging.basicConfig(level=logging.DEBUG)` (or DEBUG on the
-    `httpx`/`httpcore` loggers) in production, or raise their level explicitly to
-    keep credentials out of your logs:
+    Keep the `httpx`/`httpcore` loggers at `WARNING` in production, including when the root
+    logger uses `INFO` or `DEBUG`, to keep credentials out of your logs:
 
     ```python
     import logging

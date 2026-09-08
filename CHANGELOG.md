@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING:** The pydantic minimum is now 2.12 on Python 3.14; earlier Python versions
+  retain the 2.7 minimum.
+- Coverage now measures branches, and pre-commit hooks run ruff, format, and mypy through
+  the locked uv environment.
+- CI uses `uv sync --locked` and uv 0.12.10, checks client-regeneration drift, and requires
+  lowest-direct dependency tests on Python 3.11 and 3.14 plus an installed-wheel smoke test.
+- Releases use pinned uv and verification tools from the locked environment, require the
+  same-commit reusable CI workflow, and publish exactly the verified artifacts after checking
+  source, tag, and distribution versions.
+- Documentation deployment validates strictly before publishing, and manual release versions
+  must match an existing tag and its source version.
+- **BREAKING:** Live tests require `STONEX_LIVE=1`, an allowlisted HTTPS host and port, and
+  `STONEX_LIVE_CLIENT_ACCOUNT_ID`; a session-wide account assertion runs before any live test.
+- GetPA live probes compare query and body filters using temporary alert ids, check the
+  production binding, and clean up by id. Strict live xfails now cover only contract mismatches.
+
+### Fixed
+
+- Clarify frozen-catalog endpoint coverage, authentication replay with zero retries, non-2xx
+  ErrorCode 4011 handling, and httpx request logging at INFO in the documentation.
+- Bound session concurrency test waits and isolate live preference and watchlist round-trips
+  with per-test names.
+- **BREAKING:** Opted-in live runs fail collection when required settings are missing;
+  runs without `STONEX_LIVE=1` continue to skip live tests.
+- Require full commit SHA pins for workflow actions and run the complete installed-wheel
+  smoke test directory.
+
 ## [0.4.1] - 2026-08-29
 
 ### Added
@@ -17,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `simplejson` is now allowed up to (but excluding) 5.0; simplejson 4.x keeps the Python-level
   API unchanged and passes the full suite.
-- The `hatchling` build backend is bounded to `>=1.32,<2` so builds are reproducible across
+- The `hatchling` build backend is bounded to `>=1.32,<2` for compatibility across
   metadata-version changes.
 - Locked development and documentation dependencies were refreshed (including the
   `cryptography`, `pymdown-extensions`, and `setuptools` security updates), and every workflow

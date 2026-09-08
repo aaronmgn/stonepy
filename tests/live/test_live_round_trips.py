@@ -8,6 +8,7 @@ demo order, which is out of scope for the contract suite.
 from __future__ import annotations
 
 from decimal import Decimal
+from uuid import uuid4
 
 import pytest
 
@@ -16,38 +17,37 @@ from stonepy import StoneXClient
 
 pytestmark = pytest.mark.live
 
-_TEST_KEY = "STONEPY_LIVE_ROUND_TRIP"
-_TEST_WATCHLIST = "stonepy-live-round-trip"
-
 
 def test_client_preference_round_trip(client: StoneXClient, ids: dict[str, int]) -> None:
+    test_key = f"STONEPY_LIVE_{uuid4().hex[:8]}"
     cid = ids["cid"]
     request = M.ApiSaveClientPreferenceRequestDTO.model_validate(
-        {"ClientAccountId": cid, "ClientPreference": {"Key": _TEST_KEY, "Value": "1"}}
+        {"ClientAccountId": cid, "ClientPreference": {"Key": test_key, "Value": "1"}}
     )
     client.client_preference.save_client_preference(request)
     try:
         fetched = client.client_preference.get_client_preference(
-            client_account_id=cid, key=_TEST_KEY
+            client_account_id=cid, key=test_key
         )
         assert fetched is not None
         keys = client.client_preference.get_client_preferences_key_list(client_account_id=cid)
-        assert _TEST_KEY in (keys.client_preference_keys or []), "saved preference key not listed"
+        assert test_key in (keys.client_preference_keys or []), "saved preference key not listed"
         # Live-verify the corrected GetClientPreferencesList binding: lowercase "keys=",
         # sent exactly once (the docs' URI template names the placeholder after its type).
-        listed = client.client_preference.get_client_preferences_list([_TEST_KEY], cid)
+        listed = client.client_preference.get_client_preferences_list([test_key], cid)
         listed_keys = [p.key for p in (listed.client_preferences or [])]
-        assert _TEST_KEY in listed_keys, "keys= filter (lowercase, comma-delimited) not honored"
+        assert test_key in listed_keys, "keys= filter (lowercase, comma-delimited) not honored"
     finally:
-        client.client_preference.delete_client_preference(client_account_id=cid, key=_TEST_KEY)
+        client.client_preference.delete_client_preference(client_account_id=cid, key=test_key)
 
 
 def test_watchlist_round_trip(client: StoneXClient, ids: dict[str, int]) -> None:
+    test_watchlist = f"STONEPY_LIVE_{uuid4().hex[:8]}"
     cid = ids["cid"]
     request = M.SaveWatchlistRequestDTO.model_validate(
         {
             "ClientAccountId": cid,
-            "Watchlist": {"WatchlistDescription": _TEST_WATCHLIST, "DisplayOrder": 0, "Items": []},
+            "Watchlist": {"WatchlistDescription": test_watchlist, "DisplayOrder": 0, "Items": []},
         }
     )
     # Delete by the id the save returns, inside a finally that wraps every post-save step, so the
@@ -62,25 +62,26 @@ def test_watchlist_round_trip(client: StoneXClient, ids: dict[str, int]) -> None
                 or []
             )
         ]
-        assert _TEST_WATCHLIST in descriptions, "created watchlist not found in get_watchlists"
+        assert test_watchlist in descriptions, "created watchlist not found in get_watchlists"
     finally:
         if watchlist_id is not None:
             client.watchlist.delete_watchlist(client_account_id=cid, watchlist_id=watchlist_id)
 
 
 def test_user_preference_round_trip(client: StoneXClient, ids: dict[str, int]) -> None:
+    test_key = f"STONEPY_LIVE_{uuid4().hex[:8]}"
     # Exercises the DeleteUserPreference param-location fix: the catalog marks Preferences as a body
     # param, but the live API only honors it as a query param (a body request 400s).
     request = M.ApiSavePreferencesRequestDTO.model_validate(
-        {"Preferences": [{"Key": _TEST_KEY, "Value": "1"}]}
+        {"Preferences": [{"Key": test_key, "Value": "1"}]}
     )
     client.preference.save_user_preference(request)
     try:
-        result = client.preference.delete_user_preference(preferences=[_TEST_KEY])
+        result = client.preference.delete_user_preference(preferences=[test_key])
         assert result is not None, "delete_user_preference did not return a response"
     finally:
         # Safety net: ensure the probe key is gone even if the assertion above is later changed.
-        client.preference.delete_user_preference(preferences=[_TEST_KEY])
+        client.preference.delete_user_preference(preferences=[test_key])
 
 
 def test_price_alert_round_trip(client: StoneXClient, ids: dict[str, int]) -> None:

@@ -1,24 +1,26 @@
 """Credential-gated probes for audit candidates that need live wire observations.
 
-Read probes make no server changes. Write probes require explicit environment gates and restore
-or remove the state they touch. Every candidate uses strict xfail so a confirmed contract is a
-loud XPASS that prompts a generator fix.
+All probes require the shared live account guard. Candidate writes have additional opt-in gates.
+GetPA creates two temporary alerts to compare both bindings and checks the production binding.
+Remaining candidates use restricted strict xfails so unrelated failures stay visible.
 """
 
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
-from dataclasses import replace
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
+from uuid import uuid4
 
 import pytest
 
 import stonepy.models as M
-from stonepy import StoneXClient
+from stonepy import ResponseParseError, StoneXClient, StoneXError
 from stonepy._core.endpoint import Param
 from stonepy._endpoints.price_alert import GET_PA_SPEC
+from tests.live._contract_mismatch import ExpectedLiveContractMismatch, as_contract_mismatch
 
 pytestmark = pytest.mark.live
 
@@ -80,42 +82,94 @@ def _top_holder_users(client: StoneXClient, market_id: int) -> object:
 @pytest.mark.xfail(
     reason="MD-M5 catalog array override awaits a confirming live list payload",
     strict=True,
+    raises=ExpectedLiveContractMismatch,
 )
 @pytest.mark.parametrize("probe", _md_m5_probes())
 def test_md_m5_live_shape_candidate(
     client: StoneXClient, ids: dict[str, int], probe: ShapeProbe
 ) -> None:
-    assert isinstance(probe(client, ids), list)
+    value = probe(client, ids)
+    if not isinstance(value, list):
+        raise ExpectedLiveContractMismatch(f"expected list, received {type(value).__name__}")
 
 
-# test_live_round_trips.py:71 already covers SaveUserPreference. Its lines 110-116 also exercise
-# GetPA's current body binding, so this read-only probe observes only the query alternative.
-@pytest.mark.xfail(
-    reason="GetPA query binding is deferred until a live query response confirms it",
-    strict=True,
-)
-def test_get_pa_query_binding_candidate(client: StoneXClient, ids: dict[str, int]) -> None:
-    query_spec = replace(
+@dataclass(frozen=True)
+class _BindingOutcome:
+    location: Literal["query", "body"]
+    http_ok: bool
+    returned_ids: frozenset[int] | None
+    error: str | None
+    account_filter: str = "unverified"
+
+
+def _get_pa_binding_outcome(
+    client: StoneXClient, ids: dict[str, int], alert_id: int, location: Literal["query", "body"]
+) -> _BindingOutcome:
+    spec = replace(
         GET_PA_SPEC,
         params=(
-            Param(name="alertId", location="query", python_name="alert_id"),
-            Param(
-                name="ClientAccountId",
-                location="query",
-                python_name="client_account_id",
-            ),
+            Param("alertId", location, "alert_id"),
+            Param("ClientAccountId", location, "client_account_id"),
         ),
     )
+    try:
+        response = client._ctx.invoke(
+            spec, **{location: {"alertId": alert_id, "ClientAccountId": ids["cid"]}}
+        )
+        alerts = response.price_alerts
+        if alerts is None or any(alert.alert_id is None for alert in alerts):
+            return _BindingOutcome(location, True, None, "response omitted alerts or alert ids")
+        returned_ids = frozenset(alert.alert_id for alert in alerts if alert.alert_id is not None)
+        return _BindingOutcome(location, True, returned_ids, None)
+    except Exception as exc:
+        # Record even unexpected failures so one binding never hides the other's observation.
+        http_ok = isinstance(exc, ResponseParseError) and 200 <= exc.http_status < 300
+        return _BindingOutcome(location, http_ok, None, repr(exc))
 
-    response = client._ctx.invoke(
-        query_spec,
-        query={"alertId": None, "ClientAccountId": ids["cid"]},
-    )
 
-    assert isinstance(response.price_alerts, list)
+def _delete_probe_alerts(
+    client: StoneXClient, client_account_id: int, alert_ids: Sequence[int]
+) -> None:
+    errors: list[Exception] = []
+    for alert_id in alert_ids:
+        try:
+            removed = client.price_alert.delete_pa(
+                alert_id=alert_id, client_account_id=client_account_id
+            )
+            assert removed is True, f"delete_pa did not delete probe alert {alert_id}"
+        except Exception as exc:
+            errors.append(exc)
+    if errors:
+        raise ExceptionGroup("failed to delete probe alerts", errors)
 
 
-def _price_alert_request(client: StoneXClient, ids: dict[str, int]) -> M.SaveAlertRequestDTOv2:
+def test_get_pa_selected_binding_honors_filters(client: StoneXClient, ids: dict[str, int]) -> None:
+    alert_ids: list[int] = []
+    try:
+        for _ in range(2):
+            saved = client.price_alert.save_price_alert(
+                _price_alert_request(client, ids, comment=f"stonepy getpa probe {uuid4().hex}")
+            )
+            assert saved.alert_id is not None, "save_price_alert did not return an alert id"
+            alert_ids.append(saved.alert_id)
+        id_a, id_b = alert_ids
+        assert id_a != id_b, "GetPA probe requires two distinct alerts"
+        outcomes = [
+            _get_pa_binding_outcome(client, ids, id_a, location) for location in ("query", "body")
+        ]
+        print(f"GetPA binding outcomes: {outcomes!r}")
+        production_location = GET_PA_SPEC.params[0].location
+        selected = next(outcome for outcome in outcomes if outcome.location == production_location)
+        assert selected.returned_ids == frozenset({id_a}), (
+            f"production GetPA {production_location} binding did not honor alertId: {outcomes!r}"
+        )
+    finally:
+        _delete_probe_alerts(client, ids["cid"], alert_ids)
+
+
+def _price_alert_request(
+    client: StoneXClient, ids: dict[str, int], *, comment: str = _PRICE_ALERT_COMMENT
+) -> M.SaveAlertRequestDTOv2:
     market = client.market.get_market_information(
         market_id=str(ids["mid"]), client_account_id=ids["cid"]
     ).market_information
@@ -132,20 +186,10 @@ def _price_alert_request(client: StoneXClient, ids: dict[str, int]) -> M.SaveAle
             "EmailAddress": "demo@example.com",
             "Expiry": 1,
             "ExpiryDate": None,
-            "Comment": _PRICE_ALERT_COMMENT,
+            "Comment": comment,
             "NotificationMethod": 1,
         }
     )
-
-
-def _cleanup_price_alert_probe(client: StoneXClient, client_account_id: int) -> None:
-    alerts = client.price_alert.get_pa(client_account_id=client_account_id).price_alerts or []
-    for alert in alerts:
-        if alert.comment == _PRICE_ALERT_COMMENT and alert.alert_id is not None:
-            client.price_alert.delete_pa(
-                alert_id=alert.alert_id,
-                client_account_id=client_account_id,
-            )
 
 
 @pytest.mark.skipif(
@@ -155,15 +199,28 @@ def _cleanup_price_alert_probe(client: StoneXClient, client_account_id: int) -> 
 @pytest.mark.xfail(
     reason="SavePA method and body contract are deferred until an opt-in live confirmation",
     strict=True,
+    raises=ExpectedLiveContractMismatch,
 )
 def test_save_pa_contract_candidate(client: StoneXClient, ids: dict[str, int]) -> None:
-    _cleanup_price_alert_probe(client, ids["cid"])
+    """Observe legacy SavePA's update-by-id contract; this probe does not test creation."""
+    # Seed a known id through v2; the legacy SavePA response does not resolve an alert id.
+    request = _price_alert_request(client, ids, comment=f"stonepy savepa seed {uuid4().hex}")
+    alert_id = client.price_alert.save_price_alert(request).alert_id
+    assert alert_id is not None, "save_price_alert did not return an alert id"
     try:
-        client.price_alert.save_pa(_price_alert_request(client, ids))
+        comment = f"stonepy savepa probe {uuid4().hex}"
+        update = request.model_copy(update={"alert_id": alert_id, "comment": comment})
+        try:
+            client.price_alert.save_pa(update)
+        except StoneXError as exc:
+            mismatch = as_contract_mismatch(exc)
+            if mismatch is None:
+                raise
+            raise mismatch from exc
         alerts = client.price_alert.get_pa(client_account_id=ids["cid"]).price_alerts or []
-        assert any(alert.comment == _PRICE_ALERT_COMMENT for alert in alerts)
+        assert any(alert.alert_id == alert_id and alert.comment == comment for alert in alerts)
     finally:
-        _cleanup_price_alert_probe(client, ids["cid"])
+        _delete_probe_alerts(client, ids["cid"], [alert_id])
 
 
 @pytest.mark.skipif(
@@ -173,6 +230,7 @@ def test_save_pa_contract_candidate(client: StoneXClient, ids: dict[str, int]) -
 @pytest.mark.xfail(
     reason="obsolete message-update method and body contract await opt-in live confirmation",
     strict=True,
+    raises=ExpectedLiveContractMismatch,
 )
 def test_client_communication_message_update_candidate(
     client: StoneXClient, ids: dict[str, int]
@@ -192,7 +250,13 @@ def test_client_communication_message_update_candidate(
         OtherResponse="",
     )
     try:
-        response = client.message.client_communication_message_update(neutral)
+        try:
+            response = client.message.client_communication_message_update(neutral)
+        except StoneXError as exc:
+            mismatch = as_contract_mismatch(exc)
+            if mismatch is None:
+                raise
+            raise mismatch from exc
     finally:
         # The documented v2 write restores the probe message to a neutral response.
         client.message.save_client_communication_message_response(neutral)

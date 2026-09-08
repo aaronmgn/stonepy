@@ -49,8 +49,10 @@ def test_runtime_dependencies_have_major_version_caps() -> None:
     assert isinstance(project, dict)
 
     deps = project["dependencies"]
-    names = [re.split(r"[<>=~!\[]", dep, maxsplit=1)[0] for dep in deps]
-    assert names == ["httpx", "pydantic", "simplejson"]
+    names = [re.split(r"[<>=~!\[; ]", dep, maxsplit=1)[0] for dep in deps]
+    assert names == ["httpx", "pydantic", "pydantic", "simplejson"]
+    assert deps[1] == 'pydantic>=2.7,<3.0; python_version < "3.14"'
+    assert deps[2] == 'pydantic>=2.12,<3.0; python_version >= "3.14"'
 
     # Published runtime constraints must keep a lower bound and an upper major-version cap,
     # so they stay broad for downstream users but never float past a vetted major.
@@ -89,13 +91,22 @@ def test_license_file_exists() -> None:
     assert "Copyright (c) 2026 Aaron Morgan" in text
 
 
-def test_uv_lock_is_committable_and_ci_uses_frozen_sync() -> None:
+def test_coverage_measures_branches() -> None:
+    run = _pyproject()["tool"]["coverage"]["run"]
+    assert run["branch"] is True
+
+
+def test_uv_lock_is_committable_and_ci_uses_locked_sync() -> None:
     gitignore = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
 
     assert "uv.lock" not in {line.strip() for line in gitignore}
     assert (ROOT / "uv.lock").is_file()
-    assert "uv sync --frozen --extra dev" in ci
+    assert "uv sync --locked --extra dev" in ci
+    assert "--frozen" not in ci
+    for workflow in ("live", "docs", "drift"):
+        text = (ROOT / ".github" / "workflows" / f"{workflow}.yml").read_text(encoding="utf-8")
+        assert "--frozen" not in text
     assert "uv pip install --system" not in ci
 
 
@@ -105,6 +116,21 @@ def test_ci_builds_and_checks_distribution_artifacts() -> None:
     assert 'python-version: ["3.11", "3.12", "3.13", "3.14"]' in ci
     assert "uv build" in ci
     assert "twine check dist/*" in ci
+    assert 'version: "0.12.10"' in ci
+    assert "actions/setup-python" not in ci
+    assert "python -m stonepy._generator client" in ci
+    assert "lowest-direct" in ci
+    assert "wheel-smoke" in ci
+    assert "workflow_call:" in ci
+    lowest = ci.split("  lowest-direct:\n", 1)[1].split("  wheel-smoke:\n", 1)[0]
+    assert 'project["dependencies"]' in lowest
+    assert "--resolution lowest-direct --upgrade -r /tmp/stonepy-lowest-requirements.txt" in lowest
+    assert "uv pip install --python .venv-lowest --no-deps ." in lowest
+    assert 'expected = "2.12." if sys.version_info >= (3, 14) else "2.7."' in lowest
+    assert "assert installed.startswith(expected)" in lowest
+    smoke = ci.split("  wheel-smoke:\n", 1)[1].split("  ci:\n", 1)[0]
+    assert "cp -R tests/smoke_installed/. /tmp/stonepy-wheel-smoke/" in smoke
+    assert "env -u PYTHONPATH STONEPY_SMOKE_INSTALLED=1 ./bin/python -m pytest . " in smoke
 
 
 def test_warning_and_workflow_policy_is_pinned() -> None:
@@ -115,7 +141,7 @@ def test_warning_and_workflow_policy_is_pinned() -> None:
     drift = (ROOT / ".github" / "workflows" / "drift.yml").read_text(encoding="utf-8")
 
     assert pytest_config["filterwarnings"] == ["error"]
-    assert "on:\n  push:\n    branches: [main]\n  pull_request:" in ci
+    assert "on:\n  push:\n    branches: [main]\n  pull_request:\n  workflow_call:" in ci
     assert "permissions:\n  contents: read" in ci
     assert (
         "concurrency:\n"
@@ -126,10 +152,11 @@ def test_warning_and_workflow_policy_is_pinned() -> None:
     assert repository_guard in drift
     assert repository_guard in live
     assert "permissions:\n  contents: read" in live
+    assert 'STONEX_LIVE: "1"' in live
     assert docs.count("contents: write") == 1
     assert (
         "  deploy:\n"
-        "    needs: plan\n"
+        "    needs: [plan, validate]\n"
         "    if: needs.plan.outputs.mode != 'skip'\n"
         "    runs-on: ubuntu-latest\n"
         "    permissions:\n"
@@ -138,9 +165,46 @@ def test_warning_and_workflow_policy_is_pinned() -> None:
         "      id-token: write" in docs
     )
     assert "permissions:\n  contents: read" in docs
+    assert "  validate:\n    needs: plan\n" in docs
+    assert docs.count("ref: ${{ needs.plan.outputs.source_sha }}") == 2
+    assert 'git rev-parse -q --verify "refs/tags/v${INPUT_VERSION}^{commit}"' in docs
+    assert 'test "$(version_at "$SHA")" = "${INPUT_VERSION}"' in docs
+    assert "uv run --locked mkdocs build --strict" in docs
+    assert "strict: true" in (ROOT / "mkdocs.yml").read_text(encoding="utf-8")
     assert "persist-credentials: false" in drift
     assert "name: catalog-backed consistency lint" in drift
     assert "uv run python scripts/consistency_lint.py" in drift
+
+
+def test_third_party_workflow_actions_are_pinned_to_commit_shas() -> None:
+    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        references = re.findall(
+            r"^\s*(?:-\s+)?uses:\s*['\"]?([^'\"\s#]+)",
+            path.read_text(encoding="utf-8"),
+            flags=re.MULTILINE,
+        )
+        assert references, f"{path.name}: no action references found"
+        for reference in references:
+            if reference.startswith("./"):
+                continue
+            _, separator, ref = reference.rpartition("@")
+            assert separator and re.fullmatch(r"[0-9a-f]{40}", ref), (
+                f"{path.name}: action must be pinned to a full commit SHA: {reference}"
+            )
+
+
+def test_release_workflow_is_gated_and_publishes_verified_artifact() -> None:
+    release = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+    verify, publish = release.split("  publish:\n")
+    assert "uses: ./.github/workflows/ci.yml" in release
+    assert "    needs: ci\n" in verify
+    assert "    needs: verify\n" in publish
+    assert "actions/upload-artifact@" in verify
+    assert "actions/download-artifact@" in publish
+    assert "    permissions:\n      contents: read\n" in verify
+    assert "    permissions:\n      contents: read\n      id-token: write" in publish
+    assert "uv build" not in publish
+    assert "check_release_artifacts.py" in verify
 
 
 def test_ruff_is_the_only_configured_formatter() -> None:
@@ -151,9 +215,9 @@ def test_ruff_is_the_only_configured_formatter() -> None:
 
     assert all(not dep.startswith("black") for dep in dev_deps)
     assert "black" not in data["tool"]
-    assert "uv run ruff format --check ." in ci
+    assert "uv run --locked ruff format --check ." in ci
     assert "uv run black" not in ci
-    assert "ruff format" in pre_commit
+    assert "uv run --locked ruff format" in pre_commit
     assert "entry: black" not in pre_commit
 
 

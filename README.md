@@ -17,8 +17,8 @@ Python client for the StoneX (CIAPI) v2 trading API.
   return bare scalars or lists. The package ships a `py.typed` marker, so editors autocomplete
   fields and `mypy` checks your calls.
 - **Sync and async.** Identical APIs on `StoneXClient` and `AsyncStoneXClient`.
-- **Complete coverage.** All 128 documented CIAPI endpoints across 19 resource groups, using the
-  v2 variant of every endpoint that has one.
+- **Complete coverage.** All 128 endpoints of the frozen catalog revision (`CATALOG_VERSION`)
+  across 19 resource groups, using the v2 variant of every endpoint that has one.
 - **Batteries included.** Automatic session refresh, configurable retries, client-side rate
   limiting, masking for app key, password, session, authorization, and proxy values in
   client-owned object representations, and a clear exception hierarchy.
@@ -95,7 +95,8 @@ refreshes the session once and replays the request once. This applies to every e
 including non-idempotent order calls, because this authentication rejection means the server did
 not process the request. Transport, `5xx`, and `429` retries remain idempotency-gated. If
 proactive refresh fails with a stonepy error, the client logs a warning and tries the request
-with the existing token so reactive authentication recovery can still run.
+with the existing token so reactive authentication recovery can still run. The `ErrorCode` 4011
+envelope is recognised only on non-2xx responses.
 
 ```python
 config = ClientConfig(
