@@ -137,6 +137,13 @@ def test_sdist_requires_offline_suite_and_supporting_files(tmp_path: Path, requi
         (("extra.dist-info/METADATA",), (), "METADATA"),
         ((), ("extra/PKG-INFO",), "PKG-INFO"),
         ((), ("stonepy-0.4.1/.uv-cache/wheels/foo",), ".uv-cache"),
+        (("stonepy/.stonepy-generate-crash/previous/models/Old.py",), (), "recovery workspaces"),
+        (
+            (),
+            ("stonepy-0.4.1/src/stonepy/.stonepy-generate-crash/new/file.py",),
+            "recovery workspaces",
+        ),
+        ((), ("stonepy-0.4.1/scripts/benchmark_client_construction.py",), "development-only"),
     ],
 )
 def test_release_artifacts_reject_unclean_contents(

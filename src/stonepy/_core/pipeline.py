@@ -602,26 +602,7 @@ def parse_response(
         and issubclass(model_type, RootModel)
         and get_origin(model_type.model_fields["root"].annotation) is list
     )
-    raw_body = resp.content
-    parse_error: ResponseParseError | None = None
-    try:
-        if raw_body:
-            payload = codec.loads(raw_body)
-        elif spec.status_domain is StatusDomain.NONE:
-            payload = [] if is_list_root else {}
-        else:
-            payload = None
-    except ValueError as exc:
-        parse_error = ResponseParseError(
-            phase="decode",
-            http_status=resp.status_code,
-            method=spec.method,
-            path=spec.path,
-            raw_body=raw_body,
-            message=f"invalid JSON response ({type(exc).__name__})",
-        )
-    if parse_error is not None:
-        raise parse_error from None
+    payload = _decode_response(spec, resp, is_list_root=is_list_root)
     if issubclass(model_type, UnspecifiedResponse) and payload is None:
         payload = {}
     if status_decoder is not None and spec.status_domain is not StatusDomain.NONE:
@@ -648,19 +629,7 @@ def parse_response(
             path=spec.path,
             http_status=resp.status_code,
         )
-    try:
-        model = model_type.model_validate(payload)
-    except PydanticValidationError as exc:
-        parse_error = ResponseParseError(
-            phase="validate",
-            http_status=resp.status_code,
-            method=spec.method,
-            path=spec.path,
-            raw_body=raw_body,
-            message=_validation_error_summary(exc),
-        )
-    if parse_error is not None:
-        raise parse_error from None
+    model = _validate_response(spec, resp, payload)
     if status_decoder is not None and spec.status_domain is not StatusDomain.NONE:
         _guard_raw_acknowledgement(
             model.model_dump(by_alias=True, exclude_unset=True),
@@ -671,6 +640,52 @@ def parse_response(
             response_model=model_type,
         )
     return model
+
+
+def _decode_response(
+    spec: EndpointSpec[ResponseT], resp: httpx.Response, *, is_list_root: bool
+) -> object:
+    """Decode without attaching the original exception (which may contain secrets)."""
+    raw_body = resp.content
+    try:
+        if raw_body:
+            payload = codec.loads(raw_body)
+        elif spec.status_domain is StatusDomain.NONE:
+            payload = [] if is_list_root else {}
+        else:
+            payload = None
+    except ValueError as exc:
+        parse_error = ResponseParseError(
+            phase="decode",
+            http_status=resp.status_code,
+            method=spec.method,
+            path=spec.path,
+            raw_body=raw_body,
+            message=f"invalid JSON response ({type(exc).__name__})",
+        )
+    else:
+        return payload
+    raise parse_error from None
+
+
+def _validate_response(
+    spec: EndpointSpec[ResponseT], resp: httpx.Response, payload: object
+) -> ResponseT:
+    """Preserve the spec's generic response type and keep validation errors secret-free."""
+    try:
+        model = spec.response_model.model_validate(payload)
+    except PydanticValidationError as exc:
+        parse_error = ResponseParseError(
+            phase="validate",
+            http_status=resp.status_code,
+            method=spec.method,
+            path=spec.path,
+            raw_body=resp.content,
+            message=_validation_error_summary(exc),
+        )
+    else:
+        return model
+    raise parse_error from None
 
 
 def check_business_status(

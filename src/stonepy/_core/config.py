@@ -47,18 +47,20 @@ def _validate_base_url(base_url: str) -> None:
         raise TypeError("base_url must be a string")
     if not base_url.strip() or base_url != base_url.strip():
         raise ValueError("base_url must be non-blank without surrounding whitespace")
-    invalid = False
     try:
         parts = urlsplit(base_url)
         invalid = parts.port is not None and not 0 < parts.port <= 65535
     except ValueError:
-        invalid = True
-    if invalid:
-        raise ValueError("base_url must have a valid host and port") from None
-    if parts.username is not None or parts.password is not None:
-        raise ValueError("base_url must not embed credentials")
-    if parts.scheme not in {"http", "https"} or not parts.hostname:
-        raise ValueError("base_url must use http or https and have a hostname")
+        pass
+    else:
+        if not invalid:
+            if parts.username is not None or parts.password is not None:
+                raise ValueError("base_url must not embed credentials")
+            if parts.scheme not in {"http", "https"} or not parts.hostname:
+                raise ValueError("base_url must use http or https and have a hostname")
+            return
+    # Raise outside the handler so the original URL cannot leak through exception context.
+    raise ValueError("base_url must have a valid host and port") from None
 
 
 def _validate_number(name: str, value: object, *, integer: bool, allow_zero: bool) -> None:

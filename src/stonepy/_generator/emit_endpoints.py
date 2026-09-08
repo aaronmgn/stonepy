@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from collections.abc import Collection, Mapping
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any
+from typing import Any, Literal, TypeGuard
 
 from stonepy._core.status import StatusDomain
 from stonepy._generator.catalog import Catalog, EndpointRecord, python_name, python_type
+from stonepy._generator.publication import OutputTransaction, generation_transaction
 from stonepy._generator.render import BANNER, field_name, format_python, render_docstring
 from stonepy._generator.request_graph import RequestTypeGraph, build_request_type_graph
 
@@ -381,33 +381,33 @@ def validate_response_models(catalog: Catalog) -> None:
         raise ValueError("unresolved response types:\n- " + "\n- ".join(sorted(unresolved)))
 
 
-def emit_all(catalog: Catalog, out_dir: Path) -> None:
+def emit_all(
+    catalog: Catalog, out_dir: Path, *, _transaction: OutputTransaction | None = None
+) -> None:
     """Write generated endpoint modules under *out_dir*/_endpoints."""
 
-    validate_response_models(catalog)
-    request_graph = build_request_type_graph(catalog)
-    endpoints_dir = out_dir / "_endpoints"
-    if endpoints_dir.exists():
-        shutil.rmtree(endpoints_dir)
-    endpoints_dir.mkdir(parents=True, exist_ok=True)
+    with generation_transaction(_transaction) as transaction:
+        validate_response_models(catalog)
+        request_graph = build_request_type_graph(catalog)
+        endpoints_dir = transaction.stage(out_dir / "_endpoints")
 
-    known_model_names = {rec.name for rec in catalog.datatypes}
-    grouped: dict[str, list[_Binding]] = {}
-    for rec in catalog.endpoints:
-        grouped.setdefault(target_module(rec.target), []).append(
-            _binding(rec, known_model_names=known_model_names, request_graph=request_graph)
-        )
+        known_model_names = {rec.name for rec in catalog.datatypes}
+        grouped: dict[str, list[_Binding]] = {}
+        for rec in catalog.endpoints:
+            grouped.setdefault(target_module(rec.target), []).append(
+                _binding(rec, known_model_names=known_model_names, request_graph=request_graph)
+            )
 
-    for module_name, bindings in sorted(grouped.items()):
-        (endpoints_dir / f"{module_name}.py").write_text(
-            _render_module(bindings),
+        for module_name, bindings in sorted(grouped.items()):
+            (endpoints_dir / f"{module_name}.py").write_text(
+                _render_module(bindings),
+                encoding="utf-8",
+            )
+
+        (endpoints_dir / "__init__.py").write_text(
+            _render_init(grouped),
             encoding="utf-8",
         )
-
-    (endpoints_dir / "__init__.py").write_text(
-        _render_init(grouped),
-        encoding="utf-8",
-    )
 
 
 class _Param:
@@ -875,7 +875,7 @@ def _params(
                 query_placeholders=query_placeholders,
             ),
         )
-        if location not in {"path", "query", "body"}:
+        if not _is_param_location(location):
             continue
         python_param_name = field_name(raw_name)
         if python_param_name is None:
@@ -1076,6 +1076,10 @@ def _template_placeholders(path: str) -> tuple[set[str], set[str]]:
         {name.lower() for name in _PLACEHOLDER_RE.findall(query_template)} if separator else set()
     )
     return path_placeholders, query_placeholders
+
+
+def _is_param_location(value: object) -> TypeGuard[Literal["path", "query", "body"]]:
+    return value in {"path", "query", "body"}
 
 
 def _param_location(

@@ -125,7 +125,7 @@ jobs:
           version: "0.12.10"
       - run: uv python install 3.12
       - run: uv sync --locked --extra dev --python 3.12
-      - run: uv run --locked pyright tests src/stonepy/models
+      - run: uv run --locked pyright src tests
       - run: uv run --locked python -m mypy.stubtest stonepy.models
       - run: uv run --locked pytest -q -p no:cacheprovider -m pyright tests/test_consumer_typing.py
 

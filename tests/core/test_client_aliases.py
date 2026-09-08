@@ -3,16 +3,28 @@ from __future__ import annotations
 import asyncio
 import re
 import sys
+import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from typing import cast
 
 import pytest
 
 from stonepy import AsyncStoneXClient, ClientConfig, StoneXClient
+from stonepy._core.pipeline import CallContext
+from stonepy._core.resource import BaseResource
 
 _ALIASES = [
     ("clientapplication", "client_application"),
     ("fixedmargin", "fixed_margin"),
     ("tradingadvisor", "trading_advisor"),
+]
+_RESOURCE_NAMES = [
+    name
+    for name, value in vars(StoneXClient).items()
+    if isinstance(value, property)
+    and name not in {"call_context", "order_including_closed", *(old for old, _ in _ALIASES)}
 ]
 
 
@@ -30,6 +42,40 @@ def _with_client(
     else:
         with StoneXClient(config) as client:
             check(client)
+
+
+@pytest.mark.parametrize("async_client", [False, True], ids=["sync", "async"])
+@pytest.mark.parametrize("resource_name", _RESOURCE_NAMES)
+def test_concurrent_first_access_constructs_one_resource(
+    monkeypatch: pytest.MonkeyPatch, async_client: bool, resource_name: str
+) -> None:
+    constructed: list[BaseResource] = []
+    original = BaseResource.__init__
+
+    def build(self: BaseResource, ctx: CallContext) -> None:
+        constructed.append(self)
+        # Release the GIL inside construction so an unguarded property reliably races.
+        time.sleep(0.01)
+        original(self, ctx)
+
+    monkeypatch.setattr(BaseResource, "__init__", build)
+
+    def check(client: StoneXClient | AsyncStoneXClient) -> None:
+        assert not constructed  # Construction remains lazy.
+        barrier = Barrier(8)
+
+        def access(_: int) -> BaseResource:
+            barrier.wait(timeout=5)
+            return cast(BaseResource, getattr(client, resource_name))
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            resources = list(pool.map(access, range(8)))
+        assert len(constructed) == 1
+        assert all(resource is constructed[0] for resource in resources)
+        assert getattr(client, resource_name) is constructed[0]
+        assert constructed[0].call_context is client.call_context
+
+    _with_client(async_client, check)
 
 
 @pytest.mark.parametrize("async_client", [False, True], ids=["sync", "async"])
