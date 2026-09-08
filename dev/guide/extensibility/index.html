@@ -9787,6 +9787,14 @@ provide an <code>alogon</code> callable that returns an awaitable: when refresh 
 <code>alogon=None</code> raises <code>TypeError</code> instead of falling back to synchronous <code>logon</code>.
 Synchronous-only clocks or transports also raise <code>TypeError</code>; <code>ainvoke()</code> no longer falls back
 to synchronous invocation.</p>
+<p>Session mutations on an <code>AsyncSessionManager</code> must also be awaited. Reach it through
+<code>manager = client.call_context.session</code>, then use <code>await manager.aset_token(token, username)</code>,
+<code>await manager.aclear(expected_token=...)</code>, or
+<code>await manager.arefresh(seen_generation, do_logon)</code> with an awaitable logon callback.
+The synchronous <code>set_token()</code>, <code>clear()</code>, and <code>refresh()</code> methods raise <code>TypeError</code> without
+changing state or running a logon callback. Synchronous read accessors remain available.
+Use <code>ainvoke()</code> with an async session manager: a hand-built context passed to <code>invoke()</code> raises
+<code>TypeError</code> if it tries to refresh that manager. Synchronous contexts should use <code>SessionManager</code>.</p>
 <p>The <code>call_context</code> properties are read-only references to mutable, shared call state. Reusing a
 client's context shares its authentication, rate limiter, retry policy, and transport. Complete
 resource calls before closing that client; constructing a resource does not transfer transport

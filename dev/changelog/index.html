@@ -11054,6 +11054,19 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <h2 id="unreleased"><a href="https://github.com/aaronmgn/stonepy/compare/v0.5.0...HEAD">Unreleased</a><a class="headerlink" href="#unreleased" title="Permanent link">&para;</a></h2>
 <h3 id="changed">Changed<a class="headerlink" href="#changed" title="Permanent link">&para;</a></h3>
 <ul>
+<li><strong>BREAKING:</strong> <code>AsyncSessionManager.set_token()</code>, <code>clear()</code>, and <code>refresh()</code> now raise
+  <code>TypeError</code> instead of mutating state without the async lock, where an in-flight refresh could
+  overwrite them. Extension code can reach the manager through <code>client.call_context.session</code>;
+  migrate to <code>await manager.aset_token(token, username)</code>, <code>await manager.aclear(...)</code>, and
+  <code>await manager.arefresh(seen_generation, do_logon)</code> with an awaitable logon callback.
+  Synchronous read accessors remain available.</li>
+<li><strong>BREAKING:</strong> Request DTOs now validate direct attribute assignment, raising Pydantic
+  <code>ValidationError</code> locally for invalid values previously left for the server to reject.
+  Models remain mutable, and valid assignments still serialize normally. A13 is only partially
+  addressed: in-place container edits, such as appending to a nested list, are not intercepted.
+  All nested models reachable from shipped request DTOs validate their own field assignments.
+  An extension-defined request may embed a model without assignment validation; the parent
+  cannot validate that model's field assignments. No submission-time deep revalidation is added.</li>
 <li>Distributions now include 286 generated companion model stubs, increasing wheel size by
   approximately 43%, to support both constructor spellings in type checkers. Runtime import
   cost is unchanged; stubs provide this support without inline constructor overloads.</li>
@@ -11063,6 +11076,11 @@ and this project adheres to <a href="https://semver.org/spec/v2.0.0.html">Semant
 <li>Generated model construction with snake_case names or wire aliases now type-checks under
   both mypy and pyright. A single call that mixes alias and snake_case keywords is still a
   static error although it is valid at runtime.</li>
+<li>Source distributions now include the test suite, generator fixtures, scripts, catalog pin,
+  lockfile, and configuration/documentation assets read by the suite, so downstream packagers
+  can run tests offline with development dependencies installed. Release artifact checks reject
+  missing suite assets, and CI runs the suite from an extracted sdist. Live tests remain opt-in
+  and skip by default when <code>STONEX_LIVE</code> is unset.</li>
 </ul>
 <h2 id="050-2026-09-08"><a href="https://github.com/aaronmgn/stonepy/releases/tag/v0.5.0">0.5.0</a> - 2026-09-08<a class="headerlink" href="#050-2026-09-08" title="Permanent link">&para;</a></h2>
 <p>This release makes order handling safer: unknown nested request fields that were silently

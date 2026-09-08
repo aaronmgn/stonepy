@@ -10057,9 +10057,11 @@ with <code>asyncio.run</code> (the <code>stonepy</code> suite uses this style; i
 one endpoint. A session token is needed only when you want to assert authentication
 behavior, such as the <code>Session</code> header; without one, the request is sent with empty
 authentication headers. To test authenticated behavior through the public API, mock
-<code>log_on</code> and call it, exactly as above. The <code>stonepy</code> test suite sometimes seeds the
-token directly via the internal <code>client._ctx.session.set_token(...)</code> (async:
-<code>aset_token</code>), but that touches a private attribute and may change between releases.</p>
+<code>log_on</code> and call it, exactly as above. To seed a token directly through the supported extension
+surface, use <code>client.call_context.session.set_token("TOKEN", "user")</code> with <code>StoneXClient</code>.
+With <code>AsyncStoneXClient</code>, use <code>await client.call_context.session.aset_token("TOKEN", "user")</code>.
+Its session manager's synchronous <code>set_token()</code>, <code>clear()</code>, and <code>refresh()</code> methods raise
+<code>TypeError</code>; use the awaited <code>aset_token()</code>, <code>aclear()</code>, and <code>arefresh()</code> methods instead.</p>
 <h2 id="asserting-on-requests">Asserting on requests<a class="headerlink" href="#asserting-on-requests" title="Permanent link">&para;</a></h2>
 <p><code>respx</code> records every matched call. Useful assertions:</p>
 <ul>
