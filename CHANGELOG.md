@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **BREAKING:** `AsyncSessionManager.set_token()`, `clear()`, and `refresh()` now raise
+  `TypeError` instead of mutating state without the async lock, where an in-flight refresh could
+  overwrite them. Extension code can reach the manager through `client.call_context.session`;
+  migrate to `await manager.aset_token(token, username)`, `await manager.aclear(...)`, and
+  `await manager.arefresh(seen_generation, do_logon)` with an awaitable logon callback.
+  Synchronous read accessors remain available.
+- **BREAKING:** Request DTOs now validate direct attribute assignment, raising Pydantic
+  `ValidationError` locally for invalid values previously left for the server to reject.
+  Models remain mutable, and valid assignments still serialize normally. A13 is only partially
+  addressed: in-place container edits, such as appending to a nested list, are not intercepted.
+  All nested models reachable from shipped request DTOs validate their own field assignments.
+  An extension-defined request may embed a model without assignment validation; the parent
+  cannot validate that model's field assignments. No submission-time deep revalidation is added.
 - Distributions now include 286 generated companion model stubs, increasing wheel size by
   approximately 43%, to support both constructor spellings in type checkers. Runtime import
   cost is unchanged; stubs provide this support without inline constructor overloads.
@@ -18,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated model construction with snake_case names or wire aliases now type-checks under
   both mypy and pyright. A single call that mixes alias and snake_case keywords is still a
   static error although it is valid at runtime.
+- Source distributions now include the test suite, generator fixtures, scripts, catalog pin,
+  lockfile, and configuration/documentation assets read by the suite, so downstream packagers
+  can run tests offline with development dependencies installed. Release artifact checks reject
+  missing suite assets, and CI runs the suite from an extracted sdist. Live tests remain opt-in
+  and skip by default when `STONEX_LIVE` is unset.
 
 ## [0.5.0] - 2026-09-08
 

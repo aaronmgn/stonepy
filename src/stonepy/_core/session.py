@@ -134,8 +134,10 @@ class AsyncSessionManager:
     """Asyncio-safe holder of the current session token with single-flight refresh.
 
     The awaitable counterpart of [`SessionManager`][stonepy._core.session.SessionManager]; it
-    guards its state with an ``asyncio.Lock`` and exposes ``a``-prefixed coroutine variants of
-    the read and refresh methods alongside the synchronous ones.
+    guards async operations with an ``asyncio.Lock``. Use ``aset_token``, ``aclear``, and
+    ``arefresh`` to mutate tokens; their synchronous twins raise ``TypeError``. Use ``acommit``
+    to install a manual token and replay callback together. Synchronous read accessors remain
+    available for pipeline helpers.
     """
 
     def __init__(self, clock: Clock, proactive_refresh_seconds: float) -> None:
@@ -162,8 +164,8 @@ class AsyncSessionManager:
     def snapshot(self, policy: AuthPolicy) -> tuple[int, dict[str, str]]:
         """Return a generation and auth-header copy without taking the async lock.
 
-        Like ``clear``, this can interleave with an in-flight refresh; prefer ``asnapshot``
-        from async code.
+        This can observe the state before an in-flight refresh completes; prefer
+        ``asnapshot`` from async code.
         """
         return self._generation, self.auth_headers(policy)
 
@@ -173,11 +175,15 @@ class AsyncSessionManager:
             return self.snapshot(policy)
 
     def set_token(self, token: str, username: str) -> None:
-        """Store a freshly issued token and username, bumping the generation."""
-        self._token = token
-        self._username = username
-        self._generation += 1
-        self._issued_at = self._clock.now()
+        """Reject synchronous mutation, which cannot acquire the async lock.
+
+        Raises:
+            TypeError: Always; use ``await manager.aset_token(token, username)`` instead.
+        """
+        raise TypeError(
+            "AsyncSessionManager.set_token() is not supported; "
+            "use await manager.aset_token(token, username)"
+        )
 
     async def aset_token(self, token: str, username: str) -> None:
         """Store a freshly issued token and username, bumping the generation."""
@@ -188,17 +194,15 @@ class AsyncSessionManager:
             self._issued_at = self._clock.now()
 
     def clear(self, expected_token: str | None = None) -> None:
-        """Drop the stored token so no auth headers are sent, bumping the generation.
+        """Reject synchronous mutation, which cannot acquire the async lock.
 
-        Like the other synchronous twins on this class, this does not take the async lock, so
-        it can interleave with an in-flight ``arefresh``; prefer ``aclear`` from async code.
+        Raises:
+            TypeError: Always; use ``await manager.aclear(expected_token=...)`` instead.
         """
-        if expected_token is not None and self._token != expected_token:
-            return
-        self._token = None
-        self._username = ""
-        self._generation += 1
-        self._issued_at = None
+        raise TypeError(
+            "AsyncSessionManager.clear() is not supported; "
+            "use await manager.aclear(expected_token=...)"
+        )
 
     async def aclear(self, expected_token: str | None = None) -> None:
         """Drop the stored token under the async lock, bumping the generation.
@@ -249,19 +253,16 @@ class AsyncSessionManager:
         seen_generation: int,
         do_logon: Callable[[], SessionRefreshResult],
     ) -> None:
-        """Refresh the token via *do_logon*, unless a peer already advanced the generation.
+        """Reject synchronous refresh without invoking the callback or changing state.
 
-        ``seen_generation`` is the generation the caller observed before deciding to refresh;
-        if the stored generation has moved past it, another caller already refreshed and this
-        call returns without logging on again (single-flight).
+        Raises:
+            TypeError: Always; use ``await manager.arefresh(seen_generation, do_logon)``
+                with an awaitable logon callback instead.
         """
-        if self._generation > seen_generation:
-            return
-        token, username = _refresh_credentials(do_logon(), self._username)
-        self._token = token
-        self._username = username
-        self._generation += 1
-        self._issued_at = self._clock.now()
+        raise TypeError(
+            "AsyncSessionManager.refresh() is not supported; "
+            "use await manager.arefresh(seen_generation, do_logon)"
+        )
 
     async def aneeds_proactive_refresh(self) -> bool:
         """Return whether the token is old enough to refresh, under the async lock."""
@@ -275,11 +276,12 @@ class AsyncSessionManager:
         seen_generation: int,
         do_logon: Callable[[], Awaitable[SessionRefreshResult]],
     ) -> None:
-        """Refresh the token via the awaitable *do_logon*, with the same single-flight guard.
+        """Refresh via an awaitable logon unless a peer already advanced the generation.
 
-        The awaitable twin of [`refresh`][stonepy._core.session.AsyncSessionManager.refresh].
-        Only successful refreshes coalesce: failures leave the generation, token, and manual
-        callback unchanged.
+        ``seen_generation`` is the generation observed before deciding to refresh. A newer
+        generation means a peer already refreshed, so this call reuses that token. Only
+        successful refreshes coalesce: failures leave the generation, token, and manual callback
+        unchanged. A manual callback installed by ``acommit`` takes precedence over *do_logon*.
         """
         async with self._lock:
             if self._generation > seen_generation:

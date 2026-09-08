@@ -186,6 +186,61 @@ def test_async_session_read_paths_take_lock() -> None:
     asyncio.run(run())
 
 
+@pytest.mark.parametrize(
+    "mutation", ["set_token", "clear", "clear_stale", "refresh", "refresh_stale"]
+)
+def test_sync_mutation_during_async_refresh_raises_without_changing_state(mutation: str) -> None:
+    async def run() -> None:
+        clock = FakeClock()
+        manager = AsyncSessionManager(clock, 1080)
+        await manager.aset_token("OLD", "alice")
+        generation = manager.generation
+        started, release = asyncio.Event(), asyncio.Event()
+        sync_logon_calls: list[str] = []
+
+        def sync_logon() -> tuple[str, str]:
+            sync_logon_calls.append("called")
+            return "SYNC", "eve"
+
+        async def logon() -> tuple[str, str]:
+            started.set()
+            await release.wait()
+            return "REFRESHED", "bob"
+
+        task = asyncio.create_task(manager.arefresh(generation, logon))
+        try:
+            await asyncio.wait_for(started.wait(), timeout=2)
+            clock.advance(1081)
+            replacement = "a" + mutation.removesuffix("_stale")
+            with pytest.raises(TypeError, match=f"await manager.{replacement}"):
+                if mutation == "set_token":
+                    manager.set_token("SYNC", "eve")
+                elif mutation.startswith("refresh"):
+                    seen = generation - 1 if mutation == "refresh_stale" else generation
+                    manager.refresh(seen, sync_logon)
+                else:
+                    manager.clear(expected_token="STALE" if mutation == "clear_stale" else None)
+            assert sync_logon_calls == []
+            assert manager.snapshot(AuthPolicy.SESSION) == (
+                generation,
+                {"Session": "OLD", "UserName": "alice"},
+            )
+            assert manager.needs_proactive_refresh() is True
+            release.set()
+            await asyncio.wait_for(task, timeout=2)
+        finally:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+
+        assert await manager.asnapshot(AuthPolicy.SESSION) == (
+            generation + 1,
+            {"Session": "REFRESHED", "UserName": "bob"},
+        )
+        assert await manager.aneeds_proactive_refresh() is False
+
+    asyncio.run(run())
+
+
 def test_async_refresh_callback_can_update_username_without_prior_token() -> None:
     async def run() -> None:
         sm = AsyncSessionManager(clock=FakeClock(), proactive_refresh_seconds=1080)

@@ -193,9 +193,11 @@ If the code under test only exercises a single data call, you can mock just that
 one endpoint. A session token is needed only when you want to assert authentication
 behavior, such as the `Session` header; without one, the request is sent with empty
 authentication headers. To test authenticated behavior through the public API, mock
-`log_on` and call it, exactly as above. The `stonepy` test suite sometimes seeds the
-token directly via the internal `client._ctx.session.set_token(...)` (async:
-`aset_token`), but that touches a private attribute and may change between releases.
+`log_on` and call it, exactly as above. To seed a token directly through the supported extension
+surface, use `client.call_context.session.set_token("TOKEN", "user")` with `StoneXClient`.
+With `AsyncStoneXClient`, use `await client.call_context.session.aset_token("TOKEN", "user")`.
+Its session manager's synchronous `set_token()`, `clear()`, and `refresh()` methods raise
+`TypeError`; use the awaited `aset_token()`, `aclear()`, and `arefresh()` methods instead.
 
 ## Asserting on requests
 

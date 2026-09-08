@@ -2115,7 +2115,11 @@ def test_peer_advance_after_coherent_snapshot_skips_duplicate_refresh(asynchrono
                 return httpx.Response(200, json={"OrderId": 1})
 
             async def asend(self, req: Request) -> httpx.Response:
-                return self.send(req)
+                self.sent.append(req)
+                if len(self.sent) == 1:
+                    await parts.ctx.session.aset_token("PEER", "alice")
+                    return httpx.Response(401)
+                return httpx.Response(200, json={"OrderId": 1})
 
         transport = PeerTransport()
         parts.ctx.transport = transport

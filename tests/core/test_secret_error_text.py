@@ -56,6 +56,15 @@ def test_logon_request_missing_field_hides_secrets() -> None:
     _assert_secret_free_exception(caught.value, [secret])
 
 
+def test_logon_request_invalid_password_assignment_hides_secrets() -> None:
+    secret = "assignment-request-secret"
+    request = _request(secret)
+    with pytest.raises(ValidationError) as caught:
+        request.password = {"nested": secret}  # type: ignore[assignment]
+    _assert_secret_free_exception(caught.value, [secret])
+    assert request.password == secret
+
+
 @respx.mock
 def test_sync_logon_response_validation_hides_secrets() -> None:
     secret = "sync-response-secret"

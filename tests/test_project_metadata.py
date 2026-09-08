@@ -72,6 +72,16 @@ def test_build_config_scopes_sdist() -> None:
         "/LICENSE",
         "/CHANGELOG.md",
         "/pyproject.toml",
+        "/tests",
+        "/scripts",
+        "/CATALOG_VERSION",
+        "/uv.lock",
+        "/.gitignore",
+        "/.pre-commit-config.yaml",
+        "/.github/workflows",
+        "/mkdocs.yml",
+        "/docs/API_REFERENCE.md",
+        "/docs/gen_ref_pages.py",
     ]
     assert "force-include" not in hatch["build"]["targets"]["wheel"]
     assert (ROOT / "src" / "stonepy" / "py.typed").is_file()
@@ -141,6 +151,15 @@ def test_ci_builds_and_checks_distribution_artifacts() -> None:
     smoke = ci.split("  wheel-smoke:\n", 1)[1].split("  ci:\n", 1)[0]
     assert "cp -R tests/smoke_installed/. /tmp/stonepy-wheel-smoke/" in smoke
     assert "env -u PYTHONPATH STONEPY_SMOKE_INSTALLED=1 ./bin/python -m pytest . " in smoke
+    sdist = smoke.split("      - name: Test extracted source distribution offline\n", 1)[1]
+    assert 'STONEX_LIVE: "0"' in sdist
+    assert 'sdist_dir="$(mktemp -d)"' in sdist
+    assert 'tar -xzf dist/*.tar.gz -C "$sdist_dir" --strip-components=1' in sdist
+    assert 'cd "$sdist_dir"' in sdist
+    assert "unset PYTHONPATH VIRTUAL_ENV UV_PROJECT_ENVIRONMENT" in sdist
+    assert "STONEPY_CATALOG STONEPY_SMOKE_INSTALLED" in sdist
+    assert "uv sync --locked --extra dev --python 3.12" in sdist
+    assert 'uv run --offline --no-sync pytest -q -p no:cacheprovider -m "not pyright"' in sdist
 
 
 def test_warning_and_workflow_policy_is_pinned() -> None:

@@ -64,10 +64,18 @@ class RequestModel(StoneXModel):
     """Base model for request bodies. Rejects unknown fields (``extra="forbid"``).
 
     Forbidding extras surfaces typos and stale fields as validation errors before a request
-    is sent, rather than silently dropping them.
+    is sent, rather than silently dropping them. Direct attribute assignment is validated,
+    including on every nested DTO shipped in request positions. In-place container edits are
+    not intercepted. An extension-defined nested model must enable assignment validation in
+    its own configuration. This does not perform deep revalidation when a request is submitted.
     """
 
-    model_config = ConfigDict(hide_input_in_errors=True, populate_by_name=True, extra="forbid")
+    model_config = ConfigDict(
+        hide_input_in_errors=True,
+        populate_by_name=True,
+        extra="forbid",
+        validate_assignment=True,
+    )
 
 
 class RequestVariantModel(RequestModel):
