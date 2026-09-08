@@ -23,6 +23,7 @@ jobs:
     outputs:
       mode: ${{ steps.classify.outputs.mode }}
       version: ${{ steps.classify.outputs.version }}
+      source_sha: ${{ steps.classify.outputs.source_sha }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -40,8 +41,19 @@ jobs:
           set -euo pipefail
           MODE="dev"
           VERSION=""
+          SHA="${CURRENT_SHA}"
+
+          version_at() {
+            if git cat-file -e "${1}:src/stonepy/_version.py" 2>/dev/null; then
+              git show "${1}:src/stonepy/_version.py"
+            else
+              git show "${1}:src/stonepy/__init__.py"
+            fi | sed -n 's/^__version__ = "\([^"]*\)"$/\1/p'
+          }
 
           if [ -n "${INPUT_VERSION}" ]; then
+            SHA="$(git rev-parse -q --verify "refs/tags/v${INPUT_VERSION}^{commit}")"
+            test "$(version_at "$SHA")" = "${INPUT_VERSION}"
             MODE="release"
             VERSION="${INPUT_VERSION}"
           elif [ "${REF_TYPE}" = "tag" ]; then
@@ -50,14 +62,6 @@ jobs:
           elif [ "${EVENT_NAME}" = "push" ] && [ "${REF_TYPE}" = "branch" ]; then
             ZERO_SHA="0000000000000000000000000000000000000000"
             if [ -n "${BEFORE_SHA}" ] && [ "${BEFORE_SHA}" != "${ZERO_SHA}" ]; then
-              version_at() {
-                if git cat-file -e "${1}:src/stonepy/_version.py" 2>/dev/null; then
-                  git show "${1}:src/stonepy/_version.py"
-                else
-                  git show "${1}:src/stonepy/__init__.py"
-                fi | sed -n 's/^__version__ = "\([^"]*\)"$/\1/p'
-              }
-
               BEFORE_VERSION="$(version_at "${BEFORE_SHA}")"
               CURRENT_VERSION="$(version_at "${CURRENT_SHA}")"
               if [ -z "${BEFORE_VERSION}" ] || [ -z "${CURRENT_VERSION}" ]; then
@@ -74,10 +78,24 @@ jobs:
             echo "release version must be a single line" >&2
             exit 1
           fi
-          printf 'mode=%s\nversion=%s\n' "${MODE}" "${VERSION}" >> "${GITHUB_OUTPUT}"
+          printf 'mode=%s\nversion=%s\nsource_sha=%s\n' "${MODE}" "${VERSION}" "${SHA}" >> "${GITHUB_OUTPUT}"
+
+  validate:
+    needs: plan
+    if: needs.plan.outputs.mode != 'skip'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.plan.outputs.source_sha }}
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.10"
+      - run: uv sync --locked --extra docs
+      - run: uv run --locked mkdocs build --strict
 
   deploy:
-    needs: plan
+    needs: [plan, validate]
     if: needs.plan.outputs.mode != 'skip'
     runs-on: ubuntu-latest
     permissions:
@@ -90,9 +108,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ needs.plan.outputs.source_sha }}
           fetch-depth: 0
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-      - run: uv sync --frozen --extra docs
+        with:
+          version: "0.12.10"
+      - run: uv sync --locked --extra docs
       - name: Configure git identity for mike
         run: |
           git config user.name "github-actions[bot]"
@@ -109,11 +130,11 @@ jobs:
                 echo "release docs deployment requires a version" >&2
                 exit 1
               fi
-              uv run mike deploy --push --update-aliases "${VERSION}" latest
-              uv run mike set-default --push latest
+              uv run --locked mike deploy --push --update-aliases "${VERSION}" latest
+              uv run --locked mike set-default --push latest
               ;;
             dev)
-              uv run mike deploy --push dev
+              uv run --locked mike deploy --push dev
               ;;
             *)
               echo "unsupported docs deployment mode: ${MODE}" >&2

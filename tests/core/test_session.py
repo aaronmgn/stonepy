@@ -54,7 +54,7 @@ def test_single_flight_refresh_calls_logon_once_under_concurrency() -> None:
     sm = SessionManager(clock=FakeClock(), proactive_refresh_seconds=1080)
     sm.set_token("OLD", "alice")
     calls = []
-    start = threading.Barrier(8)
+    start = threading.Barrier(8, timeout=5.0)
     seen = sm.generation
 
     def logon() -> str:
@@ -65,11 +65,12 @@ def test_single_flight_refresh_calls_logon_once_under_concurrency() -> None:
         start.wait()
         sm.refresh(seen, do_logon=logon)
 
-    threads = [threading.Thread(target=worker) for _ in range(8)]
+    threads = [threading.Thread(target=worker, daemon=True) for _ in range(8)]
     for t in threads:
         t.start()
     for t in threads:
-        t.join()
+        t.join(timeout=5.0)
+        assert not t.is_alive(), "thread did not finish: deadlock?"
 
     assert len(calls) == 1  # only one re-logon despite 8 concurrent 401s
     assert sm.auth_headers(AuthPolicy.SESSION)["Session"] == "NEW"
@@ -152,7 +153,9 @@ def test_async_session_manager_single_flight_refresh_calls_logon_once() -> None:
             await asyncio.sleep(0)
             return "NEW"
 
-        await asyncio.gather(*(sm.arefresh(seen, do_logon=logon) for _ in range(8)))
+        await asyncio.wait_for(
+            asyncio.gather(*(sm.arefresh(seen, do_logon=logon) for _ in range(8))), 5.0
+        )
 
         assert calls == [1]
         assert await sm.aauth_headers(AuthPolicy.SESSION) == {

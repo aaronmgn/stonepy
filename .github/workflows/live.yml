@@ -16,6 +16,8 @@ jobs:
     if: github.repository == 'aaronmgn/stonepy'
     runs-on: ubuntu-latest
     env:
+      STONEX_LIVE: "1"
+      STONEX_LIVE_CLIENT_ACCOUNT_ID: ${{ vars.STONEX_LIVE_CLIENT_ACCOUNT_ID }}
       STONEX_USERNAME: ${{ secrets.STONEX_USERNAME }}
       STONEX_PASSWORD: ${{ secrets.STONEX_PASSWORD }}
       STONEX_APP_KEY: ${{ secrets.STONEX_APP_KEY }}
@@ -28,9 +30,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
-          python-version: "3.13"
+          version: "0.12.10"
       - run: uv python install 3.13
-      - run: uv sync --frozen --extra dev --python 3.13
-      - run: uv run pytest tests/live -m live -p no:cov -rxX
+      - run: uv sync --locked --extra dev --python 3.13
+      - run: uv run --locked pytest tests/live -m live -p no:cov -rA

@@ -2,9 +2,10 @@
 
 These verify the generated client against the live API - catching path, auth, and
 response-model mismatches that mocked tests cannot. They are marked ``live`` and skipped unless
-``STONEX_USERNAME`` / ``STONEX_PASSWORD`` / ``STONEX_APP_KEY`` are set, so the normal unit-test
-run is unaffected. In CI they run nightly and on demand (see ``.github/workflows/live.yml``),
-never on pull requests.
+``STONEX_LIVE=1``. Opted-in runs require credentials and ``STONEX_LIVE_CLIENT_ACCOUNT_ID``;
+missing settings fail collection. The host must be allowlisted, and the observed account must match
+the approved id before any test runs. In CI they run nightly and on demand (see
+``.github/workflows/live.yml``), never on pull requests.
 
 Write tests use reversible round-trips and clean up after themselves.
 """
@@ -16,21 +17,24 @@ from collections.abc import Iterator
 
 import pytest
 
-from stonepy import ClientConfig, StoneXClient
-
-_REQUIRED = ("STONEX_USERNAME", "STONEX_PASSWORD", "STONEX_APP_KEY")
-
-
-def _creds_present() -> bool:
-    return all(os.environ.get(name) for name in _REQUIRED)
+from stonepy import StoneXClient
+from stonepy.models import AccountResult
+from tests.live._safety import approved_live_account as check_live_account
+from tests.live._safety import (
+    live_client,
+    missing_live_requirements,
+)
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    """Skip every ``live`` test when credentials are not configured."""
+    """Skip opted-out live tests and reject incomplete configuration after opt-in."""
 
-    if _creds_present():
+    missing = missing_live_requirements(os.environ)
+    if os.environ.get("STONEX_LIVE") == "1":
+        if missing:
+            raise pytest.UsageError("live tests enabled but unconfigured: " + ", ".join(missing))
         return
-    skip = pytest.mark.skip(reason="live credentials not set (STONEX_USERNAME/PASSWORD/APP_KEY)")
+    skip = pytest.mark.skip(reason="live tests disabled: set " + ", ".join(missing))
     for item in items:
         if "live" in item.keywords:
             item.add_marker(skip)
@@ -40,19 +44,25 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
 def client() -> Iterator[StoneXClient]:
     """A live, authenticated client built from the ``STONEX_*`` environment."""
 
-    with StoneXClient(ClientConfig.from_env()) as live_client:
-        yield live_client
+    with live_client(os.environ) as authenticated_client:
+        yield authenticated_client
+
+
+@pytest.fixture(scope="session", autouse=True)
+def approved_live_account(client: StoneXClient) -> AccountResult:
+    """Assert the observed account is approved before any live test can write."""
+    return check_live_account(client, os.environ)
 
 
 @pytest.fixture(scope="session")
-def ids(client: StoneXClient) -> dict[str, int]:
+def ids(client: StoneXClient, approved_live_account: AccountResult) -> dict[str, int]:
     """Bootstrap the account/market identifiers the live tests need, via the typed client.
 
     This exercises the account and CFD-market reads as a side effect: if either response model
     regresses, every dependent live test fails at setup.
     """
 
-    account = client.user_account.get_client_and_trading_account()
+    account = approved_live_account
     assert account.client_accounts, "demo account returned no client accounts"
     assert account.trading_accounts, "demo account returned no trading accounts"
     client_account = account.client_accounts[0]

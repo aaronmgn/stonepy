@@ -34,7 +34,8 @@ Coverage measures `src/stonepy/_core`, `_generator`, `resources` (without `_sync
 `__init__.py`), `_endpoints`, and `stonepy.client`; `stonepy.models` is generated and excluded.
 
 [pre-commit](https://pre-commit.com/) hooks are also configured - run `uv run pre-commit install`
-to enable them.
+to enable them. The hooks are a fast subset of CI (ruff, format, mypy); CI also runs the tests,
+consistency lint, packaging, and strict docs.
 
 ## Documentation
 

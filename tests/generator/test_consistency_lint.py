@@ -133,8 +133,8 @@ def test_ci_runs_consistency_lint_and_handwritten_coverage_gate() -> None:
     workflow = Path(__file__).parents[2] / ".github" / "workflows" / "ci.yml"
     text = workflow.read_text(encoding="utf-8")
 
-    assert "uv run python scripts/consistency_lint.py" in text
-    assert "uv run pytest --cov" in text
+    assert "uv run --locked python scripts/consistency_lint.py" in text
+    assert "uv run --locked pytest --cov" in text
 
     coverage_config = (Path(__file__).parents[2] / "pyproject.toml").read_text(encoding="utf-8")
     assert '"src/stonepy/resources/*/_sync/*"' in coverage_config

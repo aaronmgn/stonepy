@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 permissions:
   contents: read
@@ -21,21 +22,98 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         with:
+          version: "0.12.10"
           cache-suffix: ${{ matrix.python-version }}
       - run: uv python install ${{ matrix.python-version }}
-      - run: uv sync --frozen --extra dev --python ${{ matrix.python-version }}
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run mypy
-      - run: uv run python scripts/consistency_lint.py
-      - run: uv run pytest --cov
+      - run: uv sync --locked --extra dev --python ${{ matrix.python-version }}
+      - run: uv run --locked ruff check .
+      - run: uv run --locked ruff format --check .
+      - run: uv run --locked mypy
+      - run: uv run --locked python scripts/consistency_lint.py
+      - run: uv run --locked pytest --cov
       - run: uv build
-      - run: uv run twine check dist/*
+      - run: uv run --locked twine check dist/*
 
   docs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
-      - run: uv sync --frozen --extra docs
-      - run: uv run mkdocs build --strict
+        with:
+          version: "0.12.10"
+      - run: uv sync --locked --extra docs
+      - run: uv run --locked mkdocs build --strict
+
+  generated-client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.10"
+      - run: uv python install 3.12
+      - run: uv sync --locked --extra dev --python 3.12
+      - name: client regeneration drift gate
+        run: |
+          uv run --locked python -m stonepy._generator client
+          git diff --exit-code -- src/stonepy/client.py src/stonepy/resources
+          test -z "$(git status --porcelain --untracked-files=all -- src/stonepy/client.py src/stonepy/resources)"
+
+  lowest-direct:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.14"]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.10"
+          cache-suffix: lowest-${{ matrix.python-version }}
+      - run: uv python install ${{ matrix.python-version }}
+      - run: uv venv --python ${{ matrix.python-version }} .venv-lowest
+      - name: Make runtime dependencies direct requirements
+        run: |
+          .venv-lowest/bin/python -c 'import tomllib; from pathlib import Path; project = tomllib.loads(Path("pyproject.toml").read_text())["project"]; Path("/tmp/stonepy-lowest-requirements.txt").write_text("\n".join(project["dependencies"]) + "\n")'
+      - run: uv pip install --python .venv-lowest --resolution lowest-direct --upgrade -r /tmp/stonepy-lowest-requirements.txt "pytest>=9.1.1" "pytest-cov>=5" "respx>=0.21"
+      - run: uv pip install --python .venv-lowest --no-deps .
+      - run: .venv-lowest/bin/python -m pip list 2>/dev/null || uv pip list --python .venv-lowest
+      - name: Verify pydantic floor
+        run: |
+          .venv-lowest/bin/python - <<'PY'
+          import sys
+          from importlib.metadata import version
+
+          expected = "2.12." if sys.version_info >= (3, 14) else "2.7."
+          installed = version("pydantic")
+          assert installed.startswith(expected), f"Expected pydantic {expected}x, got {installed}"
+          PY
+      - run: .venv-lowest/bin/python -m pytest -p no:cacheprovider --ignore=tests/generator --ignore=tests/live
+
+  wheel-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: "0.12.10"
+      - run: uv python install 3.12
+      - run: uv sync --locked --extra dev --python 3.12
+      - run: uv build
+      - run: uv run --locked python scripts/check_release_artifacts.py dist --source-version "$(uv run --locked python -c 'import stonepy; print(stonepy.__version__)')"
+      - run: python3 -m venv /tmp/stonepy-wheel-smoke
+      - run: /tmp/stonepy-wheel-smoke/bin/pip install dist/*.whl "respx>=0.21" "pytest>=9.1.1"
+      - run: cp -R tests/smoke_installed/. /tmp/stonepy-wheel-smoke/
+      - run: cd /tmp/stonepy-wheel-smoke && env -u PYTHONPATH STONEPY_SMOKE_INSTALLED=1 ./bin/python -m pytest . --ignore=lib --ignore=lib64 -p no:cacheprovider -q
+
+  ci:
+    if: always()
+    needs: [test, docs, generated-client, lowest-direct, wheel-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          test "${{ needs.test.result }}" = success
+          test "${{ needs.docs.result }}" = success
+          test "${{ needs.generated-client.result }}" = success
+          test "${{ needs.lowest-direct.result }}" = success
+          test "${{ needs.wheel-smoke.result }}" = success

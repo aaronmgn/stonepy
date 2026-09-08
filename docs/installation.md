@@ -44,8 +44,8 @@ A normal install pulls in three small, well-established libraries:
 | Package | Constraint | Why it is needed |
 | --- | --- | --- |
 | [`httpx`](https://www.python-httpx.org/) | `>=0.27,<1.0` | HTTP transport for both the sync and async clients |
-| [`pydantic`](https://docs.pydantic.dev/) | `>=2.7,<3.0` | Typed request/response models (DTOs) and validation |
-| [`simplejson`](https://simplejson.readthedocs.io/) | `>=3.19,<4.0` | JSON encoding/decoding |
+| [`pydantic`](https://docs.pydantic.dev/) | `>=2.7,<3.0`; `>=2.12` on Python 3.14 | Typed request/response models (DTOs) and validation |
+| [`simplejson`](https://simplejson.readthedocs.io/) | `>=3.19,<5.0` | JSON encoding/decoding |
 
 That is the entire footprint - there are no native build steps on platforms with a compatible
 prebuilt `pydantic-core` wheel; source installations may require a Rust toolchain. There are no
