@@ -13,15 +13,15 @@ from .get_version_information import _GetVersionInformationMixin as _AsyncGetVer
 
 class ClientapplicationResource(_SyncGetVersionInformationMixin, BaseResource):
     """
-    Synchronous `clientapplication` resource group; access it via
-    `StoneXClient.clientapplication`. Each method maps to one StoneX CIAPI v2 endpoint.
+    Synchronous `client_application` resource group; access it via
+    `StoneXClient.client_application`. Each method maps to one StoneX CIAPI v2 endpoint.
     """
 
 
 class AsyncClientapplicationResource(_AsyncGetVersionInformationMixin, BaseResource):
     """
-    Asynchronous `clientapplication` resource group; access it via
-    `AsyncStoneXClient.clientapplication`. Each method is the awaitable twin of the
+    Asynchronous `client_application` resource group; access it via
+    `AsyncStoneXClient.client_application`. Each method is the awaitable twin of the
     synchronous resource's method.
     """
 

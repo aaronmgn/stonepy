@@ -22,7 +22,7 @@ def test_get_version_information_returns_response() -> None:
         client._ctx.session.set_token("TOKEN", "user")
         app_key = "x"
         account_operator_id = 1
-        resp = client.clientapplication.get_version_information(app_key, account_operator_id)
+        resp = client.client_application.get_version_information(app_key, account_operator_id)
         assert isinstance(resp, GetVersionInformationResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
@@ -42,7 +42,7 @@ def test_get_version_information_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             app_key = "x"
             account_operator_id = 1
-            resp = await client.clientapplication.get_version_information(
+            resp = await client.client_application.get_version_information(
                 app_key, account_operator_id
             )
             assert isinstance(resp, GetVersionInformationResponseDTO)

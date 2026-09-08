@@ -66,7 +66,7 @@ Two optional dependency groups exist for contributors. End users do not need the
     pip install "stonepy[dev]"
     ```
 
-    Includes `pytest`, `pytest-cov`, `respx`, `mypy`, `ruff`, `unasync`, `pre-commit`, `types-simplejson`, and `twine`.
+    Includes `pytest`, `pytest-cov`, `respx`, `mypy`, `pyright`, `ruff`, `unasync`, `pre-commit`, `types-simplejson`, and `twine`.
 
 === "docs"
 
@@ -86,6 +86,9 @@ uv pip install -e ".[dev]"
 uv pip install -e ".[docs]"
 ```
 
+The generator ships in the wheel but needs the dev tools (`ruff`, `unasync`)
+and the repository `pyproject.toml`; run it from a source checkout or editable install.
+
 ## Type checking (PEP 561)
 
 `stonepy` is fully typed and ships a `py.typed` marker, so it is [PEP 561](https://peps.python.org/pep-0561/) compliant. The package is also flagged `Typing :: Typed` on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.
@@ -99,6 +102,11 @@ pyright your_script.py
 ```
 
 Editor features such as autocomplete and inline type hints (in VS Code, PyCharm, and other LSP-aware editors) work the same way, with no extra configuration.
+
+Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
+`UserName` when constructing DTOs in statically checked code; the equivalent snake_case names
+work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
+remains under review.
 
 ## Stability
 

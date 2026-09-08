@@ -21,7 +21,7 @@ def test_update_trade_fm_returns_response() -> None:
     try:
         client._ctx.session.set_token("TOKEN", "user")
         request = UpdateFixedMarginTradeOrderRequestDTO.model_construct()
-        resp = client.fixedmargin.update_trade_fm(request)
+        resp = client.fixed_margin.update_trade_fm(request)
         assert isinstance(resp, FixedMarginOrderResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
@@ -40,7 +40,7 @@ def test_update_trade_fm_async() -> None:
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
             request = UpdateFixedMarginTradeOrderRequestDTO.model_construct()
-            resp = await client.fixedmargin.update_trade_fm(request)
+            resp = await client.fixed_margin.update_trade_fm(request)
             assert isinstance(resp, FixedMarginOrderResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "POST"

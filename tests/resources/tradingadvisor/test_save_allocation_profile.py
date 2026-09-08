@@ -21,7 +21,7 @@ def test_save_allocation_profile_returns_response() -> None:
     try:
         client._ctx.session.set_token("TOKEN", "user")
         request = SaveAllocationProfileRequestDTO.model_construct()
-        resp = client.tradingadvisor.save_allocation_profile(request)
+        resp = client.trading_advisor.save_allocation_profile(request)
         assert isinstance(resp, SaveAllocationProfileResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
@@ -40,7 +40,7 @@ def test_save_allocation_profile_async() -> None:
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
             request = SaveAllocationProfileRequestDTO.model_construct()
-            resp = await client.tradingadvisor.save_allocation_profile(request)
+            resp = await client.trading_advisor.save_allocation_profile(request)
             assert isinstance(resp, SaveAllocationProfileResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "POST"

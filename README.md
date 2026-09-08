@@ -132,8 +132,8 @@ Use `aclose()` for async clients when not using `async with`; use `close()` for 
 
 ## Error Handling
 
-`StoneXError` is the base of the public runtime error hierarchy. Configuration validation and
-plugin setup can also raise builtin `TypeError` or `ValueError` exceptions.
+`StoneXError` is the base of the public runtime error hierarchy. Configuration validation
+can also raise builtin `TypeError` or `ValueError` exceptions.
 
 ```python
 from stonepy import (

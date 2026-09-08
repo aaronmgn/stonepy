@@ -5,13 +5,41 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field, fields
 from math import isfinite
-from typing import Any
+from typing import Any, TypedDict, Unpack
 from urllib.parse import urlsplit
 
 from stonepy._core.status import LegacyStatusDecoder, StatusDecoder, default_status_decoder
 from stonepy._version import __version__
 
 _DEFAULT_USER_AGENT = f"stonepy/{__version__}"
+
+
+class ClientConfigOverrides(TypedDict, total=False):
+    """Optional keyword overrides accepted by ``ClientConfig.from_env``.
+
+    ``None`` preserves environment values or defaults, except for ``status_decoder``, where
+    it explicitly disables business-status checks. Keys match ``ClientConfig`` init fields.
+    """
+
+    base_url: str | None
+    app_key: str | None
+    username: str | None
+    password: str | None
+    app_version: str | None
+    connect_timeout: float | None
+    read_timeout: float | None
+    write_timeout: float | None
+    pool_timeout: float | None
+    max_connections: int | None
+    verify_tls: bool | None
+    proxy: str | None
+    user_agent: str | None
+    max_retries: int | None
+    retry_budget_seconds: float | None
+    rate_limit_max: int | None
+    rate_limit_window_seconds: float | None
+    proactive_refresh_seconds: float | None
+    status_decoder: StatusDecoder | LegacyStatusDecoder | None
 
 
 def _validate_base_url(base_url: str) -> None:
@@ -54,7 +82,7 @@ class ClientConfig:
     """Configuration for StoneX clients.
 
     `base_url` is required and points at the CIAPI root. `app_key`, `username`, and `password`
-    enable automatic session refresh. Timeout, retry, rate-limit, TLS, proxy, plugin, and
+    enable automatic session refresh. Timeout, retry, rate-limit, TLS, proxy, and
     status-decoder fields tune transport behavior. A custom `status_decoder` fully replaces
     stonepy's top-level numeric logic for instruction- and order-domain endpoint specs; it
     receives ``(status, status_reason, *, domain)``; legacy two-argument callables also work.
@@ -83,8 +111,6 @@ class ClientConfig:
     proactive_refresh_seconds: float = 1080.0
     status_decoder: StatusDecoder | LegacyStatusDecoder | None = default_status_decoder
     """Optional replacement for top-level numeric instruction/order status decoding."""
-    enable_plugins: bool = False
-    allow_overrides: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         _validate_base_url(self.base_url)
@@ -106,7 +132,7 @@ class ClientConfig:
         )
 
     @classmethod
-    def from_env(cls, **overrides: Any) -> ClientConfig:
+    def from_env(cls, **overrides: Unpack[ClientConfigOverrides]) -> ClientConfig:
         """Build a config from ``STONEX_*`` environment variables, with keyword overrides.
 
         Reads ``STONEX_BASE_URL``, ``STONEX_APP_KEY``, ``STONEX_USERNAME``, and

@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 import httpx
+import pytest
 import respx
 
 from stonepy._core.config import ClientConfig
@@ -22,7 +23,10 @@ def test_get_order_including_closed_returns_response() -> None:
         client._ctx.session.set_token("TOKEN", "user")
         order_id = 1
         client_account_id = 1
-        resp = client.order_including_closed.get_order_including_closed(order_id, client_account_id)
+        with pytest.warns(DeprecationWarning, match="use client.order.get_order_including_closed"):
+            resp = client.order_including_closed.get_order_including_closed(
+                order_id, client_account_id
+            )
         assert isinstance(resp, SingleActiveStopLimitOrderResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
@@ -43,9 +47,12 @@ def test_get_order_including_closed_async() -> None:
             await client._ctx.session.aset_token("TOKEN", "user")
             order_id = 1
             client_account_id = 1
-            resp = await client.order_including_closed.get_order_including_closed(
-                order_id, client_account_id
-            )
+            with pytest.warns(
+                DeprecationWarning, match="use client.order.get_order_including_closed"
+            ):
+                resp = await client.order_including_closed.get_order_including_closed(
+                    order_id, client_account_id
+                )
             assert isinstance(resp, SingleActiveStopLimitOrderResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "GET"

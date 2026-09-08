@@ -33,6 +33,9 @@ the mismatch is systematic.
 
 ## Catalog Generation
 
+The generator ships in the wheel but needs the dev tools (`ruff`, `unasync`)
+and the repository `pyproject.toml`; run it from a source checkout or editable install.
+
 Catalog-consuming generator commands have no default catalog location. Set
 `STONEPY_CATALOG=/path/to/stonex_api_docs/Docs/catalog` or pass
 `--catalog-root /path/to/stonex_api_docs/Docs/catalog`; the CLI flag takes precedence. For example:

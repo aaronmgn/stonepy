@@ -15,6 +15,14 @@ __all__ = ["emit_client"]
 
 _ASYNC_ENDPOINT_RE = re.compile(r"^async def (a[a-z_][A-Za-z0-9_]*)\(", re.MULTILINE)
 _RESOURCE_ASYNC_ENDPOINT_RE = re.compile(r"\b_ep\.(a[a-z_][A-Za-z0-9_]*)\b")
+_RESOURCE_PROPERTY_ALIASES: dict[str, str] = {
+    "clientapplication": "client_application",
+    "fixedmargin": "fixed_margin",
+    "tradingadvisor": "trading_advisor",
+}
+_DEPRECATED_RESOURCE_PROPERTIES: dict[str, str] = {
+    "order_including_closed": "order.get_order_including_closed",
+}
 
 
 def emit_client(resources_dir: Path, out_dir: Path) -> None:
@@ -78,7 +86,7 @@ class _ResourceTarget:
         normalized = field_name(self.name)
         if normalized is None:
             raise ValueError(f"invalid resource target name: {self.name!r}")
-        return normalized
+        return _RESOURCE_PROPERTY_ALIASES.get(normalized, normalized)
 
 
 def _copy_resource_sources(resources_dir: Path, package_resources_dir: Path) -> list[Path]:
@@ -260,14 +268,13 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
         BANNER,
         render_docstring("Synchronous and asynchronous StoneX CIAPI v2 client classes.", indent=0),
         "from __future__ import annotations\n\n",
-        "from collections.abc import Awaitable, Callable, Collection\n",
+        "import warnings\n",
+        "from collections.abc import Awaitable, Callable\n",
         "from types import TracebackType\n\n",
         "from stonepy._core.errors import ConfigurationError\n",
-        "from stonepy._core.resource import BaseResource\n",
         "from stonepy._core.clock import Clock, SystemClock\n",
         "from stonepy._core.config import ClientConfig\n",
         "from stonepy._core.pipeline import CallContext\n",
-        "from stonepy._core.plugins import discover_plugin_resources\n",
         "from stonepy._core.ratelimit import SlidingWindowLimiter\n",
         "from stonepy._core.retry import RetryPolicy\n",
         (
@@ -284,8 +291,6 @@ def _render_client(targets: list[_ResourceTarget]) -> str:
             f"{target.async_class_name}, {target.class_name}\n"
         )
     lines.append("\n\n")
-    known = ", ".join(repr(name) for name in sorted(target.property_name for target in targets))
-    lines.append(f"_BUILTIN_RESOURCE_NAMES: frozenset[str] = frozenset({{{known}}})\n\n\n")
     lines.extend(_client_helpers())
     lines.append("\n\n")
     lines.extend(_client_class("StoneXClient", targets, async_client=False))
@@ -349,16 +354,6 @@ def _client_helpers() -> list[str]:
         "        return require_session_token(response.session), config.username\n",
         "\n",
         "    return alogon\n",
-        "\n\n",
-        "def _load_plugin_resources(\n",
-        "    config: ClientConfig, known: Collection[str]\n",
-        ") -> dict[str, type[BaseResource]]:\n",
-        '    """Discover out-of-tree resource plugins registered via entry points."""\n',
-        "    return discover_plugin_resources(\n",
-        "        enable=config.enable_plugins,\n",
-        "        allow_overrides=config.allow_overrides,\n",
-        "        known=known,\n",
-        "    )\n",
         "\n\n",
         "def _build_context(\n",
         "    config: ClientConfig, clock: Clock | None = None\n",
@@ -431,28 +426,22 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
             else "        self._ctx, self._transport = _build_context(config)\n"
         ),
     ]
-    plugin_indent = "        " if async_client else "            "
-    if not async_client:
-        lines.append("        try:\n")
-    lines.append(
-        f"{plugin_indent}self._plugins: dict[str, BaseResource] = {{\n"
-        f"{plugin_indent}    name: resource(self._ctx)\n"
-        f"{plugin_indent}    for name, resource in "
-        "_load_plugin_resources(config, _BUILTIN_RESOURCE_NAMES).items()\n"
-        f"{plugin_indent}}}\n"
-    )
-    if not async_client:
-        lines.extend(
-            [
-                "        except BaseException:\n",
-                "            self._transport.close()\n",
-                "            raise\n",
-            ]
-        )
     for target in targets:
         resource_type = target.async_class_name if async_client else target.class_name
         lines.append(f"        self._{target.property_name}: {resource_type} | None = None\n")
-    lines.append("\n")
+    lines.extend(
+        [
+            "\n",
+            "    @property\n",
+            "    def call_context(self) -> CallContext:\n",
+            '        """Return shared call state for explicitly constructed resources.\n\n',
+            "        This property cannot be reassigned; its context contains mutable state.\n",
+            "        Use it only while this client is open.\n",
+            '        """\n',
+            "        return self._ctx\n",
+            "\n",
+        ]
+    )
 
     for target in targets:
         resource_type = target.async_class_name if async_client else target.class_name
@@ -461,27 +450,49 @@ def _client_class(name: str, targets: list[_ResourceTarget], *, async_client: bo
                 "    @property\n",
                 f"    def {target.property_name}(self) -> {resource_type}:\n",
                 f'        """Return the {target.property_name} resource group."""\n',
+                *(
+                    _deprecation_warning(
+                        name,
+                        target.property_name,
+                        f"client.{_DEPRECATED_RESOURCE_PROPERTIES[target.property_name]}",
+                    )
+                    if target.property_name in _DEPRECATED_RESOURCE_PROPERTIES
+                    else []
+                ),
                 f"        if self._{target.property_name} is None:\n",
                 f"            self._{target.property_name} = {resource_type}(self._ctx)\n",
                 f"        return self._{target.property_name}\n",
                 "\n",
             ]
         )
-
-    lines.extend(
-        [
-            "    def plugin(self, name: str) -> BaseResource:\n",
-            '        """Return a loaded plugin resource by name."""\n',
-            "        return self._plugins[name]\n",
-            "\n",
-        ]
-    )
+        if target.name in _RESOURCE_PROPERTY_ALIASES:
+            lines.extend(
+                [
+                    "    @property\n",
+                    f"    def {target.name}(self) -> {resource_type}:\n",
+                    f'        """Deprecated alias of ``{target.property_name}``."""\n',
+                    *_deprecation_warning(name, target.name, target.property_name),
+                    f"        return self.{target.property_name}\n",
+                    "\n",
+                ]
+            )
 
     if async_client:
         lines.extend(_async_client_lifecycle(name))
     else:
         lines.extend(_sync_client_lifecycle(name))
     return lines
+
+
+def _deprecation_warning(client_name: str, old: str, replacement: str) -> list[str]:
+    return [
+        "        warnings.warn(\n",
+        f'            "{client_name}.{old} is deprecated; "\n',
+        f'            "use {replacement}",\n',
+        "            DeprecationWarning,\n",
+        "            stacklevel=2,\n",
+        "        )\n",
+    ]
 
 
 def _sync_client_lifecycle(name: str) -> list[str]:

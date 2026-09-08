@@ -1,41 +1,20 @@
 # Logging and Secret Redaction
 
 stonepy is deliberately quiet. It does not log your HTTP requests, responses,
-headers, or payloads. It writes warnings for plugin discovery and failed proactive
-session refresh. Its own object representations mask values keyed as app key,
+headers, or payloads. It writes warnings for failed proactive session refresh. Its own object
+representations mask values keyed as app key,
 password, session, authorization, or proxy. Usernames are not masked, and logging
 from the external HTTP stack is not sanitized by stonepy.
 
 This guide covers two distinct mechanisms:
 
-1. The stdlib `logging` usage (two loggers, warnings only).
+1. The stdlib `logging` usage (warnings only).
 2. Secret redaction at the `repr()` level, which protects `ClientConfig` and
    the internal `Request` object regardless of how you log them.
 
 ## What stonepy logs
 
-stonepy uses Python's standard `logging` module with two named loggers:
-
-```python
-plugin_logger = logging.getLogger("stonepy.plugins")
-pipeline_logger = logging.getLogger("stonepy.pipeline")
-```
-
-`stonepy.plugins` emits `WARNING` records only during out-of-tree plugin discovery
-(which is off unless you set `enable_plugins=True` on your `ClientConfig`). Its two
-messages are:
-
-```python
-logger.warning(
-    "plugin %s failed to load (%s); continuing",
-    _safe_plugin_name(ep.name),
-    type(exc).__name__,
-)
-logger.warning("plugin %s did not load a BaseResource subclass; continuing", ep.name)
-```
-
-Failed-load warnings sanitize and truncate the plugin name and include only the exception class,
-without its message or traceback.
+stonepy uses Python's standard `logging` module.
 
 `stonepy.pipeline` emits one warning when a proactive session refresh raises a stonepy
 error:
@@ -56,8 +35,8 @@ request proceeds with the existing session so reactive `401` recovery remains av
 ## Enabling logging
 
 Because stonepy logs through the stdlib, you control it with the normal logging
-configuration. Both logger names live under the `stonepy` hierarchy, so configuring
-`stonepy` captures them:
+configuration. The pipeline logger lives under the `stonepy` hierarchy, so configuring
+`stonepy` captures its warnings:
 
 ```python
 import logging
@@ -70,15 +49,14 @@ stonepy_logger = logging.getLogger("stonepy")
 stonepy_logger.setLevel(logging.WARNING)
 ```
 
-A failed plugin load or proactive refresh then produces output similar to:
+A failed proactive refresh then produces output similar to:
 
 ```text
-WARNING:stonepy.plugins:plugin acme_orders failed to load (ModuleNotFoundError); continuing
 WARNING:stonepy.pipeline:proactive session refresh failed; continuing with existing token
 ```
 
 !!! tip
-    Set the level on `"stonepy"` (the parent) rather than `"stonepy.plugins"` if
+    Set the level on `"stonepy"` (the parent) rather than `"stonepy.pipeline"` if
     you want a single switch that will also pick up any future stonepy loggers.
 
 ## How secrets are redacted

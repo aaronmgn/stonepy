@@ -21,7 +21,7 @@ def test_list_managed_clients_returns_response() -> None:
     try:
         client._ctx.session.set_token("TOKEN", "user")
         trading_account_id = 1
-        resp = client.tradingadvisor.list_managed_clients(trading_account_id)
+        resp = client.trading_advisor.list_managed_clients(trading_account_id)
         assert isinstance(resp, ListManagedClientsResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "GET"
@@ -41,7 +41,7 @@ def test_list_managed_clients_async() -> None:
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
             trading_account_id = 1
-            resp = await client.tradingadvisor.list_managed_clients(trading_account_id)
+            resp = await client.trading_advisor.list_managed_clients(trading_account_id)
             assert isinstance(resp, ListManagedClientsResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "GET"

@@ -1,7 +1,7 @@
 # Error handling
 
 `StoneXError` is the base of stonepy's public runtime error hierarchy, so a single
-`except StoneXError` catches those runtime failures. Configuration validation and plugin setup
+`except StoneXError` catches those runtime failures. Configuration validation
 can also raise builtin `TypeError` or `ValueError`. Catch the more specific subclasses when you
 need to react to a particular runtime failure.
 

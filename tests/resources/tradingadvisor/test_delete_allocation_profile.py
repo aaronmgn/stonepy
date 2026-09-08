@@ -21,7 +21,7 @@ def test_delete_allocation_profile_returns_response() -> None:
     try:
         client._ctx.session.set_token("TOKEN", "user")
         request = DeleteAllocationProfileRequestDTO.model_construct()
-        resp = client.tradingadvisor.delete_allocation_profile(request)
+        resp = client.trading_advisor.delete_allocation_profile(request)
         assert isinstance(resp, DeleteAllocationProfileResponseDTO)
         assert route.called
         assert route.calls[0].request.method == "POST"
@@ -40,7 +40,7 @@ def test_delete_allocation_profile_async() -> None:
         try:
             await client._ctx.session.aset_token("TOKEN", "user")
             request = DeleteAllocationProfileRequestDTO.model_construct()
-            resp = await client.tradingadvisor.delete_allocation_profile(request)
+            resp = await client.trading_advisor.delete_allocation_profile(request)
             assert isinstance(resp, DeleteAllocationProfileResponseDTO)
             assert route.called
             assert route.calls[0].request.method == "POST"

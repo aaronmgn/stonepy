@@ -6,7 +6,7 @@ used to construct them, and the public exception hierarchy rooted at
 [`StoneXError`][stonepy.StoneXError]. Request and response models live in ``stonepy.models``.
 """
 
-from stonepy._core.config import ClientConfig
+from stonepy._core.config import ClientConfig, ClientConfigOverrides
 from stonepy._core.errors import (
     AuthenticationError,
     ConfigurationError,
@@ -25,6 +25,7 @@ __all__ = [
     "AsyncStoneXClient",
     "AuthenticationError",
     "ClientConfig",
+    "ClientConfigOverrides",
     "ConfigurationError",
     "OrderRejectedError",
     "OrderStatusUnknownError",
