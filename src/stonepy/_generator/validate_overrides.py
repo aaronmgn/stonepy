@@ -79,6 +79,7 @@ def assert_override_consumption(catalog: Catalog) -> None:
     _check_array_properties(errors, datatypes)
     _check_enum_additions(errors, datatypes)
     _check_field_types(errors, datatypes)
+    _check_field_doc_notes(errors, datatypes)
     _check_force_optional_fields(errors, datatypes)
 
     if errors:
@@ -200,6 +201,13 @@ def _check_field_types(errors: list[str], datatypes: Mapping[str, TypeRecord]) -
             errors.append(f"{table_name} key {key!r} does not match a catalog property")
 
 
+def _check_field_doc_notes(errors: list[str], datatypes: Mapping[str, TypeRecord]) -> None:
+    for key in sorted(render_module._FIELD_DOC_NOTES):
+        rec, prop = _raw_property(datatypes, key)
+        if rec is None or prop is None:
+            errors.append(f"render._FIELD_DOC_NOTES key {key!r} does not match a catalog property")
+
+
 def _check_force_optional_fields(errors: list[str], datatypes: Mapping[str, TypeRecord]) -> None:
     table_name = "emit_models._FORCE_OPTIONAL_FIELDS"
     for owner, field_names in emit_models._FORCE_OPTIONAL_FIELDS.items():
@@ -242,5 +250,6 @@ def _override_tables_for_tests() -> tuple[tuple[ModuleType, str], ...]:
         (catalog_module, "_ARRAY_PROPERTY_OVERRIDES"),
         (catalog_module, "_ENUM_MEMBER_ADDITIONS"),
         (render_module, "_FIELD_TYPE_OVERRIDES"),
+        (render_module, "_FIELD_DOC_NOTES"),
         (emit_models, "_FORCE_OPTIONAL_FIELDS"),
     )

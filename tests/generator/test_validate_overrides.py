@@ -93,6 +93,7 @@ _STALE_TABLE_CASES = (
         "_FIELD_TYPE_OVERRIDES",
         {("MissingDTO", "MissingField"): "int"},
     ),
+    (render, "_FIELD_DOC_NOTES", {("MissingDTO", "MissingField"): "note"}),
     (
         emit_models,
         "_FORCE_OPTIONAL_FIELDS",
@@ -186,7 +187,7 @@ def test_production_generation_fails_on_doctored_stale_override(
         )
 
 
-def test_allow_unfrozen_catalog_bypasses_consumption_guard_for_fixtures(
+def test_allow_unfrozen_catalog_still_validates_overrides(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -195,7 +196,22 @@ def test_allow_unfrozen_catalog_bypasses_consumption_guard_for_fixtures(
         "_PATH_OVERRIDES",
         {**emit_endpoints._PATH_OVERRIDES, ("missing", "FixtureOnlyEndpoint"): "/missing"},
     )
+    with pytest.raises(ValueError, match="FixtureOnlyEndpoint"):
+        generator_main.main(
+            [
+                "models",
+                "--catalog-root",
+                str(FIX),
+                "--out-dir",
+                str(tmp_path),
+                "--allow-unresolved",
+                "--allow-unfrozen-catalog",
+            ]
+        )
+    assert not (tmp_path / "models").exists()
 
+
+def test_explicit_skip_override_validation_is_required(tmp_path: Path) -> None:
     assert (
         generator_main.main(
             [
@@ -206,6 +222,7 @@ def test_allow_unfrozen_catalog_bypasses_consumption_guard_for_fixtures(
                 str(tmp_path),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0

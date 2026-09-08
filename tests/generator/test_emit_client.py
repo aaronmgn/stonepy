@@ -148,6 +148,7 @@ def test_cli_all_runs_client_pass_when_resources_dir_is_provided(tmp_path: Path)
                 str(project_root),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import ast
 import os
 import re
@@ -13,6 +14,7 @@ from stonepy._generator.catalog import (
     assert_catalog_frozen,
     load_catalog,
 )
+from stonepy._generator.validate_overrides import assert_override_consumption
 
 _SNAKE_CASE_RE = re.compile(r"^[a-z_][a-z0-9_]*$")
 
@@ -21,17 +23,18 @@ def check_resources(resources_dir: Path) -> list[str]:
     """Return resource consistency errors under *resources_dir*."""
 
     if not resources_dir.exists():
-        return []
+        return [f"resources ERROR: {resources_dir} does not exist"]
 
     errors: list[str] = []
-    for path in sorted(resources_dir.glob("*/*.py")):
-        if path.name == "__init__.py":
-            continue
+    modules = sorted(path for path in resources_dir.glob("*/*.py") if path.name != "__init__.py")
+    if not modules:
+        return [f"resources ERROR: {resources_dir} contains no resource modules"]
+    for path in modules:
         errors.extend(_check_resource_file(path))
     return errors
 
 
-def check_catalog_unresolved(catalog_root: Path) -> list[str]:
+def check_catalog_unresolved(catalog_root: Path, *, validate_overrides: bool = True) -> list[str]:
     root = _resolve_catalog_root(catalog_root)
     missing = [
         filename
@@ -46,6 +49,8 @@ def check_catalog_unresolved(catalog_root: Path) -> list[str]:
         catalog = load_catalog(root)
         assert_allowed_unresolved(catalog)
         assert_catalog_frozen(catalog, root)
+        if validate_overrides:
+            assert_override_consumption(catalog)
     except (OSError, ValueError) as exc:
         return [f"catalog checks ERROR for {root}: {exc}"]
     return []
@@ -100,12 +105,25 @@ def _base_name(base: ast.expr) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
-    args = argv or []
-    resources_dir = Path(args[0]) if args else Path("src/stonepy/resources")
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "resources_dir", nargs="?", type=Path, default=Path("src/stonepy/resources")
+    )
+    parser.add_argument(
+        "--skip-override-validation",
+        action="store_true",
+        help="Skip production override-consumption validation for fixture catalogs.",
+    )
+    args = parser.parse_args(argv or [])
+    resources_dir = args.resources_dir
     errors = check_resources(resources_dir)
     catalog_root = os.environ.get("STONEPY_CATALOG", "").strip()
     if catalog_root:
-        errors.extend(check_catalog_unresolved(Path(catalog_root)))
+        errors.extend(
+            check_catalog_unresolved(
+                Path(catalog_root), validate_overrides=not args.skip_override_validation
+            )
+        )
     else:
         print("catalog checks SKIPPED (STONEPY_CATALOG not set)", file=sys.stderr)
     if errors:

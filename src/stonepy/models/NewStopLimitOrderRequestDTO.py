@@ -11,7 +11,7 @@ from pydantic import Field
 from stonepy._core.models import RequestModel, StoneXDateTime
 
 if TYPE_CHECKING:
-    from .ApiIfDoneDTOv2 import ApiIfDoneDTOv2
+    from .RequestApiIfDoneDTOv2 import RequestApiIfDoneDTOv2
 
 
 class NewStopLimitOrderRequestDTO(RequestModel):
@@ -52,7 +52,7 @@ class NewStopLimitOrderRequestDTO(RequestModel):
     """
     trading_account_id: int = Field(alias="TradingAccountId")
     """The ID of the trading account associated with the trade/order request."""
-    if_done: list[ApiIfDoneDTOv2] | None = Field(default=None, alias="IfDone")
+    if_done: list[RequestApiIfDoneDTOv2] | None = Field(default=None, alias="IfDone")
     """
     List of attached If/Done Orders that will be filled when the initial trade/order is
     triggered.

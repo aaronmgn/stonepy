@@ -127,7 +127,7 @@ def test_save_order_simulation_text_status_contract(
         QuoteId=0,
         MarketId=ids["mid"],
         OrderRequests=[
-            M.OrderRequestDTO.model_validate(
+            M.RequestOrderRequestDTO.model_validate(
                 {
                     "MarketId": ids["mid"],
                     "Quantity": "1",

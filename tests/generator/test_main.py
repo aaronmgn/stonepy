@@ -37,6 +37,7 @@ def test_cli_uses_catalog_environment_when_flag_is_absent(
                 str(tmp_path),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0
@@ -61,6 +62,7 @@ def test_cli_catalog_flag_takes_precedence_over_environment(
                 str(tmp_path),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0
@@ -100,6 +102,7 @@ def test_cli_unresolved_response_preflight_preserves_endpoint_tree(
                 str(tmp_path),
                 "--allow-unresolved",
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
     assert sentinel.read_text() == "# keep me"

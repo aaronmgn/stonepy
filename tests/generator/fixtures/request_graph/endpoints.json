@@ -1,0 +1,16 @@
+[
+  {
+    "name": "Save",
+    "target": "fixture",
+    "method": "POST",
+    "path": "/save",
+    "request_type": "RootRequestDTO"
+  },
+  {
+    "name": "Peer",
+    "target": "fixture",
+    "method": "POST",
+    "path": "/peer",
+    "request_type": "PeerRequestDTO"
+  }
+]

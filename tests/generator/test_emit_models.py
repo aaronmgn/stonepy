@@ -460,3 +460,15 @@ def test_emit_all_generated_package_imports_with_circular_model_refs(
 
     assert imported.FirstDTO.__name__ == "FirstDTO"
     assert imported.SecondDTO.__name__ == "SecondDTO"
+
+
+def test_trade_status_doc_names_instruction_domain() -> None:
+    from stonepy.models import ApiTradeOrderResponseDTO
+
+    description = ApiTradeOrderResponseDTO.model_fields["status"].description
+    assert description is not None
+    assert "InstructionStatus" in description
+    normalized = " ".join(description.split())
+    assert "Accepted=1, RedCard=2, YellowCard=3, Error=4, Pending=5" in normalized
+    assert "nested Orders[].Status values are OrderStatus lifecycle codes" in normalized
+    assert "\n\n" in description

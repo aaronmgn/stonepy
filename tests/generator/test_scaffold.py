@@ -255,6 +255,7 @@ def test_cli_scaffold_writes_files_from_catalog_root(tmp_path: Path) -> None:
                 "--project-root",
                 str(project_root),
                 "--allow-unfrozen-catalog",
+                "--skip-override-validation",
             ]
         )
         == 0

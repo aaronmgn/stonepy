@@ -295,6 +295,39 @@ from .PriceBarDTO import PriceBarDTO
 from .PriceDTO import PriceDTO
 from .PriceTickDTO import PriceTickDTO
 from .QuoteDTO import QuoteDTO
+from .RequestApiClientAccountWatchlistDTO import RequestApiClientAccountWatchlistDTO
+from .RequestApiClientAccountWatchlistItemDTO import RequestApiClientAccountWatchlistItemDTO
+from .RequestApiClientPreferencesOverriddenSettingSaveDTO import (
+    RequestApiClientPreferencesOverriddenSettingSaveDTO,
+)
+from .RequestApiClientPreferencesOverriddenSettingsSaveDTO import (
+    RequestApiClientPreferencesOverriddenSettingsSaveDTO,
+)
+from .RequestApiClientPreferencesOverridenSettingSaveDTO import (
+    RequestApiClientPreferencesOverridenSettingSaveDTO,
+)
+from .RequestApiClientPreferencesOverridenSettingsSaveDTO import (
+    RequestApiClientPreferencesOverridenSettingsSaveDTO,
+)
+from .RequestApiDateTimeOffsetDTO import RequestApiDateTimeOffsetDTO
+from .RequestApiFxFinancingDTO import RequestApiFxFinancingDTO
+from .RequestApiIfDoneDTOv2 import RequestApiIfDoneDTOv2
+from .RequestApiKnockoutDTO import RequestApiKnockoutDTO
+from .RequestApiMarketEodDTO import RequestApiMarketEodDTO
+from .RequestApiMarketInformationDTOv2 import RequestApiMarketInformationDTOv2
+from .RequestApiMarketInformationSaveDTO import RequestApiMarketInformationSaveDTO
+from .RequestApiMarketSpreadDTO import RequestApiMarketSpreadDTO
+from .RequestApiStepMarginBandDTO import RequestApiStepMarginBandDTO
+from .RequestApiStepMarginDTO import RequestApiStepMarginDTO
+from .RequestApiStopLimitOrderDTOv2 import RequestApiStopLimitOrderDTOv2
+from .RequestApiTradingDayTimesDTO import RequestApiTradingDayTimesDTO
+from .RequestClientPreferenceKeyDTO import RequestClientPreferenceKeyDTO
+from .RequestCorporateActionsDTO import RequestCorporateActionsDTO
+from .RequestIdentifierDTO import RequestIdentifierDTO
+from .RequestMarketPricesDTO import RequestMarketPricesDTO
+from .RequestOrderRequestDTO import RequestOrderRequestDTO
+from .RequestPreferenceDTO import RequestPreferenceDTO
+from .RequestTimestamp import RequestTimestamp
 from .SaveAlertRequestDTOv2 import SaveAlertRequestDTOv2
 from .SaveAlertResponseDTOv2 import SaveAlertResponseDTOv2
 from .SaveAllocationProfileRequestDTO import SaveAllocationProfileRequestDTO
@@ -573,6 +606,31 @@ __all__ = [
     "QuoteDTO",
     "QuoteStatus",
     "QuoteStatusReason",
+    "RequestApiClientAccountWatchlistDTO",
+    "RequestApiClientAccountWatchlistItemDTO",
+    "RequestApiClientPreferencesOverriddenSettingSaveDTO",
+    "RequestApiClientPreferencesOverriddenSettingsSaveDTO",
+    "RequestApiClientPreferencesOverridenSettingSaveDTO",
+    "RequestApiClientPreferencesOverridenSettingsSaveDTO",
+    "RequestApiDateTimeOffsetDTO",
+    "RequestApiFxFinancingDTO",
+    "RequestApiIfDoneDTOv2",
+    "RequestApiKnockoutDTO",
+    "RequestApiMarketEodDTO",
+    "RequestApiMarketInformationDTOv2",
+    "RequestApiMarketInformationSaveDTO",
+    "RequestApiMarketSpreadDTO",
+    "RequestApiStepMarginBandDTO",
+    "RequestApiStepMarginDTO",
+    "RequestApiStopLimitOrderDTOv2",
+    "RequestApiTradingDayTimesDTO",
+    "RequestClientPreferenceKeyDTO",
+    "RequestCorporateActionsDTO",
+    "RequestIdentifierDTO",
+    "RequestMarketPricesDTO",
+    "RequestOrderRequestDTO",
+    "RequestPreferenceDTO",
+    "RequestTimestamp",
     "SaveAlertRequestDTOv2",
     "SaveAlertResponseDTOv2",
     "SaveAllocationProfileRequestDTO",
@@ -837,6 +895,31 @@ for _model in (
     PriceDTO,
     PriceTickDTO,
     QuoteDTO,
+    RequestApiClientAccountWatchlistDTO,
+    RequestApiClientAccountWatchlistItemDTO,
+    RequestApiClientPreferencesOverriddenSettingSaveDTO,
+    RequestApiClientPreferencesOverriddenSettingsSaveDTO,
+    RequestApiClientPreferencesOverridenSettingSaveDTO,
+    RequestApiClientPreferencesOverridenSettingsSaveDTO,
+    RequestApiDateTimeOffsetDTO,
+    RequestApiFxFinancingDTO,
+    RequestApiIfDoneDTOv2,
+    RequestApiKnockoutDTO,
+    RequestApiMarketEodDTO,
+    RequestApiMarketInformationDTOv2,
+    RequestApiMarketInformationSaveDTO,
+    RequestApiMarketSpreadDTO,
+    RequestApiStepMarginBandDTO,
+    RequestApiStepMarginDTO,
+    RequestApiStopLimitOrderDTOv2,
+    RequestApiTradingDayTimesDTO,
+    RequestClientPreferenceKeyDTO,
+    RequestCorporateActionsDTO,
+    RequestIdentifierDTO,
+    RequestMarketPricesDTO,
+    RequestOrderRequestDTO,
+    RequestPreferenceDTO,
+    RequestTimestamp,
     SaveAlertRequestDTOv2,
     SaveAlertResponseDTOv2,
     SaveAllocationProfileRequestDTO,

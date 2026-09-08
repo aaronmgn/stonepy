@@ -1,0 +1,76 @@
+[
+  {
+    "name": "RootRequestDTO",
+    "properties": [
+      {
+        "name": "Child",
+        "type": "ChildDTO",
+        "ref": "ChildDTO"
+      },
+      {
+        "name": "Market",
+        "type": "MarketDTO",
+        "ref": "MarketDTO"
+      }
+    ]
+  },
+  {
+    "name": "ChildDTO",
+    "description": "Shared child.",
+    "properties": [
+      {
+        "name": "Leaf",
+        "type": "LeafDTO"
+      },
+      {
+        "name": "Peer",
+        "type": "PeerRequestDTO",
+        "ref": "PeerRequestDTO"
+      },
+      {
+        "name": "Password",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "LeafDTO",
+    "properties": [
+      {
+        "name": "Child",
+        "type": "ChildDTO"
+      },
+      {
+        "name": "Mode",
+        "type": "Mode",
+        "ref": "Mode"
+      }
+    ]
+  },
+  {
+    "name": "PeerRequestDTO",
+    "properties": []
+  },
+  {
+    "name": "MarketDTO",
+    "properties": [
+      {
+        "name": "MarketSpreads",
+        "type": "string"
+      }
+    ]
+  },
+  {
+    "name": "ApiMarketSpreadDTO",
+    "properties": []
+  },
+  {
+    "name": "Mode",
+    "properties": [
+      {
+        "name": "First",
+        "type": "1"
+      }
+    ]
+  }
+]

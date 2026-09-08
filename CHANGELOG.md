@@ -39,6 +39,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   checks use the single version source in `stonepy/_version.py`.
 - **BREAKING:** The internal `safe_repr` helper redacts mapping keys and uses ordinary repr for
   other objects; `ClientConfig` protects its secrets through dataclass field omission.
+- **BREAKING:** Request DTOs that embed shared DTOs now use strict `Request<Name>` variants;
+  unknown keys and tolerant instances in request positions raise `ValidationError`. Variant keys
+  must be the exact alias or Python name. The original tolerant DTOs remain available. Mappings:
+  `ApiClientAccountWatchlistDTO` -> `RequestApiClientAccountWatchlistDTO`,
+  `ApiClientAccountWatchlistItemDTO` -> `RequestApiClientAccountWatchlistItemDTO`,
+  `ApiClientPreferencesOverriddenSettingSaveDTO` -> `RequestApiClientPreferencesOverriddenSettingSaveDTO`,
+  `ApiClientPreferencesOverriddenSettingsSaveDTO` -> `RequestApiClientPreferencesOverriddenSettingsSaveDTO`,
+  `ApiClientPreferencesOverridenSettingSaveDTO` -> `RequestApiClientPreferencesOverridenSettingSaveDTO`,
+  `ApiClientPreferencesOverridenSettingsSaveDTO` -> `RequestApiClientPreferencesOverridenSettingsSaveDTO`,
+  `ApiDateTimeOffsetDTO` -> `RequestApiDateTimeOffsetDTO`,
+  `ApiFxFinancingDTO` -> `RequestApiFxFinancingDTO`,
+  `ApiIfDoneDTOv2` -> `RequestApiIfDoneDTOv2`,
+  `ApiKnockoutDTO` -> `RequestApiKnockoutDTO`,
+  `ApiMarketEodDTO` -> `RequestApiMarketEodDTO`,
+  `ApiMarketInformationDTOv2` -> `RequestApiMarketInformationDTOv2`,
+  `ApiMarketInformationSaveDTO` -> `RequestApiMarketInformationSaveDTO`,
+  `ApiMarketSpreadDTO` -> `RequestApiMarketSpreadDTO`,
+  `ApiStepMarginBandDTO` -> `RequestApiStepMarginBandDTO`,
+  `ApiStepMarginDTO` -> `RequestApiStepMarginDTO`,
+  `ApiStopLimitOrderDTOv2` -> `RequestApiStopLimitOrderDTOv2`,
+  `ApiTradingDayTimesDTO` -> `RequestApiTradingDayTimesDTO`,
+  `ClientPreferenceKeyDTO` -> `RequestClientPreferenceKeyDTO`,
+  `CorporateActionsDTO` -> `RequestCorporateActionsDTO`,
+  `IdentifierDTO` -> `RequestIdentifierDTO`,
+  `MarketPricesDTO` -> `RequestMarketPricesDTO`,
+  `OrderRequestDTO` -> `RequestOrderRequestDTO`,
+  `PreferenceDTO` -> `RequestPreferenceDTO`,
+  `Timestamp` -> `RequestTimestamp`.
 
 ### Removed
 
@@ -51,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual logon snapshots its validated request and commits its token and replay
   callback together. The callback survives logoff and is replaced only by a successful manual
   logon; failed refreshes leave session state intact and only successful refreshes coalesce.
+- Generator Ruff formatting is independent of the current working directory and uses the
+  source checkout's absolute project configuration.
+- `--allow-unfrozen-catalog` no longer silently skips override-consumption validation;
+  fixture and exploratory catalogs must explicitly pass `--skip-override-validation` to skip it.
+- Consistency lint validates override consumption and rejects missing or empty
+  resources directories; fixture catalogs can explicitly use `--skip-override-validation`.
+- Generated contract tests compare the first dump with independent expected values and assert
+  response-model identity, including list item and scalar wrapper types.
+- `ApiTradeOrderResponseDTO.Status` documentation names the instruction domain and distinguishes
+  nested order lifecycle status values.
 
 ### Security
 

@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import enum
 import inspect
+from pathlib import Path
 
 import pytest
 
 import stonepy
 import stonepy.models as models
 import stonepy.resources as resources
+from stonepy._core.models import RequestModel, RequestVariantModel, ResponseModel
 
 
 def _public_model_names() -> list[str]:
@@ -62,3 +64,16 @@ def test_resource_methods_are_documented() -> None:
 def test_public_package_symbols_have_docstrings(name: str) -> None:
     obj = getattr(stonepy, name)
     assert obj.__doc__ and obj.__doc__.strip(), f"stonepy.{name} is missing a docstring"
+
+
+def test_model_navigation_uses_model_roles() -> None:
+    for name in models.__all__:
+        obj = getattr(models, name)
+        if issubclass(obj, enum.Enum):
+            continue
+        assert issubclass(obj, RequestModel | ResponseModel)
+        if name.startswith("Request"):
+            assert issubclass(obj, RequestVariantModel)
+    source = (Path(__file__).parents[1] / "docs/gen_ref_pages.py").read_text()
+    assert "issubclass(obj, RequestModel)" in source
+    assert 'name.endswith("RequestDTO")' not in source
