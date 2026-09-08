@@ -6,13 +6,21 @@ DTO naming follows the upstream API:
 
 - endpoint request DTOs often end in `RequestDTO` or `RequestDTOv2`,
 - response DTOs often end in `ResponseDTO` or `ResponseDTOv2`,
-- shared DTOs have strict request-side twins named `Request<Name>`.
+- shared DTOs used in requests have strict request-side twins named `Request<Name>`.
 
-Because every model is fully typed, your editor autocompletes each field and `mypy` validates your
-payloads. Every model carries a description and per-field documentation sourced from the upstream
-API; the same prose feeds editor tooltips and each model's JSON schema (`model_json_schema()`).
+Model annotations support editor autocomplete and static checks; Pydantic performs runtime payload
+validation. See the [constructor typing notes](../installation.md#type-checking-pep-561) for current
+checker limitations. Generated DTOs carry descriptions and per-field documentation sourced from
+the upstream API; the same prose feeds editor tooltips and each model's JSON schema
+(`model_json_schema()`).
 
-Every model has its own page under [**All models**](../reference/models/), grouped into request
+`preference.delete_user_preference`, `preference.save_user_preference`, and `price_alert.save_pa`
+return `stonepy.UnspecifiedResponse` because their catalog records document no response body.
+Import it with `from stonepy import UnspecifiedResponse` for annotations or `isinstance()` checks.
+Empty bodies and JSON null produce an empty model; unexpected object fields are preserved in
+`model_extra`.
+
+Every generated DTO has its own page under [**All models**](../reference/models/), grouped into request
 models, response models, enums, and other models. A few common examples:
 
 ## Session
@@ -39,6 +47,18 @@ corresponding variant or supply a mapping, including when passing a request body
 Variants accept only the exact alias or Python field name (no case-insensitive remap). For example,
 `RequestApiStopLimitOrderDTOv2` accepts `TriggerPrice` and `trigger_price`, but rejects `triggerPrice`.
 Response models continue to accept case-insensitive keys and ignore unknown nested fields.
+
+To convert a tolerant instance you already hold, dump its aliases and validate the result:
+
+```python
+from stonepy.models import ApiIfDoneDTOv2, RequestApiIfDoneDTOv2
+
+existing = ApiIfDoneDTOv2.model_validate({"Stop": {"TriggerPrice": "1.25"}})
+request_if_done = RequestApiIfDoneDTOv2.model_validate(existing.model_dump(by_alias=True))
+```
+
+A dump cannot recover fields the tolerant parse already discarded. Rebuild from the original
+input when you need to detect or correct those fields before sending a request.
 
 | Original tolerant DTO | Strict request variant |
 | --- | --- |

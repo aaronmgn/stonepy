@@ -44,7 +44,7 @@ A normal install pulls in three small, well-established libraries:
 | Package | Constraint | Why it is needed |
 | --- | --- | --- |
 | [`httpx`](https://www.python-httpx.org/) | `>=0.27,<1.0` | HTTP transport for both the sync and async clients |
-| [`pydantic`](https://docs.pydantic.dev/) | `>=2.7,<3.0`; `>=2.12` on Python 3.14 | Typed request/response models (DTOs) and validation |
+| [`pydantic`](https://docs.pydantic.dev/) | `>=2.7,<3.0` on Python < 3.14; `>=2.12,<3.0` on Python >= 3.14 | Typed request/response models (DTOs) and validation |
 | [`simplejson`](https://simplejson.readthedocs.io/) | `>=3.19,<5.0` | JSON encoding/decoding |
 
 That is the entire footprint - there are no native build steps on platforms with a compatible
@@ -91,9 +91,9 @@ and the repository `pyproject.toml`; run it from a source checkout or editable i
 
 ## Type checking (PEP 561)
 
-`stonepy` is fully typed and ships a `py.typed` marker, so it is [PEP 561](https://peps.python.org/pep-0561/) compliant. The package is also flagged `Typing :: Typed` on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.
+`stonepy` ships annotations and a `py.typed` marker for [PEP 561](https://peps.python.org/pep-0561/) type discovery. The package is also flagged `Typing :: Typed` on PyPI. Type checkers pick up the bundled annotations automatically - no separate stub package is required.
 
-This means tools like `mypy` and `pyright` work out of the box:
+You can check consumer code with `mypy` or `pyright`:
 
 ```bash
 mypy your_script.py
@@ -106,9 +106,14 @@ Editor features such as autocomplete and inline type hints (in VS Code, PyCharm,
 Generated model constructors currently expose catalog aliases to mypy. Use aliases such as
 `UserName` when constructing DTOs in statically checked code; the equivalent snake_case names
 work at runtime but may be reported as unexpected keywords. Constructor typing across checkers
-remains under review.
+remains under review. The pyright CI job is advisory and currently reports 8 diagnostics;
+it is not a release gate.
+
+`ClientConfig.from_env()` exposes typed keyword overrides through `ClientConfigOverrides`.
+Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate
+their keys and values.
 
 ## Stability
 
 !!! warning "Pre-1.0 / alpha"
-    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.4.1`) if you need reproducible builds, and review the changelog before upgrading.
+    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.5.0`) if you need reproducible builds, and review the changelog before upgrading.

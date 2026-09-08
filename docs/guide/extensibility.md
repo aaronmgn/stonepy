@@ -45,14 +45,22 @@ with StoneXClient(ClientConfig(base_url="https://api.example")) as client:
 ```
 
 For an async resource, define `async def health` and use
-`return await self.call_context.ainvoke(_HEALTH)` with an `AsyncStoneXClient` context.
+`return await self.call_context.ainvoke(_HEALTH)`. Prefer reusing
+`AsyncStoneXClient.call_context`, which already supplies the async components and logon callback.
+If you assemble the context yourself, async invocation requires a transport with `asend()` and
+an `AsyncClock`-capable clock with `asleep()`. For a context using `AsyncSessionManager`, also
+provide an `alogon` callable that returns an awaitable: when refresh needs that callback,
+`alogon=None` raises `TypeError` instead of falling back to synchronous `logon`.
+Synchronous-only clocks or transports also raise `TypeError`; `ainvoke()` no longer falls back
+to synchronous invocation.
 
 The `call_context` properties are read-only references to mutable, shared call state. Reusing a
 client's context shares its authentication, rate limiter, retry policy, and transport. Complete
 resource calls before closing that client; constructing a resource does not transfer transport
 ownership. The `stonepy.extensions` module docstring also shows explicit `CallContext` construction.
 
-To migrate from entry-point plugins, remove the `stonepy.resources` entry-point registration,
+Entry-point plugin discovery and registration support have been removed. To migrate, remove
+the `stonepy.resources` entry-point registration,
 `enable_plugins`, `allow_overrides`, `requires_stonepy`, and `ABI_VERSION`, and replace
 `client.plugin("name")` with `MyResource(client.call_context)`.
 
