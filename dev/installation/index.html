@@ -9949,14 +9949,17 @@ such as <code>user_name</code> under both mypy and pyright. Use one naming conve
 mixing alias and snake_case keywords is still a static error, although it is valid at runtime.
 Aliases that cannot be Python keyword arguments, such as <code>"Price Tolerance"</code>, use the Python
 field name in either constructor signature. Both checkers enforce field types and required
-arguments. Pyright participates in the required aggregate CI check alongside mypy.</p>
+arguments. The required Python 3.12 typing job runs <code>pyright src tests</code>, model stubtest, and
+selected consumer typing cases. Strict mypy runs in the Python 3.11-3.14 test matrix. Separate
+stub/field parity tests check runtime fields and aliases; freshness against the private catalog
+is checked by the manual drift workflow.</p>
 <p><code>ClientConfig.from_env()</code> exposes typed keyword overrides through <code>ClientConfigOverrides</code>.
 Annotate dynamic override dictionaries with this exported TypedDict so checkers can validate
 their keys and values.</p>
 <h2 id="stability">Stability<a class="headerlink" href="#stability" title="Permanent link">&para;</a></h2>
 <div class="admonition warning">
 <p class="admonition-title">Pre-1.0 / alpha</p>
-<p><code>stonepy</code> is currently pre-1.0 (PyPI Development Status: <strong>3 - Alpha</strong>). The public API may change between releases. Pin a version (for example <code>stonepy==0.5.0</code>) if you need reproducible builds, and review the changelog before upgrading.</p>
+<p><code>stonepy</code> is currently pre-1.0 (PyPI Development Status: <strong>3 - Alpha</strong>). The public API may change between releases. Pin a version (for example <code>stonepy==0.6.0</code>) if you need reproducible builds, and review the changelog before upgrading.</p>
 </div>
 
 

@@ -10276,7 +10276,9 @@ validation rules below apply.</p>
 </div>
 <h2 id="validation">Validation<a class="headerlink" href="#validation" title="Permanent link">&para;</a></h2>
 <p><code>ClientConfig</code> validates on construction, including through <code>from_env()</code>. Invalid types raise
-builtin <code>TypeError</code>; invalid values raise builtin <code>ValueError</code>.</p>
+builtin <code>TypeError</code>; invalid values raise builtin <code>ValueError</code>.
+It remains a mutable dataclass and does not validate later field assignments. Request DTOs
+have separate <a href="../../api/models/#assignment-validation">assignment validation</a>.</p>
 <ul>
 <li><code>base_url</code> must be a non-blank string without surrounding whitespace, with an <code>http</code> or <code>https</code>
   scheme, a hostname, and no embedded username or password. An explicit port must be in <code>1..65535</code>.</li>

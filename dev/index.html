@@ -9809,8 +9809,9 @@ synchronous and asynchronous clients generated from the upstream API catalog.</p
 <ul>
 <li><strong>Typed models.</strong> Request and response DTO bodies are
   <a href="https://docs.pydantic.dev/">Pydantic</a> models; some methods take primitive parameters or return
-  bare scalars or lists. Your editor autocompletes model fields and type checkers can check your
-  calls, subject to the <a href="installation/#type-checking-pep-561">constructor typing limitations</a>.</li>
+  bare scalars or lists. Generated model stubs let mypy and pyright check snake_case or wire-alias
+  constructor keywords, subject to the
+  <a href="installation/#type-checking-pep-561">constructor typing limitations</a>.</li>
 <li><strong>Sync and async.</strong> Identical APIs on <code>StoneXClient</code> and <code>AsyncStoneXClient</code>.</li>
 <li><strong>Complete coverage.</strong> All 128 endpoints of the frozen catalog revision (<code>CATALOG_VERSION</code>)
   are bound, using the v2 variant of every endpoint that has one.</li>
@@ -9866,8 +9867,11 @@ and newer.</p>
 </div>
 </div>
 <p>Continue with the <a href="quickstart/">Quickstart</a>, or jump to the <a href="api/client/">API reference</a>.</p>
-<p>When upgrading, use the strict <code>Request&lt;Name&gt;</code> DTO variants for shared request data, replace
-entry-point plugins with explicitly constructed resources, and update deprecated resource names.
+<p>When upgrading, await async-session mutators in extension code and ensure request-field
+assignments pass validation. In-place edits to nested containers remain unguarded; see
+<a href="api/models/#assignment-validation">assignment validation</a>. If migrating from an older release,
+also use strict <code>Request&lt;Name&gt;</code> DTO variants for shared request data, replace entry-point plugins
+with explicitly constructed resources, and update deprecated resource names.
 See the <a href="api/models/#request-side-variants-of-shared-dtos">model migration notes</a>,
 <a href="guide/extensibility/">extensibility guide</a>, and <a href="changelog/">changelog</a> for details.</p>
 <h2 id="disclaimer">Disclaimer<a class="headerlink" href="#disclaimer" title="Permanent link">&para;</a></h2>

@@ -987,6 +987,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#assignment-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assignment validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#request-side-variants-of-shared-dtos" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9753,6 +9764,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#assignment-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assignment validation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#request-side-variants-of-shared-dtos" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -9805,7 +9827,7 @@ return <code>stonepy.UnspecifiedResponse</code> because their catalog records do
 Import it with <code>from stonepy import UnspecifiedResponse</code> for annotations or <code>isinstance()</code> checks.
 Empty bodies and JSON null produce an empty model; unexpected object fields are preserved in
 <code>model_extra</code>.</p>
-<p>Every generated DTO has its own page under <a href="../reference/models/"><strong>All models</strong></a>, grouped into request
+<p>Every generated DTO has its own page in the <strong>All models</strong> navigation section, grouped into request
 models, response models, enums, and other models. A few common examples:</p>
 <h2 id="session">Session<a class="headerlink" href="#session" title="Permanent link">&para;</a></h2>
 <ul>
@@ -9818,9 +9840,48 @@ models, response models, enums, and other models. A few common examples:</p>
 <li><a href="../../reference/models/NewStopLimitOrderRequestDTO/"><code>NewStopLimitOrderRequestDTO</code></a></li>
 <li><a href="../../reference/models/CancelOrderRequestDTO/"><code>CancelOrderRequestDTO</code></a></li>
 </ul>
+<h2 id="assignment-validation">Assignment validation<a class="headerlink" href="#assignment-validation" title="Permanent link">&para;</a></h2>
+<p>Request DTOs remain mutable, but direct field assignments now run Pydantic validation.
+Invalid values raise <code>ValidationError</code> immediately; accepted values may be coerced using the
+same field rules as construction. To migrate, assign valid values at each step instead of
+temporarily storing invalid values for later correction or server validation. Valid assignments,
+including to previously unset fields, are included when the request is serialized.
+Literal wrong-typed assignments to typed DTOs were already mypy errors before this release;
+focus the runtime audit on dynamically supplied values, <code>Any</code>, unchecked code, and suppressed
+diagnostics. Assigning an unknown attribute now raises <code>ValidationError</code> with error type
+<code>no_such_attribute</code>, replacing the previous plain <code>ValueError</code> and its message; <code>except ValueError</code>
+still catches it, but exact exception-type checks and message matching must be updated.</p>
+<p>Every nested model reachable from the shipped request DTOs validates its own field assignments.
+For example, assigning an invalid <code>market_id</code> on a watchlist item raises <code>ValidationError</code>.
+In-place container edits such as <code>request.watchlist.items.append(...)</code> are not intercepted.
+Replace the list through its field when you need its new contents validated.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">RequestApiClientAccountWatchlistItemDTO</span><span class="p">,</span> <span class="n">SaveWatchlistRequestDTO</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">request</span> <span class="o">=</span> <span class="n">SaveWatchlistRequestDTO</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="p">{</span><span class="s2">"ClientAccountId"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"Watchlist"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"Items"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"MarketId"</span><span class="p">:</span> <span class="mi">7</span><span class="p">}]}}</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="p">)</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="n">new_items</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">items</span> <span class="ow">or</span> <span class="p">[])</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="n">new_items</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RequestApiClientAccountWatchlistItemDTO</span><span class="p">(</span><span class="n">market_id</span><span class="o">=</span><span class="mi">8</span><span class="p">))</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">request</span><span class="o">.</span><span class="n">watchlist</span><span class="o">.</span><span class="n">items</span> <span class="o">=</span> <span class="n">new_items</span>
+</code></pre></div>
+<p>Reassigning an existing DTO instance, including an item in a replacement list, does not deeply
+revalidate its internals. Other ways to bypass validation include <code>model_copy(update=...)</code> and
+direct <code>__dict__</code> writes. For validated updates, pass a plain mapping containing nested mappings
+and lists to <code>model_validate(...)</code>, rather than an existing DTO instance:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">data</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s2">"python"</span><span class="p">,</span> <span class="n">by_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">data</span><span class="p">[</span><span class="s2">"ClientAccountId"</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">request</span> <span class="o">=</span> <span class="n">SaveWatchlistRequestDTO</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div>
+<p>Here the dump converts the existing DTO tree to plain data before the updated data is validated.
+When auditing data already changed through a validation bypass, prefer rebuilding from the
+original input mapping; serialization of invalid model contents can warn or fail.</p>
+<p>An extension-defined nested model must enable assignment validation in its own configuration;
+its parent cannot intercept writes to that model's fields. Request submission does not deeply
+revalidate existing model instances. Response models do not gain assignment validation.</p>
 <h2 id="request-side-variants-of-shared-dtos">Request-side variants of shared DTOs<a class="headerlink" href="#request-side-variants-of-shared-dtos" title="Permanent link">&para;</a></h2>
 <p>Request roots subclass <code>RequestModel</code> and reject unknown fields. Shared nested DTOs use
-<code>RequestVariantModel</code> twins so request validation stays strict at every nesting level. Their
+<code>RequestVariantModel</code> twins so construction and direct field assignment reject unknown fields
+at every nesting level, subject to the validation bypasses above. Their
 original <code>ResponseModel</code> classes remain tolerant and retain their names, aliases, defaults,
 field documentation, and secret-field representation settings. Variants preserve those field
 settings and all-optional defaults while rejecting unknown keys with <code>ValidationError</code>.</p>
@@ -9830,10 +9891,10 @@ Variants accept only the exact alias or Python field name (no case-insensitive r
 <code>RequestApiStopLimitOrderDTOv2</code> accepts <code>TriggerPrice</code> and <code>trigger_price</code>, but rejects <code>triggerPrice</code>.
 Response models continue to accept case-insensitive keys and ignore unknown nested fields.</p>
 <p>To convert a tolerant instance you already hold, dump its aliases and validate the result:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApiIfDoneDTOv2</span><span class="p">,</span> <span class="n">RequestApiIfDoneDTOv2</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">existing</span> <span class="o">=</span> <span class="n">ApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">({</span><span class="s2">"Stop"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"TriggerPrice"</span><span class="p">:</span> <span class="s2">"1.25"</span><span class="p">}})</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">request_if_done</span> <span class="o">=</span> <span class="n">RequestApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">by_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stonepy.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ApiIfDoneDTOv2</span><span class="p">,</span> <span class="n">RequestApiIfDoneDTOv2</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">existing</span> <span class="o">=</span> <span class="n">ApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">({</span><span class="s2">"Stop"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"TriggerPrice"</span><span class="p">:</span> <span class="s2">"1.25"</span><span class="p">}})</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">request_if_done</span> <span class="o">=</span> <span class="n">RequestApiIfDoneDTOv2</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">existing</span><span class="o">.</span><span class="n">model_dump</span><span class="p">(</span><span class="n">by_alias</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
 </code></pre></div>
 <p>A dump cannot recover fields the tolerant parse already discarded. Rebuild from the original
 input when you need to detect or correct those fields before sending a request.</p>
