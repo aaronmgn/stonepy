@@ -20,6 +20,7 @@ REVIEW_*_CODEX.md
 REVIEW_*_CLAUDE.md
 IMPLEMENTATION_PLAN_*.md
 TASK_NOTES*.md
+HANDOFF_*.md
 
 .uv-cache/
 .superpowers/

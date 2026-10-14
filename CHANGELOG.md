@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-14
+
+Maintenance release. The library source and the supported dependency ranges did not change.
+
+### Changed
+
+- The locked dependencies were refreshed. The test suite now runs against `simplejson` 4.2.0,
+  which the existing `>=3.19,<5.0` range already allowed. The development tools are now ruff
+  0.16.10, mypy 2.4.0, pyright 1.1.414, and `types-simplejson` 4.2.0.20261006.
+- The workflows now use `astral-sh/setup-uv` v10.2.0, `actions/upload-artifact` v7.0.2, and
+  `actions/download-artifact` v8.0.2.
+
 ## [0.6.0] - 2026-09-08
 
 Async session updates are safer, request fields are checked when reassigned, and concurrent
@@ -595,7 +607,8 @@ resource renames are listed below.
 - Generated endpoint bindings, DTO models, synchronous and asynchronous clients, retry handling,
   rate-limit handling, and typed resource groups.
 
-[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/aaronmgn/stonepy/compare/v0.6.1...HEAD
+[0.6.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.6.1
 [0.6.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.6.0
 [0.5.0]: https://github.com/aaronmgn/stonepy/releases/tag/v0.5.0
 [0.4.1]: https://github.com/aaronmgn/stonepy/releases/tag/v0.4.1

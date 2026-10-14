@@ -120,4 +120,4 @@ their keys and values.
 ## Stability
 
 !!! warning "Pre-1.0 / alpha"
-    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.6.0`) if you need reproducible builds, and review the changelog before upgrading.
+    `stonepy` is currently pre-1.0 (PyPI Development Status: **3 - Alpha**). The public API may change between releases. Pin a version (for example `stonepy==0.6.1`) if you need reproducible builds, and review the changelog before upgrading.
